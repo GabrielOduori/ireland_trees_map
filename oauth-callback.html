@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Signing in...</title>
+  <script type="module" src="https://js.arcgis.com/5.0/"></script>
+</head>
+<body>
+  <script type="module">
+    const IdentityManager = await $arcgis.import("@arcgis/core/identity/IdentityManager.js");
+    IdentityManager.setOAuthResponseHash(location.hash);
+  </script>
+</body>
+</html>

@@ -1,0 +1,971 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Ireland Trees Map</title>
+    <link rel="icon" href="data:;base64,=" />
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      #appHeader {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 52px;
+        z-index: 20;
+        background: #1b5e20;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        gap: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+
+      #basemapBtn {
+        position: absolute;
+        top: 62px;
+        left: 10px;
+        z-index: 20;
+        padding: 6px 12px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      }
+
+      #basemapBtn:hover { background: #f0f0f0; }
+
+      /* Map overlay containers */
+      #basemapPanel {
+        position: absolute;
+        top: 104px;
+        left: 10px;
+        z-index: 15;
+        display: none;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+      }
+
+      #scaleBarPanel {
+        position: absolute;
+        bottom: 24px;
+        left: 10px;
+        z-index: 15;
+      }
+
+      #insetMap {
+        position: absolute;
+        bottom: 56px;
+        left: 10px;
+        width: 150px;
+        height: 115px;
+        z-index: 15;
+        border: 2px solid #bbb;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        overflow: hidden;
+        cursor: crosshair;
+      }
+
+      #customLegend {
+        position: absolute;
+        bottom: 179px;
+        left: 10px;
+        z-index: 15;
+        background: rgba(255,255,255,0.95);
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+      }
+
+      .legend-row:last-child { margin-bottom: 0; }
+
+      .legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      .swatch-ft  { background: rgba(0, 180, 0, 0.8); }
+      .swatch-tof { background: rgba(180, 0, 180, 0.8); }
+
+      #nationalSummary {
+        padding: 4px 16px 10px;
+        font-size: 12px;
+        color: #555;
+        border-top: 1px solid #eee;
+      }
+
+      #zoomLevelPanel {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 15;
+        background: white;
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      }
+
+      #homeBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 0;
+        color: #fff;
+      }
+
+      #homeBtn:hover { background: rgba(255,255,255,0.25); }
+      #homeBtn svg { width: 16px; height: 16px; fill: currentColor; }
+
+      #appLogo {
+        font-size: 22px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+
+      #appTitleGroup {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      #appTitle {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.2px;
+      }
+
+      #appSubtitle {
+        font-size: 11px;
+        color: rgba(255,255,255,0.7);
+      }
+
+      #headerSearch {
+        margin-left: auto;
+        min-width: 260px;
+      }
+
+      #headerSearch .esri-search__input {
+        border-radius: 4px;
+      }
+
+      #sidePanelWrapper {
+        position: absolute;
+        top: 52px; right: 0; bottom: 0;
+        z-index: 10;
+        transition: transform 0.3s ease;
+      }
+
+      #sidePanelWrapper.collapsed {
+        transform: translateX(100%);
+      }
+
+      #countyPanel {
+        width: fit-content;
+        min-width: 220px;
+        max-width: 400px;
+        height: 100%;
+        overflow-y: auto;
+        background: white;
+        box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+      }
+
+      #collapseBtn {
+        position: absolute;
+        left: -28px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 28px;
+        height: 52px;
+        background: #1b5e20;
+        border: none;
+        border-radius: 4px 0 0 4px;
+        cursor: pointer;
+        color: white;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: -2px 2px 6px rgba(0,0,0,0.25);
+        z-index: 11;
+      }
+
+      #collapseBtn:hover { background: #2e7d32; }
+
+      #panelHeader {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      #countyPanel h2 {
+        margin: 0;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+
+      #countyStatus {
+        padding: 8px 16px;
+        font-size: 13px;
+        color: #555;
+        border-top: 1px solid #eee;
+        min-height: 34px;
+      }
+
+      #chartContainer {
+        display: none;
+        padding: 8px 16px 12px;
+        border-top: 1px solid #eee;
+      }
+
+      #chartContainer svg {
+        display: block;
+        max-width: 90px;
+        margin: 0 auto;
+      }
+
+      #chartContainer.active {
+        display: block;
+      }
+
+      #extraStats {
+        display: none;
+        padding: 6px 16px 10px;
+        font-size: 12px;
+        color: #555;
+        border-top: 1px solid #eee;
+      }
+
+      #extraStats.active {
+        display: block;
+      }
+
+      #extraStats table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      #extraStats td {
+        padding: 2px 4px;
+      }
+
+      #extraStats td:last-child {
+        text-align: right;
+        font-weight: 600;
+        color: #333;
+      }
+
+      #countyList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      #countyList li {
+        cursor: pointer;
+        padding: 10px 16px;
+        border-bottom: 1px solid #eee;
+        border-left: 4px solid transparent;
+        font-size: 13px;
+        font-weight: normal;
+        transition: background 0.15s;
+      }
+
+      #countyList li:hover { background: #f7f7f7; }
+
+      #countyList li.active {
+        background: #e8f4e8;
+        border-left-color: #2e7d32;
+      }
+
+      .county-name {
+        display: block;
+      }
+
+      .county-bar-wrap {
+        display: flex;
+        height: 10px;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      .county-bar-ft {
+        background: rgba(0, 180, 0, 0.8);
+        flex-shrink: 0;
+      }
+
+      .county-bar-tof {
+        background: rgba(180, 0, 180, 0.8);
+        flex-shrink: 0;
+      }
+
+      .county-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #666;
+        font-weight: 400;
+        margin-top: 2px;
+      }
+
+      #viewDiv {
+        position: absolute;
+        top: 52px; left: 0; right: 0; bottom: 0;
+      }
+
+    </style>
+    <script type="module" src="https://js.arcgis.com/5.0/"></script>
+  </head>
+
+  <body>
+    <div id="appHeader">
+      <button id="homeBtn" title="Go to default extent" aria-label="Go to default extent">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1L1 7v8h5V9h4v6h5V7z"/>
+        </svg>
+      </button>
+      <span id="appLogo">🌳</span>
+      <div id="appTitleGroup">
+        <span id="appTitle">Ireland Trees Map</span>
+        <span id="appSubtitle">Forest Trees &amp; Trees Outside Forests by County</span>
+      </div>
+      <div id="headerSearch"></div>
+    </div>
+
+    <!-- Map overlay widgets -->
+    <button id="basemapBtn" title="Change basemap">&#9776; Basemaps</button>
+    <div id="basemapPanel"></div>
+    <div id="scaleBarPanel"></div>
+    <div id="zoomLevelPanel"></div>
+    <div id="insetMap"></div>
+    <div id="customLegend">
+      <div class="legend-row"><span class="legend-swatch swatch-ft"></span><span class="legend-lbl">Forest Trees</span></div>
+      <div class="legend-row"><span class="legend-swatch swatch-tof"></span><span class="legend-lbl">Trees Outside Forests</span></div>
+    </div>
+
+    <div id="sidePanelWrapper">
+      <button id="collapseBtn" title="Toggle panel" aria-label="Toggle panel">&#8250;</button>
+      <div id="countyPanel">
+        <div id="panelHeader">
+          <h2>County</h2>
+          <div id="nationalSummary"></div>
+          <div id="countyStatus"></div>
+          <div id="chartContainer"></div>
+          <div id="extraStats"></div>
+        </div>
+        <ul id="countyList"></ul>
+      </div>
+    </div>
+
+    <div id="viewDiv"></div>
+  </body>
+
+  <script type="module">
+    const esriConfig      = await $arcgis.import("@arcgis/core/config.js");
+    const OAuthInfo       = await $arcgis.import("@arcgis/core/identity/OAuthInfo.js");
+    const IdentityManager = await $arcgis.import("@arcgis/core/identity/IdentityManager.js");
+
+    const oauthInfo = new OAuthInfo({
+      appId: "kFUn536hUuPPT3jQ",
+      popup: false
+    });
+    IdentityManager.registerOAuthInfos([oauthInfo]);
+
+    // Reuse existing session silently; redirect to sign-in only if needed
+    let _cred;
+    try {
+      _cred = await IdentityManager.checkSignInStatus("https://www.arcgis.com/sharing");
+    } catch (_) {
+      _cred = await IdentityManager.getCredential("https://www.arcgis.com/sharing");
+    }
+
+    // Explicitly register the portal credential for the tile CDN so VTL requests are authenticated
+    if (_cred) {
+      try {
+        IdentityManager.registerToken({
+          server:  "https://tiles-eu1.arcgis.com",
+          token:   _cred.token,
+          expires: _cred.expires,
+          ssl:     true,
+          userId:  _cred.userId
+        });
+      } catch (_) {}
+    }
+
+    const SimpleFillSymbol   = await $arcgis.import("@arcgis/core/symbols/SimpleFillSymbol.js");
+    const UniqueValueRenderer = await $arcgis.import("@arcgis/core/renderers/UniqueValueRenderer.js");
+    const geometryEngine     = await $arcgis.import("@arcgis/core/geometry/geometryEngine.js");
+    const Polygon            = await $arcgis.import("@arcgis/core/geometry/Polygon.js");
+    const Map               = await $arcgis.import("@arcgis/core/Map.js");
+    const MapView           = await $arcgis.import("@arcgis/core/views/MapView.js");
+    const Search            = await $arcgis.import("@arcgis/core/widgets/Search.js");
+    const ScaleBar          = await $arcgis.import("@arcgis/core/widgets/ScaleBar.js");
+    const BasemapGallery    = await $arcgis.import("@arcgis/core/widgets/BasemapGallery.js");
+    const FeatureLayer      = await $arcgis.import("@arcgis/core/layers/FeatureLayer.js");
+    const GraphicsLayer     = await $arcgis.import("@arcgis/core/layers/GraphicsLayer.js");
+    const Graphic           = await $arcgis.import("@arcgis/core/Graphic.js");
+    const VectorTileLayer   = await $arcgis.import("@arcgis/core/layers/VectorTileLayer.js");
+    const Portal            = await $arcgis.import("@arcgis/core/portal/Portal.js");
+    const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
+
+    // ── Discover published county crown layers from ArcGIS Online ──────────
+    let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
+    let crownTileLayerMap = {};   // Vector Tile Layer item IDs (overview, all scales)
+    let countyStatsMap    = {};   // pre-computed FT/TOF counts — no live stats queries needed
+
+    try {
+      const portal = new Portal({ url: "https://www.arcgis.com" });
+      await portal.load();
+
+      const [crownItems, tileItems] = await Promise.all([
+        portal.queryItems(new PortalQueryParams({
+          query: 'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"',
+          num: 50, sortField: "title", sortOrder: "asc"
+        })),
+        portal.queryItems(new PortalQueryParams({
+          query: 'tags:"IrelandsTREEMAP" AND type:"Vector Tile Service" AND title:"Ireland_Trees_Crowns_VTL"',
+          num: 50, sortField: "title", sortOrder: "asc"
+        }))
+      ]);
+
+      crownItems.results.forEach(item => {
+        const county = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
+        crownLayerMap[county] = item.id;
+      });
+      tileItems.results.forEach(item => {
+        const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
+        crownTileLayerMap[county] = item.id;
+      });
+    } catch (e) {
+      console.warn("Crown layer discovery failed:", e);
+    }
+
+    // Pre-computed stats — served as a static file, no query against the layer
+    try {
+      const resp = await fetch("./county_stats.json");
+      if (resp.ok) countyStatsMap = await resp.json();
+    } catch (e) {
+      console.warn("county_stats.json not found — pie charts will be empty:", e);
+    }
+
+    {
+      const allVals  = Object.values(countyStatsMap);
+      const total    = allVals.reduce((s, c) => s + (c.ft || 0) + (c.tof || 0), 0);
+      const pubCount = allVals.length;
+      if (total > 0) {
+        const el = document.getElementById("nationalSummary");
+        if (el) el.textContent = `${total.toLocaleString()} trees · ${pubCount} of 26 counties`;
+      }
+    }
+
+    // Shared renderer for crown polygon layers (uses renamed field tree_class).
+    // Colours from docs/deployment/symbology_tips.txt Part 2.
+    // 40% transparency = alpha 0.6.
+    const crownRenderer = new UniqueValueRenderer({
+      field: "tree_class",
+      uniqueValueInfos: [
+        {
+          value: "ft",
+          symbol: new SimpleFillSymbol({
+            color: [0, 255, 0, 0.6],
+            outline: { color: [0, 255, 0, 0.6], width: 0.5 }
+          }),
+          label: "Forest Trees"
+        },
+        {
+          value: "tof",
+          symbol: new SimpleFillSymbol({
+            color: [255, 0, 255, 0.6],
+            outline: { color: [255, 0, 255, 0.6], width: 0.5 }
+          }),
+          label: "Trees Outside Forests"
+        }
+      ],
+      defaultSymbol: null,
+      defaultLabel: ""
+    });
+
+    const crownPopupTemplate = {
+      title: "Tree Crown — {county}",
+      content: "<table style='width:100%;border-collapse:collapse;font-size:13px'>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Type</td><td style='padding:3px 6px;font-weight:600'>{tree_class}</td></tr>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Tree ID</td><td style='padding:3px 6px'>{ntm_id}</td></tr>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Mean Height</td><td style='padding:3px 6px'>{height_m} m</td></tr>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Max Height</td><td style='padding:3px 6px'>{max_height_m} m</td></tr>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Crown Area</td><td style='padding:3px 6px'>{crown_area_m2} m²</td></tr>"
+             + "<tr><td style='padding:3px 6px;color:#666'>Perimeter</td><td style='padding:3px 6px'>{perimeter} m</td></tr>"
+             + "</table>"
+    };
+
+    const map = new Map({ basemap: "streets-vector" });
+
+    const vectorTileBaseUrl = "https://tiles-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/";
+    const groupServiceNames = [
+      "group_01_4800k",
+      "group_02_4773k_MATCH01",
+      "group_03_4927k_MATCH01",
+      "group_04_4981k_MATCH01",
+      "group_05_4844k_MATCH01",
+      "group_06_4895k_MATCH01",
+      "group_07_4914k_MATCH01",
+      "group_08_4980k_MATCH01",
+      "group_09_4903k_MATCH01",
+      "group_10_4820k_MATCH01",
+      "group_11_4854k_MATCH01",
+      "group_12_4791k_MATCH01",
+      "group_13_4818k_MATCH01",
+      "group_14_4760k_MATCH01",
+      "group_15_4612k_MATCH01",
+      "group_16_4874k_MATCH01",
+      "group_17_4602k_MATCH01",
+      "group_18_4713k_MATCH01",
+      "group_19_4846k_MATCH01",
+      "group_20_4832k_MATCH01",
+      "group_21_4984k_MATCH01",
+      "group_22_4882k_MATCH01",
+      "group_23_4836k_MATCH01",
+      "group_24_4971k_MATCH01",
+      "group_25_4930k_MATCH01",
+      "group_26_4840k_MATCH01",
+      "group_27_4817k_MATCH01",
+      "group_28_2212k_MATCH01",
+    ];
+
+    const vectorTileLayers = groupServiceNames.map(name => {
+      const layer = new VectorTileLayer({
+        url: `${vectorTileBaseUrl}${name}/VectorTileServer`
+      });
+      map.add(layer);
+      return layer;
+    });
+
+    const countyLayer = new FeatureLayer({
+      url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
+      outFields: ["COUNTY", "ENGLISH"],
+      visible: false
+    });
+
+    const countyOutlineLayer = new GraphicsLayer();
+    const countyOutlineSymbol = new SimpleFillSymbol({
+      color: [0, 0, 0, 0],
+      outline: { color: [255, 200, 0, 255], width: 2.5 }
+    });
+
+    map.add(countyOutlineLayer);
+
+    const view = new MapView({
+      container: "viewDiv",
+      map: map,
+      center: [-8, 53],
+      zoom: 7
+    });
+
+    // ── Inset overview map ───────────────────────────────────────────────
+    const insetMapObj      = new Map({ basemap: "gray-vector" });
+    const insetExtentLayer = new GraphicsLayer();
+    insetMapObj.add(insetExtentLayer);
+    const insetView = new MapView({
+      container: "insetMap",
+      map: insetMapObj,
+      center: [-8, 53.5],
+      zoom: 5,
+      ui: { components: [] }
+    });
+    const insetExtentSymbol = new SimpleFillSymbol({
+      color: [255, 100, 0, 0.12],
+      outline: { color: [255, 100, 0, 0.9], width: 1.5 }
+    });
+    view.watch("extent", extent => {
+      insetExtentLayer.removeAll();
+      if (extent) {
+        const { xmin, ymin, xmax, ymax, spatialReference } = extent;
+        insetExtentLayer.add(new Graphic({
+          geometry: {
+            type: "polygon",
+            rings: [[[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax], [xmin, ymin]]],
+            spatialReference
+          },
+          symbol: insetExtentSymbol
+        }));
+      }
+    });
+    insetView.on("click", event => {
+      view.goTo({ center: event.mapPoint, zoom: view.zoom });
+    });
+
+    view.when(() => {
+      const countyStatus   = document.getElementById("countyStatus");
+      const countyList     = document.getElementById("countyList");
+      const chartContainer = document.getElementById("chartContainer");
+      const extraStats     = document.getElementById("extraStats");
+      const countyPanel    = document.getElementById("countyPanel");
+      let activeItem           = null;
+      let activeCrownLayer     = null;
+      let activeCrownTileLayer = null;
+      let panelCollapsed       = false;
+
+      // ── view.padding tells ArcGIS the panel obscures the right side,
+      //    so all UI widgets are placed in the visible map area ──────────────
+      function updateViewPadding() {
+        view.padding = { right: panelCollapsed ? 0 : countyPanel.offsetWidth };
+      }
+      updateViewPadding();
+      new ResizeObserver(updateViewPadding).observe(countyPanel);
+
+      // ── Panel collapse toggle ─────────────────────────────────────────────
+      const collapseBtn = document.getElementById("collapseBtn");
+      const sidePanelWrapper = document.getElementById("sidePanelWrapper");
+      collapseBtn.addEventListener("click", () => {
+        panelCollapsed = !panelCollapsed;
+        sidePanelWrapper.classList.toggle("collapsed", panelCollapsed);
+        collapseBtn.innerHTML = panelCollapsed ? "&#8249;" : "&#8250;";
+        updateViewPadding();
+      });
+
+      // ── Home button (in header — always visible) ─────────────────────────
+      document.getElementById("homeBtn").addEventListener("click", goHome);
+
+      // ── Search (rendered inside header div) ──────────────────────────────
+      const search = new Search({
+        view,
+        container: "headerSearch",
+        popupEnabled: false,
+        placeholder: "Search by address or Eircode..."
+      });
+
+      // ── Map widgets (rendered in HTML containers — not view.ui.add) ─────────
+      const basemapGallery = new BasemapGallery({ view, container: "basemapPanel" });
+      document.getElementById("basemapBtn").addEventListener("click", () => {
+        const p = document.getElementById("basemapPanel");
+        p.style.display = p.style.display === "block" ? "none" : "block";
+      });
+
+      const scaleBar = new ScaleBar({ view, unit: "metric", container: "scaleBarPanel" });
+
+      const zoomLevelPanel = document.getElementById("zoomLevelPanel");
+      view.watch("zoom", z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; });
+
+      // ── Security: escape SQL string values ───────────────────────────────
+      function escapeSql(value) {
+        return value.replace(/'/g, "''");
+      }
+
+      function clearActiveCounty() {
+        if (activeItem) {
+          activeItem.classList.remove("active");
+          activeItem = null;
+        }
+        if (activeCrownTileLayer) {
+          map.remove(activeCrownTileLayer);
+          activeCrownTileLayer = null;
+        }
+        countyOutlineLayer.removeAll();
+      }
+
+      // ── Pie chart (SVG, DOM-built — no innerHTML for data) ───────────────
+      function drawPieChart(ftCount, tofCount) {
+        chartContainer.classList.remove("active");
+        chartContainer.innerHTML = "";
+        const total = ftCount + tofCount;
+        if (total === 0) return;
+
+        const ftPct  = (ftCount  / total * 100).toFixed(1);
+        const tofPct = (tofCount / total * 100).toFixed(1);
+        const cx = 45, cy = 45, r = 40;
+
+        function ptAt(angle, radius) {
+          const rad = (angle - 90) * Math.PI / 180;
+          return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
+        }
+
+        const ns = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(ns, "svg");
+        svg.setAttribute("viewBox", "0 0 90 90");
+        svg.setAttribute("width", "100%");
+
+        function addSlice(startAngle, endAngle, fill) {
+          if (Math.abs(endAngle - startAngle) >= 359.99) {
+            const c = document.createElementNS(ns, "circle");
+            c.setAttribute("cx", cx); c.setAttribute("cy", cy);
+            c.setAttribute("r", r);   c.setAttribute("fill", fill);
+            svg.appendChild(c);
+            return;
+          }
+          const [x1, y1] = ptAt(startAngle, r);
+          const [x2, y2] = ptAt(endAngle, r);
+          const large = endAngle - startAngle > 180 ? 1 : 0;
+          const p = document.createElementNS(ns, "path");
+          p.setAttribute("d", `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`);
+          p.setAttribute("fill", fill);
+          svg.appendChild(p);
+        }
+
+        function addPctLabel(midAngle, pct) {
+          if (parseFloat(pct) < 8) return;
+          const [x, y] = ptAt(midAngle, r * 0.62);
+          const t = document.createElementNS(ns, "text");
+          t.setAttribute("x", x);
+          t.setAttribute("y", y);
+          t.setAttribute("text-anchor", "middle");
+          t.setAttribute("dominant-baseline", "central");
+          t.setAttribute("font-size", "10");
+          t.setAttribute("font-weight", "700");
+          t.setAttribute("fill", "white");
+          t.textContent = `${pct}%`;
+          svg.appendChild(t);
+        }
+
+        const ftAngle = (ftCount / total) * 360;
+        addSlice(0, ftAngle, "rgba(0,200,0,0.85)");
+        addSlice(ftAngle, 360, "rgba(200,0,200,0.85)");
+        addPctLabel(ftAngle / 2, ftPct);
+        addPctLabel(ftAngle + (360 - ftAngle) / 2, tofPct);
+
+        chartContainer.appendChild(svg);
+        chartContainer.classList.add("active");
+      }
+
+      function drawExtraStats(stats) {
+        extraStats.innerHTML = "";
+        const rows = [];
+        if (stats.max_height_m      != null) rows.push(["Tallest tree",    `${stats.max_height_m} m`]);
+        if (stats.max_crown_area_m2 != null) rows.push(["Largest crown",   `${stats.max_crown_area_m2.toLocaleString()} m²`]);
+        if (rows.length === 0) { extraStats.classList.remove("active"); return; }
+        const table = document.createElement("table");
+        rows.forEach(([label, value]) => {
+          const tr = document.createElement("tr");
+          const td1 = document.createElement("td"); td1.textContent = label;
+          const td2 = document.createElement("td"); td2.textContent = value;
+          tr.appendChild(td1); tr.appendChild(td2);
+          table.appendChild(tr);
+        });
+        extraStats.appendChild(table);
+        extraStats.classList.add("active");
+      }
+
+      // ── Activate a county ────────────────────────────────────────────────
+      function activateCounty(name, countyFeature, listItem) {
+        clearActiveCounty();
+        if (listItem) {
+          activeItem = listItem;
+          listItem.classList.add("active");
+        }
+
+        countyStatus.textContent = `Loading ${name}...`;
+        vectorTileLayers.forEach(l => l.visible = false);
+
+        // Remove previous per-county layers
+        if (activeCrownLayer) {
+          map.remove(activeCrownLayer);
+          activeCrownLayer = null;
+        }
+
+        const crownItemId     = crownLayerMap[name.toUpperCase()];
+        const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
+
+        // Load Vector Tile Layer first — visible at all scales, no popups
+        if (crownTileItemId) {
+          activeCrownTileLayer = new VectorTileLayer({
+            portalItem: { id: crownTileItemId },
+            maxScale: 25000   // hands off to feature layer when zoomed past 1:25,000
+          });
+          map.add(activeCrownTileLayer);
+        }
+
+        if (crownItemId) {
+          // Use the published per-county crown polygon layer
+          activeCrownLayer = new FeatureLayer({
+            portalItem: { id: crownItemId },
+            outFields: ["county", "tree_class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "perimeter"],
+            renderer: crownRenderer,
+            minScale: 25000,
+            maxScale: 0
+          });
+          // Set popupTemplate after portal metadata loads so it isn't overwritten
+          activeCrownLayer.when(() => {
+            activeCrownLayer.popupTemplate = crownPopupTemplate;
+          });
+          map.add(activeCrownLayer);
+
+          // Use pre-computed stats — statistics queries are disabled on the layer
+          const stats    = countyStatsMap[name.toUpperCase()] || {};
+          const ftCount  = stats.ft  || 0;
+          const tofCount = stats.tof || 0;
+          const total    = ftCount + tofCount;
+          countyStatus.textContent = total === 0
+            ? `${name}: crown data loading...`
+            : `${name}: ${total.toLocaleString()} trees — zoom in to see crowns`;
+          drawPieChart(ftCount, tofCount);
+          drawExtraStats(stats);
+
+        } else {
+          countyStatus.textContent = `${name}: crown data not yet published`;
+          drawPieChart(0, 0);
+        }
+
+        if (countyFeature?.geometry) {
+          countyOutlineLayer.add(new Graphic({
+            geometry: countyFeature.geometry,
+            symbol: countyOutlineSymbol
+          }));
+
+          // Mask: large WGS84 bounding box minus the county = dimmed surround
+          try {
+            const outerBox = new Polygon({
+              rings: [[[-25, 45], [10, 45], [10, 60], [-25, 60], [-25, 45]]],
+              spatialReference: { wkid: 4326 }
+            });
+            const maskGeom = geometryEngine.difference(outerBox, countyFeature.geometry);
+            if (maskGeom) {
+              countyOutlineLayer.add(new Graphic({
+                geometry: maskGeom,
+                symbol: new SimpleFillSymbol({ color: [20, 20, 20, 0.45], outline: null })
+              }));
+            }
+          } catch (_) {}
+
+          view.goTo(countyFeature.geometry.extent || countyFeature.geometry).catch(() => {});
+        }
+      }
+
+      // ── Home ─────────────────────────────────────────────────────────────
+      function goHome() {
+        view.goTo({ center: [-8, 53], zoom: 7 });
+        vectorTileLayers.forEach(l => l.visible = true);
+        if (activeCrownLayer) {
+          map.remove(activeCrownLayer);
+          activeCrownLayer = null;
+        }
+        clearActiveCounty();
+        countyStatus.textContent = "";
+        chartContainer.classList.remove("active");
+        chartContainer.innerHTML = "";
+        extraStats.classList.remove("active");
+        extraStats.innerHTML = "";
+      }
+
+      // ── Eircode / address search ─────────────────────────────────────────
+      search.on("select-result", async (event) => {
+        const geometry = event.result?.feature?.geometry;
+        if (!geometry) return;
+        try {
+          const result = await countyLayer.queryFeatures({
+            geometry,
+            spatialRelationship: "intersects",
+            outFields: ["COUNTY", "ENGLISH"],
+            returnGeometry: true,
+            outSpatialReference: { wkid: 4326 }
+          });
+          if (result.features.length === 0) return;
+          const feat = result.features[0];
+          const name = feat.attributes.COUNTY || feat.attributes.ENGLISH;
+          if (!name) return;
+          let matchItem = null;
+          countyList.querySelectorAll("li").forEach(li => {
+            if (li.querySelector(".county-name")?.textContent === name) matchItem = li;
+          });
+          activateCounty(name, feat, matchItem);
+        } catch (_) {}
+      });
+
+      // ── Build county list ────────────────────────────────────────────────
+      countyLayer.queryFeatures({
+        where: "1=1",
+        outFields: ["COUNTY", "ENGLISH"],
+        returnGeometry: true,
+        outSpatialReference: { wkid: 4326 }
+      }).then(result => {
+        const sorted = result.features.slice().sort((a, b) => {
+          const na = (a.attributes.COUNTY || a.attributes.ENGLISH || "").toLowerCase();
+          const nb = (b.attributes.COUNTY || b.attributes.ENGLISH || "").toLowerCase();
+          return na.localeCompare(nb);
+        });
+
+        sorted.forEach(feature => {
+          const name = feature.attributes.COUNTY || feature.attributes.ENGLISH;
+          if (!name) return;
+          const item = document.createElement("li");
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "county-name";
+          nameSpan.textContent = name;
+          item.appendChild(nameSpan);
+
+          const stats   = countyStatsMap[name.toUpperCase()] || {};
+          const ft      = stats.ft  || 0;
+          const tof     = stats.tof || 0;
+          const total   = ft + tof;
+          if (total > 0) {
+            const ftPct  = (ft  / total * 100).toFixed(1);
+            const tofPct = (tof / total * 100).toFixed(1);
+
+            const barWrap = document.createElement("div");
+            barWrap.className = "county-bar-wrap";
+            const ftBar = document.createElement("div");
+            ftBar.className = "county-bar-ft";
+            ftBar.style.width = `${ftPct}%`;
+            const tofBar = document.createElement("div");
+            tofBar.className = "county-bar-tof";
+            tofBar.style.width = `${tofPct}%`;
+            barWrap.appendChild(ftBar);
+            barWrap.appendChild(tofBar);
+
+            const labelRow = document.createElement("div");
+            labelRow.className = "county-bar-label";
+            const ftLabel = document.createElement("span");
+            ftLabel.textContent = `FT ${ftPct}%`;
+            const tofLabel = document.createElement("span");
+            tofLabel.textContent = `TOF ${tofPct}%`;
+            labelRow.appendChild(ftLabel);
+            labelRow.appendChild(tofLabel);
+
+            item.appendChild(barWrap);
+            item.appendChild(labelRow);
+          }
+
+          item.addEventListener("click", () => activateCounty(name, feature, item));
+          countyList.appendChild(item);
+        });
+
+        updateViewPadding();
+      }).catch(() => {
+        countyStatus.textContent = "Failed to load county list.";
+      });
+    });
+  </script>
+</html>
