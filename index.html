@@ -997,9 +997,14 @@
 
       // ── Tree crown popup — explicit hitTest so portal item config can't block it
       view.on("click", async (event) => {
+        console.log("[popup] click fired, activeCrownLayer=", activeCrownLayer, "scale=", view.scale);
         if (!activeCrownLayer) return;
         try {
           const { results } = await view.hitTest(event);
+          console.log("[popup] hitTest results:", results.length, results.map(r => ({
+            layer: r.layer?.title || r.layer?.type,
+            attrs: r.graphic?.attributes
+          })));
           // Identify a crown feature by the presence of ntm_id (unique to crown layers)
           const hit = results.find(r => r.graphic?.attributes?.ntm_id != null);
           if (!hit) return;
