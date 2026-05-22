@@ -997,17 +997,21 @@
 
       // ── Tree crown popup — explicit hitTest so portal item config can't block it
       view.on("click", async (event) => {
-        if (!activeCrownLayer || view.scale > 25000) return;
+        if (!activeCrownLayer) return;
         try {
-          const hit = await view.hitTest(event, { include: [activeCrownLayer] });
-          const result = hit.results.find(r => r.layer === activeCrownLayer);
-          if (!result) return;
+          const { results } = await view.hitTest(event);
+          // Identify a crown feature by the presence of ntm_id (unique to crown layers)
+          const hit = results.find(r => r.graphic?.attributes?.ntm_id != null);
+          if (!hit) return;
+          const attrs = hit.graphic.attributes;
           view.openPopup({
-            title: crownPopupTemplate.title,
-            content: buildPopupContent(result.graphic.attributes),
+            title: `Tree Crown — ${attrs.county || ""}`,
+            content: buildPopupContent(attrs),
             location: event.mapPoint
           });
-        } catch (_) {}
+        } catch (e) {
+          console.error("Crown popup error:", e);
+        }
       });
 
     });
