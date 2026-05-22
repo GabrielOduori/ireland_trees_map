@@ -523,6 +523,21 @@
       defaultLabel: ""
     });
 
+    function buildPopupContent(a) {
+      const type = (a.tree_class || "").toLowerCase() === "ft" ? "Forest Trees"
+                 : (a.tree_class || "").toLowerCase() === "tof" ? "Trees Outside Forests"
+                 : a.tree_class || "—";
+      const fmt = (v, dp = 1) => v != null ? Number(v).toFixed(dp) : "—";
+      return `<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr><td style="padding:3px 6px;color:#666">Type</td><td style="padding:3px 6px;font-weight:600">${type}</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${a.ntm_id || "—"}</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(a.height_m)} m</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(a.max_height_m)} m</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(a.crown_area_m2)} m²</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(a.perimeter)} m</td></tr>
+      </table>`;
+    }
+
     const crownPopupTemplate = {
       title: "Tree Crown — {county}",
       expressionInfos: [{
@@ -829,15 +844,9 @@
             portalItem: { id: crownItemId },
             outFields: ["county", "tree_class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "perimeter"],
             renderer: crownRenderer,
-            popupEnabled: true,
-            popupTemplate: crownPopupTemplate,
+            popupEnabled: false,   // handled manually via hitTest below
             minScale: 25000,
             maxScale: 0
-          });
-          // Re-apply after load in case portal item metadata overwrites it
-          activeCrownLayer.when(() => {
-            activeCrownLayer.popupEnabled = true;
-            activeCrownLayer.popupTemplate = crownPopupTemplate;
           });
           map.add(activeCrownLayer);
 
@@ -985,6 +994,22 @@
       }).catch(() => {
         countyStatus.textContent = "Failed to load county list.";
       });
+
+      // ── Tree crown popup — explicit hitTest so portal item config can't block it
+      view.on("click", async (event) => {
+        if (!activeCrownLayer || view.scale > 25000) return;
+        try {
+          const hit = await view.hitTest(event, { include: [activeCrownLayer] });
+          const result = hit.results.find(r => r.layer === activeCrownLayer);
+          if (!result) return;
+          view.openPopup({
+            title: crownPopupTemplate.title,
+            content: buildPopupContent(result.graphic.attributes),
+            location: event.mapPoint
+          });
+        } catch (_) {}
+      });
+
     });
   </script>
 </html>
