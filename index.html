@@ -806,7 +806,7 @@
       }
 
       // ── Activate a county ────────────────────────────────────────────────
-      function activateCounty(name, countyFeature, listItem) {
+      function activateCounty(name, countyFeature, listItem, zoomToCounty = true) {
         clearActiveCounty();
         if (listItem) {
           activeItem = listItem;
@@ -887,7 +887,9 @@
             }
           } catch (_) {}
 
-          view.goTo(countyFeature.geometry.extent || countyFeature.geometry).catch(() => {});
+          if (zoomToCounty) {
+            view.goTo(countyFeature.geometry.extent || countyFeature.geometry).catch(() => {});
+          }
         }
       }
 
@@ -927,7 +929,7 @@
           countyList.querySelectorAll("li").forEach(li => {
             if (li.querySelector(".county-name")?.textContent === name) matchItem = li;
           });
-          activateCounty(name, feat, matchItem);
+          activateCounty(name, feat, matchItem, false);
         } catch (_) {}
       });
 
@@ -1007,15 +1009,9 @@
             return t.startsWith("Ireland_Trees_Crowns_") && !t.includes("_VTL_");
           });
           if (!hit) return;
-          // hitTest may return only a subset of attributes — query the full feature
-          const query = activeCrownLayer.createQuery();
-          query.objectIds = [hit.graphic.getObjectId()];
-          query.outFields = ["county","tree_class","ntm_id","height_m","max_height_m","crown_area_m2","perimeter"];
-          query.returnGeometry = false;
-          const featureSet = await activeCrownLayer.queryFeatures(query);
-          const attrs = featureSet.features[0]?.attributes ?? hit.graphic.attributes;
+          const attrs = hit.graphic.attributes || {};
           view.openPopup({
-            title: `Tree Crown — ${attrs.county || ""}`,
+            title: `Tree Crown — ${attrs.county || attrs.COUNTY || ""}`,
             content: buildPopupContent(attrs),
             location: event.mapPoint
           });
