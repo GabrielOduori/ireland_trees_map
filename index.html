@@ -844,7 +844,6 @@
             portalItem: { id: crownItemId },
             outFields: ["county", "tree_class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "perimeter"],
             renderer: crownRenderer,
-            popupEnabled: false,   // handled manually via hitTest below
             minScale: 25000,
             maxScale: 0
           });
@@ -995,29 +994,6 @@
         updateViewPadding();
       }).catch(() => {
         countyStatus.textContent = "Failed to load county list.";
-      });
-
-      // ── Tree crown popup — explicit hitTest so portal item config can't block it
-      view.on("click", async (event) => {
-        if (!activeCrownLayer) return;
-        try {
-          const { results } = await view.hitTest(event);
-          // Match by layer title — crown feature layers are named Ireland_Trees_Crowns_*
-          // but not Ireland_Trees_Crowns_VTL_* (tile overview layers)
-          const hit = results.find(r => {
-            const t = r.layer?.title || "";
-            return t.startsWith("Ireland_Trees_Crowns_") && !t.includes("_VTL_");
-          });
-          if (!hit) return;
-          const attrs = hit.graphic.attributes || {};
-          view.openPopup({
-            title: `Tree Crown — ${attrs.county || attrs.COUNTY || ""}`,
-            content: buildPopupContent(attrs),
-            location: event.mapPoint
-          });
-        } catch (e) {
-          console.error("Crown popup error:", e);
-        }
       });
 
     });
