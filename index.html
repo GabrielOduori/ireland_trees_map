@@ -1002,27 +1002,27 @@
         countyStatus.textContent = "Failed to load county list.";
       });
 
-      // ── Crown polygon popup ───────────────────────────────────────────────
-      view.on("click", async (event) => {
-        console.log("[popup] click — activeCrownLayer:", activeCrownLayer?.title ?? "null");
-        if (!activeCrownLayer) return;
-        try {
-          const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
-          console.log("[popup] hitTest results:", results.length, results.map(r => r.graphic?.attributes));
-          if (!results.length) return;
-          const attrs = results[0].graphic.attributes || {};
-          console.log("[popup] opening popup with attrs:", attrs);
-          view.openPopup({
-            title: `Tree Crown — ${attrs.county || ""}`,
-            content: buildPopupContent(attrs),
-            location: event.mapPoint
-          });
-          console.log("[popup] view.popup.visible:", view.popup?.visible);
-        } catch (e) {
-          console.error("[popup] error:", e);
-        }
-      });
+    });
 
+    // ── Crown polygon popup — registered outside view.when() so it always runs ──
+    view.on("click", async (event) => {
+      console.log("[popup] click — activeCrownLayer:", activeCrownLayer?.title ?? "null");
+      if (!activeCrownLayer) return;
+      try {
+        const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
+        console.log("[popup] hitTest results:", results.length, results.map(r => r.graphic?.attributes));
+        if (!results.length) return;
+        const attrs = results[0].graphic.attributes || {};
+        console.log("[popup] opening popup with attrs:", attrs);
+        view.openPopup({
+          title: `Tree Crown — ${attrs.county || ""}`,
+          content: buildPopupContent(attrs),
+          location: event.mapPoint
+        });
+        console.log("[popup] view.popup.visible:", view.popup?.visible);
+      } catch (e) {
+        console.error("[popup] error:", e);
+      }
     });
   </script>
 </html>
