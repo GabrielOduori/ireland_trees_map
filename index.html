@@ -524,16 +524,21 @@
     });
 
     function buildPopupContent(a) {
-      const type = (a.tree_class || "").toLowerCase() === "ft" ? "Forest Trees"
-                 : (a.tree_class || "").toLowerCase() === "tof" ? "Trees Outside Forests"
-                 : a.tree_class || "—";
-      const fmt = (v, dp = 1) => v != null ? Number(v).toFixed(dp) : "—";
+      const tc   = (a.tree_class || a.class || "").toLowerCase();
+      const type = tc === "ft"  ? "Forest Trees"
+                 : tc === "tof" ? "Trees Outside Forests"
+                 : tc || "—";
+      const fmt  = (v, dp = 1) => v != null ? Number(v).toFixed(dp) : "—";
+      // field names vary: published service may use mean/max/area or height_m/max_height_m/crown_area_m2
+      const meanH = a.height_m     ?? a.mean;
+      const maxH  = a.max_height_m ?? a.max;
+      const area  = a.crown_area_m2 ?? a.area;
       return `<table style="width:100%;border-collapse:collapse;font-size:13px">
         <tr><td style="padding:3px 6px;color:#666">Type</td><td style="padding:3px 6px;font-weight:600">${type}</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${a.ntm_id || "—"}</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(a.height_m)} m</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(a.max_height_m)} m</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(a.crown_area_m2)} m²</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(meanH)} m</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(maxH)} m</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(area)} m²</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(a.perimeter)} m</td></tr>
       </table>`;
     }
@@ -842,10 +847,14 @@
           // Use the published per-county crown polygon layer
           activeCrownLayer = new FeatureLayer({
             portalItem: { id: crownItemId },
-            outFields: ["county", "tree_class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "perimeter"],
+            outFields: ["county", "tree_class", "class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "mean", "max", "area", "perimeter"],
             renderer: crownRenderer,
             minScale: 25000,
-            maxScale: 0
+            maxScale: 0,
+            popupTemplate: {
+              title: "Tree Crown — {county}",
+              content: (feature) => buildPopupContent(feature.graphic.attributes)
+            }
           });
           map.add(activeCrownLayer);
 
