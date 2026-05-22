@@ -1004,17 +1004,23 @@
 
       // ── Crown polygon popup ───────────────────────────────────────────────
       view.on("click", async (event) => {
+        console.log("[popup] click — activeCrownLayer:", activeCrownLayer?.title ?? "null");
         if (!activeCrownLayer) return;
         try {
           const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
+          console.log("[popup] hitTest results:", results.length, results.map(r => r.graphic?.attributes));
           if (!results.length) return;
           const attrs = results[0].graphic.attributes || {};
+          console.log("[popup] opening popup with attrs:", attrs);
           view.openPopup({
             title: `Tree Crown — ${attrs.county || ""}`,
             content: buildPopupContent(attrs),
             location: event.mapPoint
           });
-        } catch (_) {}
+          console.log("[popup] view.popup.visible:", view.popup?.visible);
+        } catch (e) {
+          console.error("[popup] error:", e);
+        }
       });
 
     });
