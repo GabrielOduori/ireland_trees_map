@@ -849,12 +849,9 @@
             portalItem: { id: crownItemId },
             outFields: ["*"],
             renderer: crownRenderer,
+            popupEnabled: false,
             minScale: 25000,
-            maxScale: 0,
-            popupTemplate: {
-              title: "Tree Crown — {county}",
-              content: (feature) => buildPopupContent(feature.graphic.attributes)
-            }
+            maxScale: 0
           });
           map.add(activeCrownLayer);
 
@@ -1003,6 +1000,21 @@
         updateViewPadding();
       }).catch(() => {
         countyStatus.textContent = "Failed to load county list.";
+      });
+
+      // ── Crown polygon popup ───────────────────────────────────────────────
+      view.on("click", async (event) => {
+        if (!activeCrownLayer) return;
+        try {
+          const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
+          if (!results.length) return;
+          const attrs = results[0].graphic.attributes || {};
+          view.openPopup({
+            title: `Tree Crown — ${attrs.county || ""}`,
+            content: buildPopupContent(attrs),
+            location: event.mapPoint
+          });
+        } catch (_) {}
       });
 
     });
