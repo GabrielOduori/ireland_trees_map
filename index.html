@@ -660,6 +660,8 @@
       view.goTo({ center: event.mapPoint, zoom: view.zoom });
     });
 
+    let activeCrownLayer = null;
+
     view.when(() => {
       const countyStatus   = document.getElementById("countyStatus");
       const countyList     = document.getElementById("countyList");
@@ -667,7 +669,6 @@
       const extraStats     = document.getElementById("extraStats");
       const countyPanel    = document.getElementById("countyPanel");
       let activeItem           = null;
-      let activeCrownLayer     = null;
       let activeCrownTileLayer = null;
       let panelCollapsed       = false;
 
