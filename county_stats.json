@@ -1,10 +1,18 @@
 {
+  "CARLOW": {
+    "ft": 937124,
+    "max_crown_area_m2": 898.8,
+    "max_height_m": 45.5,
+    "tof": 851874
+  },
   "CAVAN": {
     "ft": 2151471,
     "tof": 2280312
   },
   "CLARE": {
     "ft": 4754600,
+    "max_crown_area_m2": 900.0,
+    "max_height_m": 83.5,
     "tof": 2357134
   },
   "CORK": {
@@ -13,46 +21,68 @@
   },
   "DONEGAL": {
     "ft": 4949668,
+    "max_crown_area_m2": 899.9,
+    "max_height_m": 77.0,
     "tof": 2061582
   },
   "DUBLIN": {
     "ft": 850613,
+    "max_crown_area_m2": 859.1,
+    "max_height_m": 44.2,
     "tof": 2278452
   },
   "GALWAY": {
     "ft": 5848916,
+    "max_crown_area_m2": 899.6,
+    "max_height_m": 108.9,
     "tof": 3698353
   },
   "KERRY": {
     "ft": 4615581,
+    "max_crown_area_m2": 900.0,
+    "max_height_m": 54.0,
     "tof": 2406556
   },
   "KILDARE": {
     "ft": 954226,
+    "max_crown_area_m2": 899.9,
+    "max_height_m": 38.0,
     "tof": 1685816
   },
   "KILKENNY": {
     "ft": 2229111,
+    "max_crown_area_m2": 899.8,
+    "max_height_m": 961.4,
     "tof": 1903171
   },
   "LAOIS": {
     "ft": 2894985,
+    "max_crown_area_m2": 900.0,
+    "max_height_m": 49.7,
     "tof": 1370133
   },
   "LEITRIM": {
     "ft": 2470000,
+    "max_crown_area_m2": 899.8,
+    "max_height_m": 61.4,
     "tof": 1596867
   },
   "LIMERICK": {
-    "ft": 2283649,
-    "tof": 2195748
+    "ft": 890706,
+    "max_crown_area_m2": 899.9,
+    "max_height_m": 62.2,
+    "tof": 384294
   },
   "LONGFORD": {
     "ft": 873692,
+    "max_crown_area_m2": 899.4,
+    "max_height_m": 71.3,
     "tof": 1037289
   },
   "LOUTH": {
     "ft": 272441,
+    "max_crown_area_m2": 900.0,
+    "max_height_m": 46.1,
     "tof": 648445
   },
   "MAYO": {
@@ -61,14 +91,54 @@
   },
   "MEATH": {
     "ft": 846000,
+    "max_crown_area_m2": 898.5,
+    "max_height_m": 36.9,
     "tof": 2422483
   },
   "MONAGHAN": {
     "ft": 555086,
+    "max_crown_area_m2": 899.9,
+    "max_height_m": 43.8,
     "tof": 1448865
   },
   "OFFALY": {
     "ft": 2180912,
+    "max_crown_area_m2": 899.9,
+    "max_height_m": 65.9,
     "tof": 1645464
+  },
+  "ROSCOMMON": {
+    "ft": 2365110,
+    "max_crown_area_m2": 899.6,
+    "max_height_m": 107.2,
+    "tof": 2087870
+  },
+  "SLIGO": {
+    "ft": 2008738,
+    "max_crown_area_m2": 898.0,
+    "max_height_m": 38.0,
+    "tof": 1187013
+  },
+  "TIPPERARY": {
+    "ft": 4961717,
+    "tof": 3228457
+  },
+  "WATERFORD": {
+    "ft": 4989940,
+    "max_crown_area_m2": 900.0,
+    "max_height_m": 40.3,
+    "tof": 1738021
+  },
+  "WESTMEATH": {
+    "ft": 1344498,
+    "tof": 1595027
+  },
+  "WEXFORD": {
+    "ft": 3812289,
+    "tof": 3480514
+  },
+  "WICKLOW": {
+    "ft": 4818206,
+    "tof": 1586372
   }
 }
