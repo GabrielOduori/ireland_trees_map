@@ -1050,26 +1050,37 @@
     const crownPopup      = document.getElementById("crownPopup");
     const crownPopupTitle = document.getElementById("crownPopupTitle");
     const crownPopupBody  = document.getElementById("crownPopupBody");
-    document.getElementById("crownPopupClose").addEventListener("click", () => {
+    let crownHighlight = null;
+
+    function clearCrownSelection() {
       crownPopup.style.display = "none";
-    });
+      if (crownHighlight) { crownHighlight.remove(); crownHighlight = null; }
+    }
+
+    document.getElementById("crownPopupClose").addEventListener("click", clearCrownSelection);
 
     view.on("click", async (event) => {
-      if (!activeCrownLayer) { crownPopup.style.display = "none"; return; }
+      if (!activeCrownLayer) { clearCrownSelection(); return; }
       try {
         const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
-        if (!results.length) { crownPopup.style.display = "none"; return; }
-        const attrs = results[0].graphic.attributes || {};
+        if (!results.length) { clearCrownSelection(); return; }
+        const graphic = results[0].graphic;
+        const attrs   = graphic.attributes || {};
+
+        // Highlight the selected crown polygon
+        if (crownHighlight) crownHighlight.remove();
+        const layerView = await view.whenLayerView(activeCrownLayer);
+        crownHighlight = layerView.highlight(graphic);
+
+        // Show popup
         crownPopupTitle.textContent = `Tree Crown — ${attrs.county || ""}`;
         crownPopupBody.innerHTML = buildPopupContent(attrs);
 
-        // Position near the click, offset so it doesn't cover the feature
         const pt = view.toScreen(event.mapPoint);
         const vr = document.getElementById("viewDiv").getBoundingClientRect();
         let left = vr.left + pt.x + 14;
         let top  = vr.top  + pt.y - 40;
         crownPopup.style.display = "block";
-        // Keep within viewport
         const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
         if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
         if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
