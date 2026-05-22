@@ -847,7 +847,7 @@
           // Use the published per-county crown polygon layer
           activeCrownLayer = new FeatureLayer({
             portalItem: { id: crownItemId },
-            outFields: ["county", "tree_class", "class", "ntm_id", "height_m", "max_height_m", "crown_area_m2", "mean", "max", "area", "perimeter"],
+            outFields: ["*"],
             renderer: crownRenderer,
             minScale: 25000,
             maxScale: 0,
