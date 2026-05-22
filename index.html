@@ -997,18 +997,23 @@
 
       // ── Tree crown popup — explicit hitTest so portal item config can't block it
       view.on("click", async (event) => {
-        console.log("[popup] click fired, activeCrownLayer=", activeCrownLayer, "scale=", view.scale);
         if (!activeCrownLayer) return;
         try {
           const { results } = await view.hitTest(event);
-          console.log("[popup] hitTest results:", results.length, results.map(r => ({
-            layer: r.layer?.title || r.layer?.type,
-            attrs: r.graphic?.attributes
-          })));
-          // Identify a crown feature by the presence of ntm_id (unique to crown layers)
-          const hit = results.find(r => r.graphic?.attributes?.ntm_id != null);
+          // Match by layer title — crown feature layers are named Ireland_Trees_Crowns_*
+          // but not Ireland_Trees_Crowns_VTL_* (tile overview layers)
+          const hit = results.find(r => {
+            const t = r.layer?.title || "";
+            return t.startsWith("Ireland_Trees_Crowns_") && !t.includes("_VTL_");
+          });
           if (!hit) return;
-          const attrs = hit.graphic.attributes;
+          // hitTest may return only a subset of attributes — query the full feature
+          const query = activeCrownLayer.createQuery();
+          query.objectIds = [hit.graphic.getObjectId()];
+          query.outFields = ["county","tree_class","ntm_id","height_m","max_height_m","crown_area_m2","perimeter"];
+          query.returnGeometry = false;
+          const featureSet = await activeCrownLayer.queryFeatures(query);
+          const attrs = featureSet.features[0]?.attributes ?? hit.graphic.attributes;
           view.openPopup({
             title: `Tree Crown — ${attrs.county || ""}`,
             content: buildPopupContent(attrs),
