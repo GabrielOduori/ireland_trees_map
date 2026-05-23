@@ -419,6 +419,12 @@
           <h2>County</h2>
           <div id="nationalSummary"></div>
           <div id="countyStatus"></div>
+          <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
+              <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
+              Show crown layer
+            </label>
+          </div>
           <div id="chartContainer"></div>
           <div id="extraStats"></div>
         </div>
@@ -704,14 +710,20 @@
     let activeCrownLayer = null;
 
     view.when(() => {
-      const countyStatus   = document.getElementById("countyStatus");
-      const countyList     = document.getElementById("countyList");
-      const chartContainer = document.getElementById("chartContainer");
-      const extraStats     = document.getElementById("extraStats");
-      const countyPanel    = document.getElementById("countyPanel");
+      const countyStatus    = document.getElementById("countyStatus");
+      const countyList      = document.getElementById("countyList");
+      const chartContainer  = document.getElementById("chartContainer");
+      const extraStats      = document.getElementById("extraStats");
+      const countyPanel     = document.getElementById("countyPanel");
+      const layerToggleRow  = document.getElementById("layerToggleRow");
+      const crownLayerToggle = document.getElementById("crownLayerToggle");
       let activeItem           = null;
       let activeCrownTileLayer = null;
       let panelCollapsed       = false;
+
+      crownLayerToggle.addEventListener("change", () => {
+        if (activeCrownLayer) activeCrownLayer.visible = crownLayerToggle.checked;
+      });
 
       // ── view.padding tells ArcGIS the panel obscures the right side,
       //    so all UI widgets are placed in the visible map area ──────────────
@@ -769,6 +781,7 @@
           activeCrownTileLayer = null;
         }
         countyOutlineLayer.removeAll();
+        layerToggleRow.style.display = "none";
       }
 
       // ── Pie chart (SVG, DOM-built — no innerHTML for data) ───────────────
@@ -896,6 +909,8 @@
             maxScale: 0
           });
           map.add(activeCrownLayer);
+          crownLayerToggle.checked = true;
+          layerToggleRow.style.display = "block";
 
           // Use pre-computed stats — statistics queries are disabled on the layer
           const stats    = countyStatsMap[name.toUpperCase()] || {};
