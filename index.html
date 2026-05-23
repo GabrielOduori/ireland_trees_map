@@ -533,7 +533,7 @@
       const pubCount = allVals.length;
       if (total > 0) {
         const el = document.getElementById("nationalSummary");
-        if (el) el.textContent = `${total.toLocaleString()} trees · ${pubCount} of 26 counties`;
+        if (el) el.textContent = `${total.toLocaleString()} crowns · ${pubCount} of 26 counties`;
       }
     }
 
@@ -904,7 +904,7 @@
           const total    = ftCount + tofCount;
           countyStatus.textContent = total === 0
             ? `${name}: crown data loading...`
-            : `${name}: ${total.toLocaleString()} trees — zoom in to see crowns`;
+            : `${name}: ${total.toLocaleString()} crowns — zoom in to see`;
           drawPieChart(ftCount, tofCount);
           drawExtraStats(stats);
 
