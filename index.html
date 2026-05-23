@@ -475,6 +475,7 @@
     }
 
     const SimpleFillSymbol   = await $arcgis.import("@arcgis/core/symbols/SimpleFillSymbol.js");
+    const SimpleRenderer     = await $arcgis.import("@arcgis/core/renderers/SimpleRenderer.js");
     const UniqueValueRenderer = await $arcgis.import("@arcgis/core/renderers/UniqueValueRenderer.js");
     const geometryEngine     = await $arcgis.import("@arcgis/core/geometry/geometryEngine.js");
     const Polygon            = await $arcgis.import("@arcgis/core/geometry/Polygon.js");
@@ -677,6 +678,18 @@
     // ── Inset overview map ───────────────────────────────────────────────
     const insetMapObj      = new Map({ basemap: "gray-vector" });
     const insetExtentLayer = new GraphicsLayer();
+    const insetCountyLayer = new FeatureLayer({
+      url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
+      renderer: new SimpleRenderer({
+        symbol: new SimpleFillSymbol({
+          color: [0, 0, 0, 0],
+          outline: { color: [180, 180, 180, 200], width: 0.8 }
+        })
+      }),
+      popupEnabled: false,
+      minScale: 0, maxScale: 0
+    });
+    insetMapObj.add(insetCountyLayer);
     insetMapObj.add(insetExtentLayer);
     const insetView = new MapView({
       container: "insetMap",
