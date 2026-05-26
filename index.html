@@ -509,7 +509,7 @@
         // Query both Vector Tile Service AND Tile Layer — create_tile_service()
         // in arcgis Python API 2.4.x creates a raster Tile Layer, not a VTS.
         portal.queryItems(new PortalQueryParams({
-          query: 'tags:"IrelandsTREEMAP" AND (type:"Vector Tile Service" OR type:"Tile Layer") AND title:"Ireland_Trees_Crowns_VTL"',
+          query: '(type:"Vector Tile Service" OR type:"Tile Layer") AND title:"Ireland_Trees_Crowns_VTL"',
           num: 50, sortField: "title", sortOrder: "asc"
         }))
       ]);
