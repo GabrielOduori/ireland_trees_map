@@ -526,9 +526,18 @@
         const county = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
         crownLayerMap[county] = item.id;
       });
+      // Prefer Map Service / Tile Layer over Service Definition staging artifacts.
+      // Build a map keyed by county, keeping the best-typed item.
+      const TILE_TYPES = ["Map Service", "Tile Layer", "Vector Tile Service", "Hosted Tile Layer", "Map Image Layer"];
+      const tilePriority = t => TILE_TYPES.indexOf(t);  // lower index = higher priority; -1 = unwanted
+
       tileItems.results.forEach(item => {
+        if (item.type === "Service Definition") return;   // skip staging artifacts
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
-        crownTileLayerMap[county] = { id: item.id, type: item.type };
+        const existing = crownTileLayerMap[county];
+        if (!existing || tilePriority(item.type) < tilePriority(existing.type)) {
+          crownTileLayerMap[county] = { id: item.id, type: item.type, url: item.url };
+        }
       });
     } catch (e) {
       console.warn("Crown layer discovery failed:", e);
@@ -906,16 +915,27 @@
         const crownItemId     = crownLayerMap[name.toUpperCase()];
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
-        // Load tile overview layer first — visible at all scales, no popups.
-        // Type depends on how it was published: VectorTileLayer or TileLayer.
+        // Load tile overview layer — visible until 1:25,000 where feature layer takes over.
+        // Map Service items must be loaded by URL (not portalItem) so the JS API
+        // treats them as tile caches rather than dynamic services.
         if (crownTileItemId) {
-          const LayerClass = crownTileItemId.type === "Vector Tile Service"
-            ? VectorTileLayer
-            : TileLayer;
-          activeCrownTileLayer = new LayerClass({
-            portalItem: { id: crownTileItemId.id },
-            maxScale: 25000   // hands off to feature layer at 1:25,000
-          });
+          console.log(`[tile] loading ${crownTileItemId.type} url=${crownTileItemId.url}`);
+          if (crownTileItemId.type === "Vector Tile Service") {
+            activeCrownTileLayer = new VectorTileLayer({
+              portalItem: { id: crownTileItemId.id },
+              maxScale: 25000
+            });
+          } else if (crownTileItemId.url) {
+            activeCrownTileLayer = new TileLayer({
+              url: crownTileItemId.url,
+              maxScale: 25000
+            });
+          } else {
+            activeCrownTileLayer = new TileLayer({
+              portalItem: { id: crownTileItemId.id },
+              maxScale: 25000
+            });
+          }
           map.add(activeCrownTileLayer);
         }
 
