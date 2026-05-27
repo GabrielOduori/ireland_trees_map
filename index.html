@@ -497,9 +497,12 @@
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
     let countyStatsMap    = {};   // pre-computed FT/TOF counts — no live stats queries needed
 
+    let _portal = null;   // authenticated portal instance reused when loading tile layers
+
     try {
       const portal = new Portal({ url: "https://www.arcgis.com", authMode: "immediate" });
       await portal.load();
+      _portal = portal;
       const username = portal.user?.username;
       console.log("[discovery] portal user:", username);
 
@@ -916,26 +919,19 @@
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
         // Load tile overview layer — visible until 1:25,000 where feature layer takes over.
-        // Map Service items must be loaded by URL (not portalItem) so the JS API
-        // treats them as tile caches rather than dynamic services.
+        // Pass the authenticated portal so the JS API injects the token into tile requests.
         if (crownTileItemId) {
-          console.log(`[tile] loading ${crownTileItemId.type} url=${crownTileItemId.url}`);
+          console.log(`[tile] id=${crownTileItemId.id} type=${crownTileItemId.type}`);
+          const portalRef = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
           if (crownTileItemId.type === "Vector Tile Service") {
-            activeCrownTileLayer = new VectorTileLayer({
-              portalItem: { id: crownTileItemId.id },
-              maxScale: 25000
-            });
-          } else if (crownTileItemId.url) {
-            activeCrownTileLayer = new TileLayer({
-              url: crownTileItemId.url,
-              maxScale: 25000
-            });
+            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, maxScale: 25000 });
           } else {
-            activeCrownTileLayer = new TileLayer({
-              portalItem: { id: crownTileItemId.id },
-              maxScale: 25000
-            });
+            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, maxScale: 25000 });
           }
+          activeCrownTileLayer.when(
+            () => console.log(`[tile] loaded ok: ${name}`),
+            (e) => console.error(`[tile] load error: ${name}`, e)
+          );
           map.add(activeCrownTileLayer);
         }
 
