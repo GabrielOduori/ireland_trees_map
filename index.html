@@ -520,7 +520,7 @@
       }));
 
       console.log(`[discovery] ${crownItems.results.length} feature layers, ${tileItems.results.length} tile layers`);
-      tileItems.results.forEach(item => console.log(`  tile: ${item.title} (type=${item.type})`));
+      tileItems.results.forEach(item => console.log(`  tile: ${item.title} (type=${item.type}) url=${item.url}`));
 
       crownItems.results.forEach(item => {
         const county = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
