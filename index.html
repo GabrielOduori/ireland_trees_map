@@ -905,8 +905,8 @@
             ? VectorTileLayer
             : TileLayer;
           activeCrownTileLayer = new LayerClass({
-            portalItem: { id: crownTileItemId.id }
-            // No minScale/maxScale — visible at all zoom levels
+            portalItem: { id: crownTileItemId.id },
+            maxScale: 25000   // hands off to feature layer at 1:25,000
           });
           map.add(activeCrownTileLayer);
         }
@@ -930,12 +930,18 @@
           const ftCount  = stats.ft  || 0;
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
-          countyStatus.textContent = total === 0
-            ? `${name}: crown data loading...`
-            : `${name}: ${total.toLocaleString()} crowns — zoom in to see`;
+          const totalStr = total > 0 ? `${total.toLocaleString()} crowns · ` : "";
+          if (crownTileItemId) {
+            countyStatus.textContent = `${name}: ${totalStr}tile overview visible · zoom past 1:25,000 for detail & popups`;
+          } else {
+            countyStatus.textContent = `${name}: ${totalStr}zoom past 1:25,000 to see crowns`;
+          }
           drawPieChart(ftCount, tofCount);
           drawExtraStats(stats);
 
+        } else if (crownTileItemId) {
+          countyStatus.textContent = `${name}: tile overview visible (detail layer not yet published)`;
+          drawPieChart(0, 0);
         } else {
           countyStatus.textContent = `${name}: crown data not yet published`;
           drawPieChart(0, 0);
