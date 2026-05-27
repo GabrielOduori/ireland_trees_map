@@ -498,21 +498,29 @@
     let countyStatsMap    = {};   // pre-computed FT/TOF counts — no live stats queries needed
 
     try {
-      const portal = new Portal({ url: "https://www.arcgis.com" });
+      const portal = new Portal({ url: "https://www.arcgis.com", authMode: "immediate" });
       await portal.load();
+      const username = portal.user?.username;
+      console.log("[discovery] portal user:", username);
 
-      const [crownItems, tileItems] = await Promise.all([
-        portal.queryItems(new PortalQueryParams({
-          query: 'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"',
-          num: 50, sortField: "title", sortOrder: "asc"
-        })),
-        // Query both Vector Tile Service AND Tile Layer — create_tile_service()
-        // in arcgis Python API 2.4.x creates a raster Tile Layer, not a VTS.
-        portal.queryItems(new PortalQueryParams({
-          query: '(type:"Vector Tile Service" OR type:"Tile Layer") AND title:"Ireland_Trees_Crowns_VTL"',
-          num: 50, sortField: "title", sortOrder: "asc"
-        }))
-      ]);
+      // Feature layers — tagged IrelandsTREEMAP
+      const crownItems = await portal.queryItems(new PortalQueryParams({
+        query: 'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"',
+        num: 50, sortField: "title", sortOrder: "asc"
+      }));
+
+      // Tile layers — search by owner to bypass type ambiguity and index lag.
+      // UploadServiceDefinition_server can produce "Tile Layer", "Map Service", or
+      // "Hosted Tile Layer" depending on ArcGIS Pro version — owner: avoids all that.
+      const tileQuery = username
+        ? `owner:"${username}" AND title:"Ireland_Trees_Crowns_VTL"`
+        : `(type:"Vector Tile Service" OR type:"Tile Layer" OR type:"Map Service") AND title:"Ireland_Trees_Crowns_VTL"`;
+      const tileItems = await portal.queryItems(new PortalQueryParams({
+        query: tileQuery, num: 50, sortField: "title", sortOrder: "asc"
+      }));
+
+      console.log(`[discovery] ${crownItems.results.length} feature layers, ${tileItems.results.length} tile layers`);
+      tileItems.results.forEach(item => console.log(`  tile: ${item.title} (type=${item.type})`));
 
       crownItems.results.forEach(item => {
         const county = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
