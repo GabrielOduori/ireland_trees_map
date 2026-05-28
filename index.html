@@ -489,6 +489,7 @@
     const Graphic           = await $arcgis.import("@arcgis/core/Graphic.js");
     const VectorTileLayer   = await $arcgis.import("@arcgis/core/layers/VectorTileLayer.js");
     const TileLayer         = await $arcgis.import("@arcgis/core/layers/TileLayer.js");
+    const MapImageLayer     = await $arcgis.import("@arcgis/core/layers/MapImageLayer.js");
     const Portal            = await $arcgis.import("@arcgis/core/portal/Portal.js");
     const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
 
@@ -929,13 +930,12 @@
           if (crownTileItemId.type === "Vector Tile Service") {
             activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           } else if (crownTileItemId.url) {
-            // Use direct URL — TileLayer with portalItem can fail to inject tokens into
-            // the actual tile image requests even though metadata (.when) resolves fine.
-            // The Identity Manager already holds a token for arcgis.com from portal auth,
-            // so a direct URL fetch is authenticated without needing portalItem.
-            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
+            // MapImageLayer renders dynamically — works even while AGOL is still
+            // building the tile cache after a fresh manual publish from ArcGIS Pro.
+            // TileLayer only shows pre-cached tiles; MapImageLayer has no such dependency.
+            activeCrownTileLayer = new MapImageLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
           } else {
-            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           }
           activeCrownTileLayer.when(
             () => console.log(`[tile] loaded ok: ${name}`),
