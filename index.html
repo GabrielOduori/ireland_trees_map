@@ -918,15 +918,17 @@
         const crownItemId     = crownLayerMap[name.toUpperCase()];
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
-        // Load tile overview layer — visible until 1:25,000 where feature layer takes over.
+        // Load tile overview layer — visible at county overview scale down to 1:25,000
+        // where the feature layer takes over.  minScale 1,155,581 = LOD 9 (largest
+        // scale we ever cache to), so tiles show as soon as you zoom into the county.
         // Pass the authenticated portal so the JS API injects the token into tile requests.
         if (crownTileItemId) {
           console.log(`[tile] id=${crownTileItemId.id} type=${crownTileItemId.type}`);
           const portalRef = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
           if (crownTileItemId.type === "Vector Tile Service") {
-            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 50000, maxScale: 0 });
+            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 1155581, maxScale: 25000 });
           } else {
-            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 50000, maxScale: 0 });
+            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 1155581, maxScale: 25000 });
           }
           activeCrownTileLayer.when(
             () => console.log(`[tile] loaded ok: ${name}`),
