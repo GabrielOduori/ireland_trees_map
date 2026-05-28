@@ -927,11 +927,13 @@
           console.log(`[tile] id=${crownTileItemId.id} type=${crownTileItemId.type}`);
           const portalRef = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
           if (crownTileItemId.type === "Vector Tile Service") {
-            // minScale/maxScale: 0 = no JS-side restriction — tiles show where they exist
-            // in the VTPK.  The feature layer appears on top at 1:25k so no hard cutoff
-            // is needed here; removing maxScale eliminates the gap where tile disappears
-            // before the feature layer has loaded its first polygon batch.
             activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+          } else if (crownTileItemId.url) {
+            // Use direct URL — TileLayer with portalItem can fail to inject tokens into
+            // the actual tile image requests even though metadata (.when) resolves fine.
+            // The Identity Manager already holds a token for arcgis.com from portal auth,
+            // so a direct URL fetch is authenticated without needing portalItem.
+            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
           } else {
             activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           }
