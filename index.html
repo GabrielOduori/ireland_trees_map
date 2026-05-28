@@ -930,15 +930,16 @@
           if (crownTileItemId.type === "Vector Tile Service") {
             activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           } else if (crownTileItemId.url) {
-            // MapImageLayer renders dynamically — works even while AGOL is still
-            // building the tile cache after a fresh manual publish from ArcGIS Pro.
-            // TileLayer only shows pre-cached tiles; MapImageLayer has no such dependency.
-            activeCrownTileLayer = new MapImageLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
           } else {
-            activeCrownTileLayer = new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           }
           activeCrownTileLayer.when(
-            () => console.log(`[tile] loaded ok: ${name}`),
+            () => {
+              const lods = activeCrownTileLayer.tileInfo?.lods;
+              const scales = lods ? lods.map(l => l.scale).join(", ") : "none";
+              console.log(`[tile] loaded ok: ${name} | service minScale=${activeCrownTileLayer.minScale} maxScale=${activeCrownTileLayer.maxScale} | cached LOD scales: ${scales}`);
+            },
             (e) => console.error(`[tile] load error: ${name}`, e)
           );
           map.add(activeCrownTileLayer);
