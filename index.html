@@ -1044,6 +1044,13 @@
           return na.localeCompare(nb);
         });
 
+        // Largest county total — all bars are scaled relative to it.
+        const maxTotal = sorted.reduce((mx, f) => {
+          const n = f.attributes.COUNTY || f.attributes.ENGLISH || "";
+          const s = countyStatsMap[n.toUpperCase()] || {};
+          return Math.max(mx, (s.ft || 0) + (s.tof || 0));
+        }, 0);
+
         sorted.forEach(feature => {
           const name = feature.attributes.COUNTY || feature.attributes.ENGLISH;
           if (!name) return;
@@ -1058,12 +1065,14 @@
           const ft      = stats.ft  || 0;
           const tof     = stats.tof || 0;
           const total   = ft + tof;
-          if (total > 0) {
+          if (total > 0 && maxTotal > 0) {
             const ftPct  = (ft  / total * 100).toFixed(1);
             const tofPct = (tof / total * 100).toFixed(1);
+            const barPct = (total / maxTotal * 100).toFixed(1);
 
             const barWrap = document.createElement("div");
             barWrap.className = "county-bar-wrap";
+            barWrap.style.width = `${barPct}%`;
             const ftBar = document.createElement("div");
             ftBar.className = "county-bar-ft";
             ftBar.style.width = `${ftPct}%`;
@@ -1075,6 +1084,7 @@
 
             const labelRow = document.createElement("div");
             labelRow.className = "county-bar-label";
+            labelRow.style.width = `${barPct}%`;
             const ftLabel = document.createElement("span");
             ftLabel.textContent = `FT ${ftPct}%`;
             const tofLabel = document.createElement("span");
