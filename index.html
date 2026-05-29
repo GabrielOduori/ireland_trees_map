@@ -816,6 +816,7 @@
         }
         countyOutlineLayer.removeAll();
         layerToggleRow.style.display = "none";
+        clearCrownSelection();
       }
 
       // ── Pie chart (SVG, DOM-built — no innerHTML for data) ───────────────
@@ -919,29 +920,17 @@
         const crownItemId     = crownLayerMap[name.toUpperCase()];
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
-        // Load tile overview layer — visible from county overview down to any zoom.
-        // No JS-side scale cutoff: tiles render where the VTPK has cached levels and
-        // show nothing (transparent) where it doesn't.  The interactive feature layer
-        // appears on top at 1:25,000 without a visual gap.
-        // Pass the authenticated portal so the JS API injects the token into tile requests.
+        // Tile overview layer — visible at all scales down to 1:25,000 where the
+        // feature layer takes over.  maxScale:25000 hides it cleanly at that threshold.
         if (crownTileItemId) {
-          console.log(`[tile] id=${crownTileItemId.id} type=${crownTileItemId.type}`);
           const portalRef = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
           if (crownTileItemId.type === "Vector Tile Service") {
-            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
           } else if (crownTileItemId.url) {
-            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 25000 });
           } else {
-            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
           }
-          activeCrownTileLayer.when(
-            () => {
-              const lods = activeCrownTileLayer.tileInfo?.lods;
-              const scales = lods ? lods.map(l => l.scale).join(", ") : "none";
-              console.log(`[tile] loaded ok: ${name} | service minScale=${activeCrownTileLayer.minScale} maxScale=${activeCrownTileLayer.maxScale} | cached LOD scales: ${scales}`);
-            },
-            (e) => console.error(`[tile] load error: ${name}`, e)
-          );
           map.add(activeCrownTileLayer);
         }
 
