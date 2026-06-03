@@ -933,7 +933,10 @@
           const isDynamic   = !isVtl && !isTilesCdn && (tileType === "Map Image Layer" || tileType === "Map Service");
           console.log(`[tile] ${name} — type="${tileType}" isVtl=${isVtl} isTilesCdn=${isTilesCdn} isDynamic=${isDynamic}`);
           if (isVtl) {
-            activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
+            // Use direct URL when available — skips portal metadata roundtrip so tiles start loading immediately.
+            activeCrownTileLayer = tileUrl
+              ? new VectorTileLayer({ url: tileUrl, minScale: 0, maxScale: 25000 })
+              : new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
           } else if (isDynamic) {
             activeCrownTileLayer = tileUrl
               ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 25000 })
