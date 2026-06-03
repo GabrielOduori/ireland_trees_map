@@ -533,10 +533,11 @@
       // Prefer Map Service / Tile Layer over Service Definition staging artifacts.
       // Build a map keyed by county, keeping the best-typed item.
       const TILE_TYPES = ["Map Service", "Tile Layer", "Vector Tile Service", "Hosted Tile Layer", "Map Image Layer"];
-      const tilePriority = t => TILE_TYPES.indexOf(t);  // lower index = higher priority; -1 = unwanted
+      // Unknown types (e.g. Feature Service, Service Definition) get Infinity so they never win.
+      const tilePriority = t => { const i = TILE_TYPES.indexOf(t); return i === -1 ? Infinity : i; };
 
       tileItems.results.forEach(item => {
-        if (item.type === "Service Definition") return;   // skip staging artifacts
+        if (tilePriority(item.type) === Infinity) return;   // skip non-tile types
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
         const existing = crownTileLayerMap[county];
         if (!existing || tilePriority(item.type) < tilePriority(existing.type)) {
@@ -926,9 +927,11 @@
           const portalRef  = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
           const tileType   = crownTileItemId.type || "";
           const tileUrl    = crownTileItemId.url  || "";
-          const isVtl      = tileType === "Vector Tile Service" || tileUrl.includes("/VectorTileServer");
-          const isDynamic  = tileType === "Map Image Layer" || tileType === "Map Service";
-          console.log(`[tile] ${name} — type="${tileType}" url="${tileUrl}" isVtl=${isVtl} isDynamic=${isDynamic}`);
+          const isVtl       = tileType === "Vector Tile Service" || tileUrl.includes("/VectorTileServer");
+          // URLs on the tiles CDN are cached tile services — TileLayer, not MapImageLayer.
+          const isTilesCdn  = /tiles(-eu1)?\.arcgis\.com/.test(tileUrl);
+          const isDynamic   = !isVtl && !isTilesCdn && (tileType === "Map Image Layer" || tileType === "Map Service");
+          console.log(`[tile] ${name} — type="${tileType}" isVtl=${isVtl} isTilesCdn=${isTilesCdn} isDynamic=${isDynamic}`);
           if (isVtl) {
             activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
           } else if (isDynamic) {
