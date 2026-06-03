@@ -532,7 +532,7 @@
       });
       // Prefer Map Service / Tile Layer over Service Definition staging artifacts.
       // Build a map keyed by county, keeping the best-typed item.
-      const TILE_TYPES = ["Map Service", "Tile Layer", "Vector Tile Service", "Hosted Tile Layer", "Map Image Layer"];
+      const TILE_TYPES = ["Vector Tile Service", "Tile Layer", "Map Service", "Hosted Tile Layer", "Map Image Layer"];
       // Unknown types (e.g. Feature Service, Service Definition) get Infinity so they never win.
       const tilePriority = t => { const i = TILE_TYPES.indexOf(t); return i === -1 ? Infinity : i; };
 
