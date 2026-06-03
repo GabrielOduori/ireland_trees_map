@@ -923,14 +923,25 @@
         // Tile overview layer — visible at all scales down to 1:25,000 where the
         // feature layer takes over.  maxScale:25000 hides it cleanly at that threshold.
         if (crownTileItemId) {
-          const portalRef = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
-          if (crownTileItemId.type === "Vector Tile Service") {
+          const portalRef  = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
+          const tileType   = crownTileItemId.type || "";
+          const tileUrl    = crownTileItemId.url  || "";
+          const isVtl      = tileType === "Vector Tile Service" || tileUrl.includes("/VectorTileServer");
+          const isDynamic  = tileType === "Map Image Layer" || tileType === "Map Service";
+          console.log(`[tile] ${name} — type="${tileType}" url="${tileUrl}" isVtl=${isVtl} isDynamic=${isDynamic}`);
+          if (isVtl) {
             activeCrownTileLayer = new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
-          } else if (crownTileItemId.url) {
-            activeCrownTileLayer = new TileLayer({ url: crownTileItemId.url, minScale: 0, maxScale: 25000 });
+          } else if (isDynamic) {
+            activeCrownTileLayer = tileUrl
+              ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 25000 })
+              : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
+          } else if (tileUrl) {
+            activeCrownTileLayer = new TileLayer({ url: tileUrl, minScale: 0, maxScale: 25000 });
           } else {
             activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
           }
+          activeCrownTileLayer.on("layerview-create-error", e =>
+            console.error(`[tile] failed to render ${name} tile layer:`, e.error));
           map.add(activeCrownTileLayer);
         }
 
