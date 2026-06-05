@@ -516,9 +516,7 @@
       // Tile layers — search by owner to bypass type ambiguity and index lag.
       // UploadServiceDefinition_server can produce "Tile Layer", "Map Service", or
       // "Hosted Tile Layer" depending on ArcGIS Pro version — owner: avoids all that.
-      const tileQuery = username
-        ? `owner:"${username}" AND title:"Ireland_Trees_Crowns_VTL"`
-        : `(type:"Vector Tile Service" OR type:"Tile Layer" OR type:"Map Service") AND title:"Ireland_Trees_Crowns_VTL"`;
+      const tileQuery = `tags:"IrelandsTREEMAP" AND title:"Ireland_Trees_Crowns_VTL"`;
       const tileItems = await portal.queryItems(new PortalQueryParams({
         query: tileQuery, num: 50, sortField: "title", sortOrder: "asc"
       }));
@@ -935,16 +933,16 @@
           if (isVtl) {
             // Use direct URL when available — skips portal metadata roundtrip so tiles start loading immediately.
             activeCrownTileLayer = tileUrl
-              ? new VectorTileLayer({ url: tileUrl, minScale: 0, maxScale: 25000 })
-              : new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
+              ? new VectorTileLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
+              : new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           } else if (isDynamic) {
             activeCrownTileLayer = tileUrl
-              ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 25000 })
-              : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
+              ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
+              : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           } else if (tileUrl) {
-            activeCrownTileLayer = new TileLayer({ url: tileUrl, minScale: 0, maxScale: 25000 });
+            activeCrownTileLayer = new TileLayer({ url: tileUrl, minScale: 0, maxScale: 0 });
           } else {
-            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 25000 });
+            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
           }
           activeCrownTileLayer.on("layerview-create-error", e =>
             console.error(`[tile] failed to render ${name} tile layer:`, e.error));
