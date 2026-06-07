@@ -951,14 +951,17 @@
 
         if (crownItemId) {
           // Use the published per-county crown polygon layer
+          const featurePortalRef = _portal ? { id: crownItemId, portal: _portal } : { id: crownItemId };
           activeCrownLayer = new FeatureLayer({
-            portalItem: { id: crownItemId },
+            portalItem: featurePortalRef,
             outFields: ["*"],
             renderer: crownRenderer,
             popupEnabled: false,
             minScale: 25000,
             maxScale: 0
           });
+          activeCrownLayer.on("layerview-create-error", e =>
+            console.error(`[feature] failed to render ${name} crown layer:`, e.error));
           map.add(activeCrownLayer);
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
