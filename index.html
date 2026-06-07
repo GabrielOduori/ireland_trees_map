@@ -569,7 +569,7 @@
     // Colours from docs/deployment/symbology_tips.txt Part 2.
     // 40% transparency = alpha 0.6.
     const crownRenderer = new UniqueValueRenderer({
-      field: "tree_class",
+      valueExpression: "var cls = $feature.tree_class; if (IsEmpty(cls)) cls = $feature.Class; return Lower(cls);",
       uniqueValueInfos: [
         {
           value: "ft",
@@ -593,22 +593,26 @@
     });
 
     function buildPopupContent(a) {
-      const tc   = (a.tree_class || a.class || "").toLowerCase();
+      // Field names vary by publish convention:
+      //   standard (Dublin-style): tree_class, height_m, max_height_m, crown_area_m2, ntm_id, perimeter, county
+      //   raw PostGIS export (Waterford-style): Class, Mean, Max_, crown_area_m2, NTM_ID, Perimeter, County
+      const tc   = (a.tree_class || a.class || a.Class || "").toLowerCase();
       const type = tc === "ft"  ? "Forest Trees"
                  : tc === "tof" ? "Trees Outside Forests"
                  : tc || "—";
       const fmt  = (v, dp = 1) => v != null ? Number(v).toFixed(dp) : "—";
-      // field names vary: published service may use mean/max/area or height_m/max_height_m/crown_area_m2
-      const meanH = a.height_m     ?? a.mean;
-      const maxH  = a.max_height_m ?? a.max;
-      const area  = a.crown_area_m2 ?? a.area;
+      const meanH = a.height_m     ?? a.mean  ?? a.Mean;
+      const maxH  = a.max_height_m ?? a.max   ?? a.Max_;
+      const area  = a.crown_area_m2 ?? a.area ?? a.Area;
+      const treeId  = a.ntm_id    || a.NTM_ID    || "—";
+      const perim   = a.perimeter ?? a.Perimeter;
       return `<table style="width:100%;border-collapse:collapse;font-size:13px">
         <tr><td style="padding:3px 6px;color:#666">Type</td><td style="padding:3px 6px;font-weight:600">${type}</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${a.ntm_id || "—"}</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${treeId}</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(meanH)} m</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(maxH)} m</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(area)} m²</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(a.perimeter)} m</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(perim)} m</td></tr>
       </table>`;
     }
 
@@ -1152,7 +1156,7 @@
         crownHighlight = layerView.highlight(graphic);
 
         // Show popup
-        crownPopupTitle.textContent = `Tree Crown — ${attrs.county || ""}`;
+        crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
         crownPopupBody.innerHTML = buildPopupContent(attrs);
 
         const pt = view.toScreen(event.mapPoint);
