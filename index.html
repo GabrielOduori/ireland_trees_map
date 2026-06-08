@@ -526,8 +526,11 @@
       tileItems.results.forEach(item => console.log(`  tile: ${item.title} (type=${item.type}) url=${item.url}`));
 
       crownItems.results.forEach(item => {
-        const county = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
-        crownLayerMap[county] = item.id;
+        const raw    = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
+        // Strip alphabetic split suffix (_A, _B, _C …) so all parts map to the same county key
+        const county = raw.replace(/_[A-Z]$/, "");
+        if (!crownLayerMap[county]) crownLayerMap[county] = [];
+        crownLayerMap[county].push(item.id);
       });
       // Prefer Map Service / Tile Layer over Service Definition staging artifacts.
       // Build a map keyed by county, keeping the best-typed item.
@@ -745,7 +748,7 @@
       view.goTo({ center: event.mapPoint, zoom: view.zoom });
     });
 
-    let activeCrownLayer = null;
+    let activeCrownLayers = [];
 
     view.when(() => {
       const countyStatus    = document.getElementById("countyStatus");
@@ -757,10 +760,11 @@
       const crownLayerToggle = document.getElementById("crownLayerToggle");
       let activeItem           = null;
       let activeCrownTileLayer = null;
+      let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
 
       crownLayerToggle.addEventListener("change", () => {
-        if (activeCrownLayer) activeCrownLayer.visible = crownLayerToggle.checked;
+        activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
       });
 
       // ── view.padding tells ArcGIS the panel obscures the right side,
@@ -814,6 +818,7 @@
           activeItem.classList.remove("active");
           activeItem = null;
         }
+        if (_vtlHandoffHandle) { _vtlHandoffHandle.remove(); _vtlHandoffHandle = null; }
         if (activeCrownTileLayer) {
           map.remove(activeCrownTileLayer);
           activeCrownTileLayer = null;
@@ -916,12 +921,9 @@
         vectorTileLayers.forEach(l => l.visible = false);
 
         // Remove previous per-county layers
-        if (activeCrownLayer) {
-          map.remove(activeCrownLayer);
-          activeCrownLayer = null;
-        }
+        activeCrownLayers.forEach(l => map.remove(l));
+        activeCrownLayers = [];
 
-        const crownItemId     = crownLayerMap[name.toUpperCase()];
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
         // Tile overview layer — visible at all scales down to 1:25,000 where the
@@ -954,20 +956,24 @@
           map.add(activeCrownTileLayer);
         }
 
-        if (crownItemId) {
-          // Use the published per-county crown polygon layer
-          const featurePortalRef = _portal ? { id: crownItemId, portal: _portal } : { id: crownItemId };
-          activeCrownLayer = new FeatureLayer({
-            portalItem: featurePortalRef,
-            outFields: ["*"],
-            renderer: crownRenderer,
-            popupEnabled: false,
-            minScale: 25000,
-            maxScale: 0
+        const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
+        if (crownItemIds.length) {
+          // Load one FeatureLayer per item ID (single county = one ID; split county = two IDs)
+          activeCrownLayers = crownItemIds.map(itemId => {
+            const featurePortalRef = _portal ? { id: itemId, portal: _portal } : { id: itemId };
+            const fl = new FeatureLayer({
+              portalItem: featurePortalRef,
+              outFields: ["*"],
+              renderer: crownRenderer,
+              popupEnabled: false,
+              minScale: 25000,
+              maxScale: 0
+            });
+            fl.on("layerview-create-error", e =>
+              console.error(`[feature] failed to render ${name} crown layer (item id: ${itemId}):`, e.error));
+            map.add(fl);
+            return fl;
           });
-          activeCrownLayer.on("layerview-create-error", e =>
-            console.error(`[feature] failed to render ${name} crown layer:`, e.error));
-          map.add(activeCrownLayer);
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
 
@@ -978,6 +984,41 @@
           const total    = ftCount + tofCount;
           const totalStr = total > 0 ? `${total.toLocaleString()} canopies · ` : "";
           countyStatus.textContent = `${name}: ${totalStr}zoom to 1:25,000 to see canopies`;
+
+          // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
+          // Restore VTL and zoom-hint whenever the user zooms back out past 1:25,000.
+          if (activeCrownTileLayer) {
+            const _tileRef      = activeCrownTileLayer;  // capture — prevents stale callbacks touching a later county's VTL
+            const _zoomHint     = countyStatus.textContent;
+            const _readyMsg     = `${name}: ${totalStr}click a canopy to inspect`;
+            const _loadingMsg   = `${name}: Loading canopy data…`;
+            const _readyLayers  = new Set();
+            const _featureTotal = activeCrownLayers.length;
+            activeCrownLayers.forEach((fl, idx) => {
+              view.whenLayerView(fl).then(lv => {
+                lv.watch("updating", updating => {
+                  if (!updating) {
+                    _readyLayers.add(idx);
+                    if (_readyLayers.size >= _featureTotal && view.scale <= 25000) {
+                      _tileRef.visible = false;
+                      countyStatus.textContent = _readyMsg;
+                    }
+                  }
+                });
+              });
+            });
+            _vtlHandoffHandle = view.watch("scale", scale => {
+              if (scale > 25000) {
+                _tileRef.visible = true;
+                _readyLayers.clear();
+                countyStatus.textContent = _zoomHint;
+              } else if (_readyLayers.size >= _featureTotal) {
+                _tileRef.visible = false;
+              } else {
+                countyStatus.textContent = _loadingMsg;
+              }
+            });
+          }
           drawPieChart(ftCount, tofCount);
           drawExtraStats(stats);
 
@@ -1017,10 +1058,8 @@
       function goHome() {
         view.goTo({ center: [-8, 53], zoom: 7 });
         vectorTileLayers.forEach(l => l.visible = true);
-        if (activeCrownLayer) {
-          map.remove(activeCrownLayer);
-          activeCrownLayer = null;
-        }
+        activeCrownLayers.forEach(l => map.remove(l));
+        activeCrownLayers = [];
         clearActiveCounty();
         countyStatus.textContent = "";
         chartContainer.classList.remove("active");
@@ -1143,16 +1182,16 @@
     document.getElementById("crownPopupClose").addEventListener("click", clearCrownSelection);
 
     view.on("click", async (event) => {
-      if (!activeCrownLayer) { clearCrownSelection(); return; }
+      if (!activeCrownLayers.length) { clearCrownSelection(); return; }
       try {
-        const { results } = await view.hitTest(event, { include: [activeCrownLayer] });
+        const { results } = await view.hitTest(event, { include: activeCrownLayers });
         if (!results.length) { clearCrownSelection(); return; }
         const graphic = results[0].graphic;
         const attrs   = graphic.attributes || {};
 
         // Highlight the selected crown polygon
         if (crownHighlight) crownHighlight.remove();
-        const layerView = await view.whenLayerView(activeCrownLayer);
+        const layerView = await view.whenLayerView(results[0].layer);
         crownHighlight = layerView.highlight(graphic);
 
         // Show popup
