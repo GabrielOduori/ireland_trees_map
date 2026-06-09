@@ -496,6 +496,7 @@
     const MapImageLayer     = await $arcgis.import("@arcgis/core/layers/MapImageLayer.js");
     const Portal            = await $arcgis.import("@arcgis/core/portal/Portal.js");
     const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
+    const Basemap           = await $arcgis.import("@arcgis/core/Basemap.js");
 
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
@@ -809,7 +810,17 @@
       });
 
       // ── Map widgets (rendered in HTML containers — not view.ui.add) ─────────
-      const basemapGallery = new BasemapGallery({ view, container: "basemapPanel" });
+      const basemapGallery = new BasemapGallery({
+        view,
+        container: "basemapPanel",
+        source: [
+          Basemap.fromId("hybrid"),
+          Basemap.fromId("satellite"),
+          Basemap.fromId("streets-vector"),
+          Basemap.fromId("topo-vector"),
+          Basemap.fromId("dark-gray-vector"),
+        ]
+      });
       document.getElementById("basemapBtn").addEventListener("click", () => {
         const p = document.getElementById("basemapPanel");
         p.style.display = p.style.display === "block" ? "none" : "block";
@@ -977,10 +988,11 @@
           portalItem:          buaPortalRef,
           definitionExpression: `County = '${name.replace(/'/g, "''")}'`,
           outFields:           ["Settlement", "County", "Population"],
+          opacity: 0.4,
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
-              color:   [255, 165, 0, 45],
-              outline: { color: [200, 120, 0, 200], width: 1.5 }
+              color:   [255, 165, 0, 200],
+              outline: { color: [200, 120, 0, 255], width: 1.5 }
             })
           }),
           popupTemplate: {
@@ -998,7 +1010,7 @@
           console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
         buaLayerToggle.checked = true;
         layerToggleRow.style.display = "block";
-        map.add(activeBuaLayer);
+        map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
