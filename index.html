@@ -424,6 +424,10 @@
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
               Show crown layer
             </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
+              <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
+              Show built-up areas
+            </label>
           </div>
           <div id="chartContainer"></div>
           <div id="extraStats"></div>
@@ -497,6 +501,8 @@
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
     let countyStatsMap    = {};   // pre-computed FT/TOF counts — no live stats queries needed
+
+    const BUA_LAYER_ITEM_ID = "e83eac6b7292457cbbbafbd2fa103a31";
 
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
@@ -640,7 +646,7 @@
       }]
     };
 
-    const map = new Map({ basemap: "streets-vector" });
+    const map = new Map({ basemap: "hybrid" });
 
     const vectorTileBaseUrl = "https://tiles-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/";
     const groupServiceNames = [
@@ -760,11 +766,17 @@
       const crownLayerToggle = document.getElementById("crownLayerToggle");
       let activeItem           = null;
       let activeCrownTileLayer = null;
+      let activeBuaLayer       = null;
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
 
+      const buaLayerToggle = document.getElementById("buaLayerToggle");
+
       crownLayerToggle.addEventListener("change", () => {
         activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
+      });
+      buaLayerToggle.addEventListener("change", () => {
+        if (activeBuaLayer) activeBuaLayer.visible = buaLayerToggle.checked;
       });
 
       // ── view.padding tells ArcGIS the panel obscures the right side,
@@ -819,6 +831,7 @@
           activeItem = null;
         }
         if (_vtlHandoffHandle) { _vtlHandoffHandle.remove(); _vtlHandoffHandle = null; }
+        if (activeBuaLayer) { map.remove(activeBuaLayer); activeBuaLayer = null; }
         if (activeCrownTileLayer) {
           map.remove(activeCrownTileLayer);
           activeCrownTileLayer = null;
@@ -955,6 +968,37 @@
             console.error(`[tile] failed to render ${name} tile layer:`, e.error));
           map.add(activeCrownTileLayer);
         }
+
+        // Built-up areas — filtered to the active county, sits above VTL below crowns
+        const buaPortalRef = _portal
+          ? { id: BUA_LAYER_ITEM_ID, portal: _portal }
+          : { id: BUA_LAYER_ITEM_ID };
+        activeBuaLayer = new FeatureLayer({
+          portalItem:          buaPortalRef,
+          definitionExpression: `County = '${name.replace(/'/g, "''")}'`,
+          outFields:           ["Settlement", "County", "Population"],
+          renderer: new SimpleRenderer({
+            symbol: new SimpleFillSymbol({
+              color:   [255, 165, 0, 45],
+              outline: { color: [200, 120, 0, 200], width: 1.5 }
+            })
+          }),
+          popupTemplate: {
+            title: "{Settlement}",
+            content: [{ type: "fields", fieldInfos: [
+              { fieldName: "Settlement", label: "Settlement",  visible: true },
+              { fieldName: "Population", label: "Population",  visible: true,
+                format: { digitSeparator: true, places: 0 } },
+              { fieldName: "County",     label: "County",      visible: true }
+            ]}]
+          },
+          minScale: 0, maxScale: 0
+        });
+        activeBuaLayer.on("layerview-create-error", e =>
+          console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
+        buaLayerToggle.checked = true;
+        layerToggleRow.style.display = "block";
+        map.add(activeBuaLayer);
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
