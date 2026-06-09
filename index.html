@@ -53,8 +53,9 @@
         background: white;
         border-radius: 4px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        max-width: calc(100vw - 20px);
         max-height: calc(100vh - 72px);
-        overflow-y: auto;
+        overflow: auto;
       }
 
       #scaleBarPanel {
@@ -987,7 +988,7 @@
         activeBuaLayer = new FeatureLayer({
           portalItem:          buaPortalRef,
           definitionExpression: `County = '${name.replace(/'/g, "''")}'`,
-          outFields:           ["Settlement", "County", "Population"],
+          outFields:           ["*"],
           opacity: 0.4,
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
@@ -997,12 +998,34 @@
           }),
           popupTemplate: {
             title: "{Settlement}",
-            content: [{ type: "fields", fieldInfos: [
-              { fieldName: "Settlement", label: "Settlement",  visible: true },
-              { fieldName: "Population", label: "Population",  visible: true,
-                format: { digitSeparator: true, places: 0 } },
-              { fieldName: "County",     label: "County",      visible: true }
-            ]}]
+            outFields: ["*"],
+            content: (event) => {
+              const attrs  = event.graphic.attributes || {};
+              const SKIP   = new Set(["objectid", "shape__area", "shape__length",
+                                      "shape_area", "shape_length", "globalid"]);
+              const LABELS = { settlement: "Settlement", county: "County",
+                               population: "Population" };
+              const table  = document.createElement("table");
+              table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
+              Object.entries(attrs).forEach(([key, val]) => {
+                if (SKIP.has(key.toLowerCase())) return;
+                if (val === null || val === undefined) return;
+                const label   = LABELS[key.toLowerCase()] || key;
+                const display = (key.toLowerCase() === "population" && typeof val === "number")
+                  ? val.toLocaleString() : String(val);
+                const tr  = document.createElement("tr");
+                const td1 = document.createElement("td");
+                td1.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap";
+                td1.textContent = label;
+                const td2 = document.createElement("td");
+                td2.style.cssText = "padding:3px 0;font-weight:600";
+                td2.textContent = display;
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                table.appendChild(tr);
+              });
+              return table;
+            }
           },
           minScale: 0, maxScale: 0
         });
