@@ -53,9 +53,15 @@
         background: white;
         border-radius: 4px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        width: max-content;
         max-width: calc(100vw - 20px);
         max-height: calc(100vh - 72px);
-        overflow: auto;
+        overflow: hidden;
+        overflow-y: auto;
+      }
+      #basemapPanel .esri-basemap-gallery {
+        max-width: calc(100vw - 20px);
+        box-sizing: border-box;
       }
 
       #scaleBarPanel {
@@ -1261,33 +1267,48 @@
     document.getElementById("crownPopupClose").addEventListener("click", clearCrownSelection);
 
     view.on("click", async (event) => {
-      if (!activeCrownLayers.length) { clearCrownSelection(); return; }
       try {
-        const { results } = await view.hitTest(event, { include: activeCrownLayers });
-        if (!results.length) { clearCrownSelection(); return; }
-        const graphic = results[0].graphic;
-        const attrs   = graphic.attributes || {};
+        // ── Crown polygons — custom popup ───────────────────────────────────
+        if (activeCrownLayers.length) {
+          const { results } = await view.hitTest(event, { include: activeCrownLayers });
+          if (results.length) {
+            const graphic = results[0].graphic;
+            const attrs   = graphic.attributes || {};
 
-        // Highlight the selected crown polygon
-        if (crownHighlight) crownHighlight.remove();
-        const layerView = await view.whenLayerView(results[0].layer);
-        crownHighlight = layerView.highlight(graphic);
+            if (crownHighlight) crownHighlight.remove();
+            const layerView = await view.whenLayerView(results[0].layer);
+            crownHighlight = layerView.highlight(graphic);
 
-        // Show popup
-        crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
-        crownPopupBody.innerHTML = buildPopupContent(attrs);
+            crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
+            crownPopupBody.innerHTML = buildPopupContent(attrs);
 
-        const pt = view.toScreen(event.mapPoint);
-        const vr = document.getElementById("viewDiv").getBoundingClientRect();
-        let left = vr.left + pt.x + 14;
-        let top  = vr.top  + pt.y - 40;
-        crownPopup.style.display = "block";
-        const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
-        if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
-        if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
-        if (top < 60) top = 60;
-        crownPopup.style.left = left + "px";
-        crownPopup.style.top  = top  + "px";
+            const pt = view.toScreen(event.mapPoint);
+            const vr = document.getElementById("viewDiv").getBoundingClientRect();
+            let left = vr.left + pt.x + 14;
+            let top  = vr.top  + pt.y - 40;
+            crownPopup.style.display = "block";
+            const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
+            if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
+            if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
+            if (top < 60) top = 60;
+            crownPopup.style.left = left + "px";
+            crownPopup.style.top  = top  + "px";
+            view.popup.close();
+            return;
+          }
+        }
+
+        // ── Built-up areas — ArcGIS popup via popupTemplate ────────────────
+        clearCrownSelection();
+        if (activeBuaLayer) {
+          const { results: buaResults } = await view.hitTest(event, { include: [activeBuaLayer] });
+          if (buaResults.length) {
+            view.popup.open({ features: [buaResults[0].graphic], location: event.mapPoint });
+            return;
+          }
+        }
+
+        view.popup.close();
       } catch (e) {
         console.error("[popup] error:", e);
       }
