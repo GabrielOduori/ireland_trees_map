@@ -304,7 +304,10 @@
 
       #countyList li {
         cursor: pointer;
-        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
         border-bottom: 1px solid #eee;
         border-left: 4px solid transparent;
         font-size: 13px;
@@ -323,34 +326,53 @@
       .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
 
       .county-name {
-        display: block;
+        width: 82px;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .county-bar-container {
+        flex: 1;
+        height: 16px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        display: flex;
       }
 
       .county-bar-wrap {
         display: flex;
-        height: 10px;
+        height: 100%;
         border-radius: 2px;
         overflow: hidden;
-        margin-top: 5px;
       }
 
       .county-bar-ft {
-        background: rgba(0, 180, 0, 0.8);
-        flex-shrink: 0;
+        background: rgba(0, 150, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 9px;
+        color: #fff;
+        font-weight: 700;
+        white-space: nowrap;
       }
 
       .county-bar-tof {
-        background: rgba(180, 0, 180, 0.8);
-        flex-shrink: 0;
-      }
-
-      .county-bar-label {
+        background: rgba(150, 0, 150, 0.85);
         display: flex;
-        justify-content: space-between;
-        font-size: 10px;
-        color: #666;
-        font-weight: 400;
-        margin-top: 2px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-size: 9px;
+        color: #fff;
+        font-weight: 700;
+        white-space: nowrap;
       }
 
       #viewDiv {
@@ -1198,7 +1220,7 @@
 
           const nameSpan = document.createElement("span");
           nameSpan.className = "county-name";
-          nameSpan.textContent = name;
+          nameSpan.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
           item.appendChild(nameSpan);
 
           const stats   = countyStatsMap[name.toUpperCase()] || {};
@@ -1210,30 +1232,27 @@
             const tofPct = (tof / total * 100).toFixed(1);
             const barPct = (total / maxTotal * 100).toFixed(1);
 
+            const barContainer = document.createElement("div");
+            barContainer.className = "county-bar-container";
+
             const barWrap = document.createElement("div");
             barWrap.className = "county-bar-wrap";
             barWrap.style.width = `${barPct}%`;
+
             const ftBar = document.createElement("div");
             ftBar.className = "county-bar-ft";
             ftBar.style.width = `${ftPct}%`;
+            ftBar.textContent = `${ftPct}%`;
+
             const tofBar = document.createElement("div");
             tofBar.className = "county-bar-tof";
             tofBar.style.width = `${tofPct}%`;
+            tofBar.textContent = `${tofPct}%`;
+
             barWrap.appendChild(ftBar);
             barWrap.appendChild(tofBar);
-
-            const labelRow = document.createElement("div");
-            labelRow.className = "county-bar-label";
-            labelRow.style.width = `${barPct}%`;
-            const ftLabel = document.createElement("span");
-            ftLabel.textContent = `FT ${ftPct}%`;
-            const tofLabel = document.createElement("span");
-            tofLabel.textContent = `TOF ${tofPct}%`;
-            labelRow.appendChild(ftLabel);
-            labelRow.appendChild(tofLabel);
-
-            item.appendChild(barWrap);
-            item.appendChild(labelRow);
+            barContainer.appendChild(barWrap);
+            item.appendChild(barContainer);
           }
 
           item.addEventListener("click", () => activateCounty(name, feature, item));
