@@ -431,7 +431,7 @@
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
-              Crowns On/Off
+              Canopy Layers On/Off
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
@@ -761,10 +761,11 @@
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
 
-      const buaLayerToggle = document.getElementById("buaLayerToggle");
+      const buaLayerToggle   = document.getElementById("buaLayerToggle");
 
       crownLayerToggle.addEventListener("change", () => {
         activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
+        if (activeCrownTileLayer) activeCrownTileLayer.visible = crownLayerToggle.checked;
       });
       buaLayerToggle.addEventListener("change", () => {
         if (activeBuaLayer) activeBuaLayer.visible = buaLayerToggle.checked;
@@ -916,7 +917,7 @@
         });
         activeBuaLayer.on("layerview-create-error", e =>
           console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
-        buaLayerToggle.checked = true;
+        buaLayerToggle.checked  = true;
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
