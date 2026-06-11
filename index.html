@@ -116,12 +116,6 @@
       }
 
 
-      #nationalSummary {
-        padding: 4px 16px 10px;
-        font-size: 12px;
-        color: #555;
-        border-top: 1px solid #eee;
-      }
 
       #zoomLevelPanel {
         position: absolute;
@@ -245,56 +239,7 @@
         font-size: 14px;
       }
 
-      #countyStatus {
-        padding: 8px 16px;
-        font-size: 13px;
-        color: #555;
-        border-top: 1px solid #eee;
-        min-height: 34px;
-      }
 
-      #chartContainer {
-        display: none;
-        padding: 8px 16px 12px;
-        border-top: 1px solid #eee;
-      }
-
-      #chartContainer svg {
-        display: block;
-        max-width: 90px;
-        margin: 0 auto;
-      }
-
-      #chartContainer.active {
-        display: block;
-      }
-
-      #extraStats {
-        display: none;
-        padding: 6px 16px 10px;
-        font-size: 12px;
-        color: #555;
-        border-top: 1px solid #eee;
-      }
-
-      #extraStats.active {
-        display: block;
-      }
-
-      #extraStats table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      #extraStats td {
-        padding: 2px 4px;
-      }
-
-      #extraStats td:last-child {
-        text-align: right;
-        font-weight: 600;
-        color: #333;
-      }
 
       #countyList {
         list-style: none;
@@ -485,8 +430,6 @@
       <div id="countyPanel">
         <div id="panelHeader">
           <h2>County</h2>
-          <div id="nationalSummary"></div>
-          <div id="countyStatus"></div>
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
@@ -497,8 +440,6 @@
               Show built-up areas
             </label>
           </div>
-          <div id="chartContainer"></div>
-          <div id="extraStats"></div>
         </div>
         <ul id="countyList"></ul>
       </div>
@@ -638,16 +579,6 @@
       if (resp.ok) countyStatsMap = await resp.json();
     } catch (e) {
       console.warn("county_stats.json not found — pie charts will be empty:", e);
-    }
-
-    {
-      const allVals  = Object.values(countyStatsMap);
-      const total    = allVals.reduce((s, c) => s + (c.ft || 0) + (c.tof || 0), 0);
-      const pubCount = allVals.length;
-      if (total > 0) {
-        const el = document.getElementById("nationalSummary");
-        if (el) el.textContent = `${total.toLocaleString()} canopies · ${pubCount} of 26 counties`;
-      }
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -792,10 +723,7 @@
     let _nationalBuaLayer  = null;   // unfiltered layer used for geometry queries in selectBua
 
     view.when(() => {
-      const countyStatus    = document.getElementById("countyStatus");
       const countyList      = document.getElementById("countyList");
-      const chartContainer  = document.getElementById("chartContainer");
-      const extraStats      = document.getElementById("extraStats");
       const countyPanel     = document.getElementById("countyPanel");
       const layerToggleRow  = document.getElementById("layerToggleRow");
       const crownLayerToggle = document.getElementById("crownLayerToggle");
@@ -887,87 +815,6 @@
         clearBuaList();
       }
 
-      // ── Pie chart (SVG, DOM-built — no innerHTML for data) ───────────────
-      function drawPieChart(ftCount, tofCount) {
-        chartContainer.classList.remove("active");
-        chartContainer.innerHTML = "";
-        const total = ftCount + tofCount;
-        if (total === 0) return;
-
-        const ftPct  = (ftCount  / total * 100).toFixed(1);
-        const tofPct = (tofCount / total * 100).toFixed(1);
-        const cx = 45, cy = 45, r = 40;
-
-        function ptAt(angle, radius) {
-          const rad = (angle - 90) * Math.PI / 180;
-          return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
-        }
-
-        const ns = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(ns, "svg");
-        svg.setAttribute("viewBox", "0 0 90 90");
-        svg.setAttribute("width", "100%");
-
-        function addSlice(startAngle, endAngle, fill) {
-          if (Math.abs(endAngle - startAngle) >= 359.99) {
-            const c = document.createElementNS(ns, "circle");
-            c.setAttribute("cx", cx); c.setAttribute("cy", cy);
-            c.setAttribute("r", r);   c.setAttribute("fill", fill);
-            svg.appendChild(c);
-            return;
-          }
-          const [x1, y1] = ptAt(startAngle, r);
-          const [x2, y2] = ptAt(endAngle, r);
-          const large = endAngle - startAngle > 180 ? 1 : 0;
-          const p = document.createElementNS(ns, "path");
-          p.setAttribute("d", `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`);
-          p.setAttribute("fill", fill);
-          svg.appendChild(p);
-        }
-
-        function addPctLabel(midAngle, pct) {
-          if (parseFloat(pct) < 8) return;
-          const [x, y] = ptAt(midAngle, r * 0.62);
-          const t = document.createElementNS(ns, "text");
-          t.setAttribute("x", x);
-          t.setAttribute("y", y);
-          t.setAttribute("text-anchor", "middle");
-          t.setAttribute("dominant-baseline", "central");
-          t.setAttribute("font-size", "10");
-          t.setAttribute("font-weight", "700");
-          t.setAttribute("fill", "white");
-          t.textContent = `${pct}%`;
-          svg.appendChild(t);
-        }
-
-        const ftAngle = (ftCount / total) * 360;
-        addSlice(0, ftAngle, "rgba(0,200,0,0.85)");
-        addSlice(ftAngle, 360, "rgba(200,0,200,0.85)");
-        addPctLabel(ftAngle / 2, ftPct);
-        addPctLabel(ftAngle + (360 - ftAngle) / 2, tofPct);
-
-        chartContainer.appendChild(svg);
-        chartContainer.classList.add("active");
-      }
-
-      function drawExtraStats(stats) {
-        extraStats.innerHTML = "";
-        const rows = [];
-        if (stats.max_height_m      != null) rows.push(["Tallest tree",    `${stats.max_height_m} m`]);
-        if (stats.max_crown_area_m2 != null) rows.push(["Largest crown",   `${stats.max_crown_area_m2.toLocaleString()} m²`]);
-        if (rows.length === 0) { extraStats.classList.remove("active"); return; }
-        const table = document.createElement("table");
-        rows.forEach(([label, value]) => {
-          const tr = document.createElement("tr");
-          const td1 = document.createElement("td"); td1.textContent = label;
-          const td2 = document.createElement("td"); td2.textContent = value;
-          tr.appendChild(td1); tr.appendChild(td2);
-          table.appendChild(tr);
-        });
-        extraStats.appendChild(table);
-        extraStats.classList.add("active");
-      }
-
       // ── Activate a county ────────────────────────────────────────────────
       function activateCounty(name, countyFeature, listItem, zoomToCounty = true) {
         clearActiveCounty();
@@ -976,7 +823,6 @@
           listItem.classList.add("active");
         }
 
-        countyStatus.textContent = `Loading ${name}...`;
         vectorTileLayers.forEach(l => l.visible = false);
 
         // Remove previous per-county layers
@@ -1083,16 +929,10 @@
           const ftCount  = stats.ft  || 0;
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
-          const totalStr = total > 0 ? `${total.toLocaleString()} canopies · ` : "";
-          countyStatus.textContent = `${name}: ${totalStr}zoom to 1:25,000 to see canopies`;
-
           // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
-          // Restore VTL and zoom-hint whenever the user zooms back out past 1:25,000.
+          // Restore VTL whenever the user zooms back out past 1:25,000.
           if (activeCrownTileLayer) {
-            const _tileRef      = activeCrownTileLayer;  // capture — prevents stale callbacks touching a later county's VTL
-            const _zoomHint     = countyStatus.textContent;
-            const _readyMsg     = `${name}: ${totalStr}click a canopy to inspect`;
-            const _loadingMsg   = `${name}: Loading canopy data…`;
+            const _tileRef      = activeCrownTileLayer;
             const _readyLayers  = new Set();
             const _featureTotal = activeCrownLayers.length;
             activeCrownLayers.forEach((fl, idx) => {
@@ -1102,7 +942,6 @@
                     _readyLayers.add(idx);
                     if (_readyLayers.size >= _featureTotal && view.scale <= 25000) {
                       _tileRef.visible = false;
-                      countyStatus.textContent = _readyMsg;
                     }
                   }
                 });
@@ -1112,20 +951,12 @@
               if (scale > 25000) {
                 _tileRef.visible = true;
                 _readyLayers.clear();
-                countyStatus.textContent = _zoomHint;
               } else if (_readyLayers.size >= _featureTotal) {
                 _tileRef.visible = false;
-              } else {
-                countyStatus.textContent = _loadingMsg;
               }
             });
           }
-          drawPieChart(ftCount, tofCount);
-          drawExtraStats(stats);
-
         } else {
-          countyStatus.textContent = `${name}: crown data not yet published`;
-          drawPieChart(0, 0);
         }
 
         if (countyFeature?.geometry) {
@@ -1162,11 +993,6 @@
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
         clearActiveCounty();
-        countyStatus.textContent = "";
-        chartContainer.classList.remove("active");
-        chartContainer.innerHTML = "";
-        extraStats.classList.remove("active");
-        extraStats.innerHTML = "";
       }
 
       // ── Eircode / address search ─────────────────────────────────────────
@@ -1261,7 +1087,6 @@
 
         updateViewPadding();
       }).catch(() => {
-        countyStatus.textContent = "Failed to load county list.";
       });
 
     });
