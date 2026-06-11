@@ -1451,6 +1451,7 @@
       buaChartPanel.style.display  = "none";
 
       try {
+        await layer.load();   // wait for schema before querying
         const q = layer.createQuery();
         q.orderByFields  = ["population DESC"];
         q.num            = 100;
@@ -1564,7 +1565,7 @@
         buaChartPanel.style.display = "flex";
 
       } catch (e) {
-        console.error("[buaList] query error:", e);
+        console.error("[buaList] query error:", e?.message || e?.details || e);
       }
     }
 
