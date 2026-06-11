@@ -71,50 +71,6 @@
         z-index: 15;
       }
 
-      #insetMap {
-        position: absolute;
-        bottom: 56px;
-        left: 10px;
-        width: 150px;
-        height: 115px;
-        z-index: 15;
-        border: 2px solid #bbb;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        overflow: hidden;
-        cursor: crosshair;
-      }
-
-      #customLegend {
-        position: absolute;
-        bottom: 179px;
-        left: 10px;
-        z-index: 15;
-        background: rgba(255,255,255,0.95);
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        padding: 8px 10px;
-        font-size: 12px;
-      }
-
-      .legend-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 4px;
-      }
-
-      .legend-row:last-child { margin-bottom: 0; }
-
-      .legend-swatch {
-        width: 14px;
-        height: 14px;
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-
-      .swatch-ft  { background: rgba(0, 180, 0, 0.8); }
-      .swatch-tof { background: rgba(180, 0, 180, 0.8); }
 
       #nationalSummary {
         padding: 4px 16px 10px;
@@ -503,11 +459,6 @@
     <div id="basemapPanel"></div>
     <div id="scaleBarPanel"></div>
     <div id="zoomLevelPanel"></div>
-    <div id="insetMap"></div>
-    <div id="customLegend">
-      <div class="legend-row"><span class="legend-swatch swatch-ft"></span><span class="legend-lbl">Forest Trees</span></div>
-      <div class="legend-row"><span class="legend-swatch swatch-tof"></span><span class="legend-lbl">Trees Outside Forests</span></div>
-    </div>
 
     <div id="sidePanelWrapper">
       <button id="collapseBtn" title="Toggle panel" aria-label="Toggle panel">&#8250;</button>
@@ -821,52 +772,9 @@
       zoom: 7
     });
 
-    // ── Inset overview map ───────────────────────────────────────────────
-    const insetMapObj      = new Map({ basemap: "gray-vector" });
-    const insetExtentLayer = new GraphicsLayer();
-    const insetCountyLayer = new FeatureLayer({
-      url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
-      renderer: new SimpleRenderer({
-        symbol: new SimpleFillSymbol({
-          color: [0, 0, 0, 0],
-          outline: { color: [180, 180, 180, 200], width: 0.8 }
-        })
-      }),
-      popupEnabled: false,
-      minScale: 0, maxScale: 0
-    });
-    insetMapObj.add(insetCountyLayer);
-    insetMapObj.add(insetExtentLayer);
-    const insetView = new MapView({
-      container: "insetMap",
-      map: insetMapObj,
-      center: [-8, 53.5],
-      zoom: 5,
-      ui: { components: [] }
-    });
-    const insetExtentSymbol = new SimpleFillSymbol({
-      color: [255, 100, 0, 0.12],
-      outline: { color: [255, 100, 0, 0.9], width: 1.5 }
-    });
-    view.watch("extent", extent => {
-      insetExtentLayer.removeAll();
-      if (extent) {
-        const { xmin, ymin, xmax, ymax, spatialReference } = extent;
-        insetExtentLayer.add(new Graphic({
-          geometry: {
-            type: "polygon",
-            rings: [[[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax], [xmin, ymin]]],
-            spatialReference
-          },
-          symbol: insetExtentSymbol
-        }));
-      }
-    });
-    insetView.on("click", event => {
-      view.goTo({ center: event.mapPoint, zoom: view.zoom });
-    });
 
     let activeCrownLayers = [];
+    let activeBuaLayer    = null;   // module scope — needed by click handler outside view.when()
 
     view.when(() => {
       const countyStatus    = document.getElementById("countyStatus");
@@ -878,7 +786,6 @@
       const crownLayerToggle = document.getElementById("crownLayerToggle");
       let activeItem           = null;
       let activeCrownTileLayer = null;
-      let activeBuaLayer       = null;
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
 
