@@ -767,6 +767,7 @@
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
     let _buaTop100Promise  = null;   // resolves to national top-100 BUAs by area, loaded once
+    let _nationalBuaLayer  = null;   // unfiltered layer used for geometry queries in selectBua
 
     view.when(() => {
       const countyStatus    = document.getElementById("countyStatus");
@@ -1018,13 +1019,13 @@
 
         // Load national top-100 BUAs once (no county filter) and cache the promise
         if (!_buaTop100Promise) {
-          const _nationalLayer = new FeatureLayer({ portalItem: buaPortalRef });
+          _nationalBuaLayer = new FeatureLayer({ portalItem: buaPortalRef });
           _buaTop100Promise = (async () => {
-            await _nationalLayer.load();
-            const nq = _nationalLayer.createQuery();
+            await _nationalBuaLayer.load();
+            const nq = _nationalBuaLayer.createQuery();
             nq.returnGeometry = false;
             nq.outFields      = ["*"];
-            const { features } = await _nationalLayer.queryFeatures(nq);
+            const { features } = await _nationalBuaLayer.queryFeatures(nq);
             return features
               .sort((a, b) =>
                 (b.attributes.land_area_km2 ?? b.attributes.Land_area_km2 ?? 0) -
@@ -1341,24 +1342,28 @@
       clearCrownSelection();
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
 
-      if (!_buaLayer) return;
       const oidKey = Object.keys(attrs).find(k => k.toLowerCase() === "objectid");
       const oid    = oidKey ? attrs[oidKey] : null;
-      if (oid == null) return;
+      if (oid == null || !_nationalBuaLayer) return;
 
       try {
-        await _buaLayer.load();
-        const gq = _buaLayer.createQuery();
+        const gq = _nationalBuaLayer.createQuery();
         gq.where          = `${oidKey} = ${oid}`;
         gq.returnGeometry = true;
+        gq.outSpatialReference = view.spatialReference;
         gq.outFields      = ["*"];
-        const { features } = await _buaLayer.queryFeatures(gq);
+        const { features } = await _nationalBuaLayer.queryFeatures(gq);
         if (features.length) {
           const g = features[0];
-          await view.goTo(g.geometry.extent.expand(1.5));
-          const lv = await view.whenLayerView(_buaLayer);
-          buaHighlight = lv.highlight(g);
-          openBuaPopup(attrs, g.geometry.extent.center);
+          const ext = g.geometry.extent;
+          await view.goTo(ext.expand(1.5));
+          if (_buaLayer) {
+            const lv = await view.whenLayerView(_buaLayer);
+            buaHighlight = lv.highlight(g);
+          }
+          openBuaPopup(attrs, ext.center);
+        } else {
+          console.warn("[selectBua] no feature returned for", oidKey, "=", oid);
         }
       } catch (e) {
         console.error("[selectBua] zoom error:", e?.message || e);
