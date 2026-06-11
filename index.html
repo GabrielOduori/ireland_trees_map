@@ -764,8 +764,9 @@
     });
 
 
-    let activeCrownLayers = [];
-    let activeBuaLayer    = null;   // module scope — needed by click handler outside view.when()
+    let activeCrownLayers  = [];
+    let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
+    let _buaTop100Promise  = null;   // resolves to national top-100 BUAs by area, loaded once
 
     view.when(() => {
       const countyStatus    = document.getElementById("countyStatus");
@@ -1014,7 +1015,24 @@
         buaLayerToggle.checked = true;
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
-        loadBuaList(activeBuaLayer);
+
+        // Load national top-100 BUAs once (no county filter) and cache the promise
+        if (!_buaTop100Promise) {
+          const _nationalLayer = new FeatureLayer({ portalItem: buaPortalRef });
+          _buaTop100Promise = (async () => {
+            await _nationalLayer.load();
+            const nq = _nationalLayer.createQuery();
+            nq.returnGeometry = false;
+            nq.outFields      = ["*"];
+            const { features } = await _nationalLayer.queryFeatures(nq);
+            return features
+              .sort((a, b) =>
+                (b.attributes.land_area_km2 ?? b.attributes.Land_area_km2 ?? 0) -
+                (a.attributes.land_area_km2 ?? a.attributes.Land_area_km2 ?? 0))
+              .slice(0, 100);
+          })();
+        }
+        loadBuaList(activeBuaLayer, name);
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
@@ -1323,55 +1341,46 @@
       clearCrownSelection();
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
 
-      // Fetch geometry for this specific feature on click
+      if (!_buaLayer) return;
       const oidKey = Object.keys(attrs).find(k => k.toLowerCase() === "objectid");
       const oid    = oidKey ? attrs[oidKey] : null;
-      if (oid != null && _buaLayer) {
-        try {
-          const gq = _buaLayer.createQuery();
-          gq.objectIds      = [oid];
-          gq.returnGeometry = true;
-          gq.outFields      = ["*"];
-          const { features } = await _buaLayer.queryFeatures(gq);
-          if (features.length) {
-            const g = features[0];
-            await view.goTo(g.geometry.extent.expand(1.5));
-            const lv = await view.whenLayerView(_buaLayer);
-            buaHighlight = lv.highlight(g);
-            openBuaPopup(attrs, g.geometry.extent.center);
-          }
-        } catch (e) {
-          console.error("[selectBua] geometry fetch error:", e?.message || e);
+      if (oid == null) return;
+
+      try {
+        await _buaLayer.load();
+        const gq = _buaLayer.createQuery();
+        gq.where          = `${oidKey} = ${oid}`;
+        gq.returnGeometry = true;
+        gq.outFields      = ["*"];
+        const { features } = await _buaLayer.queryFeatures(gq);
+        if (features.length) {
+          const g = features[0];
+          await view.goTo(g.geometry.extent.expand(1.5));
+          const lv = await view.whenLayerView(_buaLayer);
+          buaHighlight = lv.highlight(g);
+          openBuaPopup(attrs, g.geometry.extent.center);
         }
+      } catch (e) {
+        console.error("[selectBua] zoom error:", e?.message || e);
       }
     }
 
-    async function loadBuaList(layer) {
+    async function loadBuaList(layer, countyName) {
       _buaLayer = layer;
       buaChartBody.innerHTML      = "";
       buaChartPanel.style.display = "none";
 
       try {
-        await layer.load();
-        const q = layer.createQuery();
-        q.returnGeometry = false;
-        q.outFields      = ["*"];   // avoid field-name guessing; sort client-side
-        const result = await layer.queryFeatures(q);
-        // sort by total_trees descending client-side (bigint fields can't be used
-        // in orderByFields on the AGOL REST API), then cap at 100
-        const features = result.features
-          .sort((a, b) => {
-            const aA = a.attributes.land_area_km2 ?? a.attributes.Land_area_km2 ?? 0;
-            const aB = b.attributes.land_area_km2 ?? b.attributes.Land_area_km2 ?? 0;
-            return aB - aA;
-          })
-          .slice(0, 100);
+        // Await the national top-100 (already loading in background)
+        const top100    = await _buaTop100Promise;
+        const cLower    = countyName.toLowerCase();
+        const features  = top100.filter(g => {
+          const c = g.attributes.county || g.attributes.County || "";
+          return c.toLowerCase() === cLower;
+        });
 
-        const county = features[0]?.attributes?.county
-                    || features[0]?.attributes?.County || "";
-        buaChartTitle.textContent = county
-          ? `Built-up Areas — ${county.charAt(0).toUpperCase() + county.slice(1).toLowerCase()}`
-          : "Built-up Areas";
+        buaChartTitle.textContent =
+          `Built-up Areas — ${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()}`;
 
         const ul = document.createElement("ul");
         ul.style.cssText = "list-style:none;padding:0;margin:0";
@@ -1380,7 +1389,7 @@
           const a  = graphic.attributes || {};
           const nm = a.settlement || a.Settlement || "—";
           const cc = a.canopy_cover_pct ?? a.Canopy_cover_pct;
-          const la = a.land_area_km2   ?? a.Land_area_km2;
+          const la = a.land_area_km2    ?? a.Land_area_km2;
 
           const li = document.createElement("li");
           li.style.cssText = "cursor:pointer;padding:7px 12px;border-bottom:1px solid #f5ece0;" +
@@ -1411,10 +1420,10 @@
         });
 
         buaChartBody.appendChild(ul);
-        buaChartPanel.style.display = "flex";
+        if (features.length > 0) buaChartPanel.style.display = "flex";
 
       } catch (e) {
-        console.error("[buaList] query error:", e?.message || e?.details || e);
+        console.error("[buaList] error:", e?.message || e?.details || e);
       }
     }
 
