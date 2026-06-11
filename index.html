@@ -1324,13 +1324,14 @@
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
 
       // Fetch geometry for this specific feature on click
-      const oid = attrs.objectid ?? attrs.OBJECTID;
+      const oidKey = Object.keys(attrs).find(k => k.toLowerCase() === "objectid");
+      const oid    = oidKey ? attrs[oidKey] : null;
       if (oid != null && _buaLayer) {
         try {
           const gq = _buaLayer.createQuery();
           gq.objectIds      = [oid];
           gq.returnGeometry = true;
-          gq.outFields      = ["objectid"];
+          gq.outFields      = ["*"];
           const { features } = await _buaLayer.queryFeatures(gq);
           if (features.length) {
             const g = features[0];
@@ -1353,12 +1354,18 @@
       try {
         await layer.load();
         const q = layer.createQuery();
-        q.orderByFields  = ["total_trees DESC"];
-        q.num            = 100;
         q.returnGeometry = false;
-        q.outFields      = ["objectid", "settlement", "total_trees",
-                            "canopy_cover_pct", "land_area_km2"];
-        const { features } = await layer.queryFeatures(q);
+        q.outFields      = ["*"];   // avoid field-name guessing; sort client-side
+        const result = await layer.queryFeatures(q);
+        // sort by total_trees descending client-side (bigint fields can't be used
+        // in orderByFields on the AGOL REST API), then cap at 100
+        const features = result.features
+          .sort((a, b) => {
+            const tA = a.attributes.total_trees ?? a.attributes.Total_trees ?? 0;
+            const tB = b.attributes.total_trees ?? b.attributes.Total_trees ?? 0;
+            return Number(tB) - Number(tA);
+          })
+          .slice(0, 100);
 
         const county = features[0]?.attributes?.county
                     || features[0]?.attributes?.County || "";
