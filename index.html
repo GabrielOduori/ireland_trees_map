@@ -71,6 +71,90 @@
         z-index: 15;
       }
 
+      #buaChartPanel {
+        position: absolute;
+        top: 104px;
+        left: 10px;
+        width: 270px;
+        max-height: calc(100vh - 130px);
+        z-index: 12;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #buaChartHeader {
+        background: #b35a00;
+        color: white;
+        padding: 8px 10px 8px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      #buaChartClose {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        opacity: 0.8;
+      }
+      #buaChartClose:hover { opacity: 1; }
+      #buaChartBody {
+        overflow-y: auto;
+        flex: 1;
+        padding: 6px 10px 10px;
+      }
+      .bua-chart-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 4px;
+        cursor: pointer;
+        border-radius: 3px;
+        border-left: 3px solid transparent;
+      }
+      .bua-chart-row:hover  { background: #fff3e0; }
+      .bua-chart-row.active { background: #fff3e0; border-left-color: #e8a000; }
+      .bua-chart-name {
+        width: 100px;
+        flex-shrink: 0;
+        font-size: 10px;
+        color: #444;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: right;
+      }
+      .bua-chart-bar-wrap {
+        flex: 1;
+        height: 11px;
+        background: #f0ebe3;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bua-chart-bar-fill {
+        height: 100%;
+        background: #e8a000;
+        border-radius: 2px;
+      }
+      .bua-chart-pct {
+        width: 34px;
+        flex-shrink: 0;
+        font-size: 10px;
+        color: #777;
+        text-align: right;
+      }
+
 
       #nationalSummary {
         padding: 4px 16px 10px;
@@ -459,6 +543,13 @@
     <div id="basemapPanel"></div>
     <div id="scaleBarPanel"></div>
     <div id="zoomLevelPanel"></div>
+    <div id="buaChartPanel">
+      <div id="buaChartHeader">
+        <span id="buaChartTitle">Canopy Cover — Built-up Areas</span>
+        <button id="buaChartClose" title="Close">&#x2715;</button>
+      </div>
+      <div id="buaChartBody"></div>
+    </div>
 
     <div id="sidePanelWrapper">
       <button id="collapseBtn" title="Toggle panel" aria-label="Toggle panel">&#8250;</button>
@@ -1304,87 +1395,174 @@
       buaPopup.style.top  = top  + "px";
     }
 
-    const buaListSection = document.getElementById("buaListSection");
-    const buaListEl      = document.getElementById("buaList");
-    const buaListCount   = document.getElementById("buaListCount");
-    let   buaHighlight   = null;
-    let   activeBuaItem  = null;
+    const buaListSection  = document.getElementById("buaListSection");
+    const buaListEl       = document.getElementById("buaList");
+    const buaListCount    = document.getElementById("buaListCount");
+    const buaChartPanel   = document.getElementById("buaChartPanel");
+    const buaChartBody    = document.getElementById("buaChartBody");
+    const buaChartTitle   = document.getElementById("buaChartTitle");
+    let   buaHighlight    = null;
+    let   activeBuaItem   = null;   // active list <li>
+    let   activeBuaRow    = null;   // active chart row div
+    let   _buaLayer       = null;   // layer ref held for selectBua
+
+    document.getElementById("buaChartClose").addEventListener("click", () => {
+      buaChartPanel.style.display = "none";
+    });
 
     function clearBuaList() {
-      buaListSection.style.display = "none";
-      buaListEl.innerHTML = "";
-      buaListCount.textContent = "";
+      buaListSection.style.display   = "none";
+      buaChartPanel.style.display    = "none";
+      buaListEl.innerHTML            = "";
+      buaChartBody.innerHTML         = "";
+      buaListCount.textContent       = "";
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
       activeBuaItem = null;
+      activeBuaRow  = null;
+      _buaLayer     = null;
+    }
+
+    async function selectBua(graphic, attrs, listItem, chartRow) {
+      // Deactivate previous selections
+      if (activeBuaItem) activeBuaItem.classList.remove("active");
+      if (activeBuaRow)  activeBuaRow.classList.remove("active");
+      if (listItem)  { listItem.classList.add("active");  activeBuaItem = listItem; }
+      if (chartRow)  { chartRow.classList.add("active");  activeBuaRow  = chartRow; }
+
+      closeBuaPopup();
+      clearCrownSelection();
+      if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
+
+      await view.goTo(graphic.geometry.extent.expand(1.5));
+
+      if (_buaLayer) {
+        const lv = await view.whenLayerView(_buaLayer);
+        buaHighlight = lv.highlight(graphic);
+      }
+
+      openBuaPopup(attrs, graphic.geometry.extent.center);
     }
 
     async function loadBuaList(layer) {
-      buaListEl.innerHTML = "";
+      _buaLayer = layer;
+      buaListEl.innerHTML         = "";
+      buaChartBody.innerHTML      = "";
       buaListSection.style.display = "none";
+      buaChartPanel.style.display  = "none";
+
       try {
         const q = layer.createQuery();
-        q.orderByFields = ["population DESC"];
-        q.num           = 100;
+        q.orderByFields  = ["population DESC"];
+        q.num            = 100;
         q.returnGeometry = true;
         q.outFields      = ["*"];
         const { features } = await layer.queryFeatures(q);
 
-        buaListCount.textContent = `top ${features.length} by population`;
+        buaListCount.textContent     = `top ${features.length} by population`;
         buaListSection.style.display = "block";
+        const county = features[0]?.attributes?.county || features[0]?.attributes?.County || "";
+        buaChartTitle.textContent = county
+          ? `Canopy Cover — ${county.charAt(0).toUpperCase() + county.slice(1).toLowerCase()}`
+          : "Canopy Cover — Built-up Areas";
+
+        // Chart sorted by canopy cover descending
+        const chartFeatures = [...features].sort((a, b) => {
+          const ccA = a.attributes?.canopy_cover_pct ?? a.attributes?.Canopy_cover_pct ?? 0;
+          const ccB = b.attributes?.canopy_cover_pct ?? b.attributes?.Canopy_cover_pct ?? 0;
+          return ccB - ccA;
+        });
+        const maxCC = chartFeatures.reduce((m, f) => {
+          const cc = f.attributes?.canopy_cover_pct ?? f.attributes?.Canopy_cover_pct ?? 0;
+          return Math.max(m, cc);
+        }, 1);
+
+        // Build list (sorted by population) and chart (sorted by canopy cover) in parallel
+        // We need cross-references so build them together
+        const listItems  = new Map();  // objectid → li
+        const chartRows  = new Map();  // objectid → div
 
         features.forEach(graphic => {
-          const a    = graphic.attributes || {};
-          const name = a.settlement || a.Settlement || "—";
-          const pop  = a.population ?? a.Population;
-          const cc   = a.canopy_cover_pct ?? a.Canopy_cover_pct;
+          const a   = graphic.attributes || {};
+          const oid = a.objectid ?? a.OBJECTID;
+          const nm  = a.settlement || a.Settlement || "—";
+          const pop = a.population ?? a.Population;
+          const cc  = a.canopy_cover_pct ?? a.Canopy_cover_pct;
 
+          // ── List item ──
           const li = document.createElement("li");
+          listItems.set(oid, li);
 
           const nameEl = document.createElement("span");
-          nameEl.className   = "bua-name";
-          nameEl.textContent = name;
+          nameEl.className = "bua-name"; nameEl.textContent = nm;
           li.appendChild(nameEl);
 
           if (pop != null) {
             const metaEl = document.createElement("span");
-            metaEl.className   = "bua-meta";
+            metaEl.className = "bua-meta";
             metaEl.textContent = `Pop. ${Number(pop).toLocaleString()}`;
             li.appendChild(metaEl);
           }
-
           if (cc != null) {
             const barWrap = document.createElement("div");
             barWrap.className = "bua-bar-wrap";
             const fill = document.createElement("div");
-            fill.className   = "bua-bar-fill";
+            fill.className = "bua-bar-fill";
             fill.style.width = Math.min(cc, 100) + "%";
             barWrap.appendChild(fill);
             li.appendChild(barWrap);
             const lbl = document.createElement("span");
-            lbl.className   = "bua-bar-lbl";
+            lbl.className = "bua-bar-lbl";
             lbl.textContent = cc.toFixed(1) + "% canopy cover";
             li.appendChild(lbl);
           }
-
-          li.addEventListener("click", async () => {
-            if (activeBuaItem) activeBuaItem.classList.remove("active");
-            li.classList.add("active");
-            activeBuaItem = li;
-
-            closeBuaPopup();
-            clearCrownSelection();
-            if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
-
-            await view.goTo(graphic.geometry.extent.expand(1.5));
-
-            const lv = await view.whenLayerView(layer);
-            buaHighlight = lv.highlight(graphic);
-
-            openBuaPopup(a, graphic.geometry.extent.center);
-          });
-
           buaListEl.appendChild(li);
         });
+
+        chartFeatures.forEach(graphic => {
+          const a   = graphic.attributes || {};
+          const oid = a.objectid ?? a.OBJECTID;
+          const nm  = a.settlement || a.Settlement || "—";
+          const cc  = a.canopy_cover_pct ?? a.Canopy_cover_pct;
+
+          // ── Chart row ──
+          const row = document.createElement("div");
+          row.className = "bua-chart-row";
+          chartRows.set(oid, row);
+
+          const nameEl = document.createElement("span");
+          nameEl.className = "bua-chart-name";
+          nameEl.textContent = nm;
+          nameEl.title = nm;
+          row.appendChild(nameEl);
+
+          const barWrap = document.createElement("div");
+          barWrap.className = "bua-chart-bar-wrap";
+          const fill = document.createElement("div");
+          fill.className = "bua-chart-bar-fill";
+          fill.style.width = cc != null ? (cc / maxCC * 100).toFixed(1) + "%" : "0%";
+          barWrap.appendChild(fill);
+          row.appendChild(barWrap);
+
+          const pctEl = document.createElement("span");
+          pctEl.className = "bua-chart-pct";
+          pctEl.textContent = cc != null ? cc.toFixed(1) + "%" : "";
+          row.appendChild(pctEl);
+
+          buaChartBody.appendChild(row);
+        });
+
+        // Wire up clicks after both are built (so cross-references are complete)
+        features.forEach(graphic => {
+          const a   = graphic.attributes || {};
+          const oid = a.objectid ?? a.OBJECTID;
+          const li  = listItems.get(oid);
+          const row = chartRows.get(oid);
+          if (li)  li.addEventListener("click",  () => selectBua(graphic, a, li,   row));
+          if (row) row.addEventListener("click", () => selectBua(graphic, a, li,   row));
+        });
+
+        buaChartPanel.style.display = "flex";
+
       } catch (e) {
         console.error("[buaList] query error:", e);
       }
