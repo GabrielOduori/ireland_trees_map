@@ -98,17 +98,17 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
-      #buaChartClose {
+      #buaChartClose, #buaChartCollapse {
         background: none;
         border: none;
         color: white;
         font-size: 18px;
         cursor: pointer;
-        padding: 0;
+        padding: 0 4px;
         line-height: 1;
         opacity: 0.8;
       }
-      #buaChartClose:hover { opacity: 1; }
+      #buaChartClose:hover, #buaChartCollapse:hover { opacity: 1; }
       #buaChartBody {
         overflow-y: auto;
         flex: 1;
@@ -428,7 +428,10 @@
     <div id="buaChartPanel">
       <div id="buaChartHeader">
         <span id="buaChartTitle">Canopy Cover — Built-up Areas</span>
-        <button id="buaChartClose" title="Close">&#x2715;</button>
+        <span style="display:flex;gap:2px;align-items:center;">
+          <button id="buaChartCollapse" title="Collapse">&#9660;</button>
+          <button id="buaChartClose" title="Close">&#x2715;</button>
+        </span>
       </div>
       <div id="buaChartBody"></div>
     </div>
@@ -1223,12 +1226,24 @@
       buaChartPanel.style.display = "none";
     });
 
+    let _buaPanelCollapsed = false;
+    document.getElementById("buaChartCollapse").addEventListener("click", () => {
+      _buaPanelCollapsed = !_buaPanelCollapsed;
+      buaChartBody.style.display = _buaPanelCollapsed ? "none" : "";
+      document.getElementById("buaChartCollapse").innerHTML =
+        _buaPanelCollapsed ? "&#9650;" : "&#9660;";
+    });
+
     function clearBuaList() {
       buaChartPanel.style.display = "none";
       buaChartBody.innerHTML      = "";
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
       activeBuaItem = null;
       _buaLayer     = null;
+      _buaPanelCollapsed = false;
+      buaChartBody.style.display = "";
+      const collapseBtn = document.getElementById("buaChartCollapse");
+      if (collapseBtn) collapseBtn.innerHTML = "&#9660;";
     }
 
     async function selectBua(attrs, li) {
