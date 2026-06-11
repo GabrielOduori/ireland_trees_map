@@ -319,6 +319,62 @@
         border-left-color: #2e7d32;
       }
 
+      #buaListSection {
+        display: none;
+        border-top: 2px solid #e8a000;
+      }
+      #buaListHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 16px 5px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #7a3c00;
+        background: #fff8f0;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid #f0d8b0;
+      }
+      #buaListHeader span:last-child {
+        font-weight: 400;
+        color: #b36000;
+      }
+      #buaList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      #buaList li {
+        cursor: pointer;
+        padding: 7px 16px;
+        border-bottom: 1px solid #f5ece0;
+        border-left: 4px solid transparent;
+        font-size: 12px;
+        transition: background 0.15s;
+      }
+      #buaList li:hover  { background: #fff3e0; }
+      #buaList li.active { background: #fff3e0; border-left-color: #e8a000; }
+      .bua-name { display: block; font-weight: 600; color: #333; }
+      .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
+      .bua-bar-wrap {
+        height: 5px;
+        border-radius: 2px;
+        background: #edd;
+        margin-top: 5px;
+        overflow: hidden;
+      }
+      .bua-bar-fill {
+        height: 100%;
+        background: #e8a000;
+        border-radius: 2px;
+      }
+      .bua-bar-lbl {
+        font-size: 10px;
+        color: #999;
+        margin-top: 2px;
+      }
+
       .county-name {
         display: block;
       }
@@ -389,6 +445,40 @@
       }
       #crownPopupBody { padding: 8px 4px; }
 
+      #buaPopup {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        min-width: 220px;
+        max-width: 300px;
+        font-family: Arial, sans-serif;
+        pointer-events: auto;
+      }
+      #buaPopupHeader {
+        background: #b35a00;
+        color: #fff;
+        padding: 8px 32px 8px 12px;
+        border-radius: 6px 6px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        position: relative;
+      }
+      #buaPopupClose {
+        position: absolute;
+        top: 4px; right: 8px;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+      }
+      #buaPopupBody { padding: 8px 4px; }
+
     </style>
     <script type="module" src="https://js.arcgis.com/5.0/"></script>
   </head>
@@ -439,6 +529,13 @@
           <div id="chartContainer"></div>
           <div id="extraStats"></div>
         </div>
+        <div id="buaListSection">
+          <div id="buaListHeader">
+            <span>Built-up Areas</span>
+            <span id="buaListCount"></span>
+          </div>
+          <ul id="buaList"></ul>
+        </div>
         <ul id="countyList"></ul>
       </div>
     </div>
@@ -450,6 +547,13 @@
         <button id="crownPopupClose" title="Close">&#x2715;</button>
       </div>
       <div id="crownPopupBody"></div>
+    </div>
+    <div id="buaPopup">
+      <div id="buaPopupHeader">
+        <span id="buaPopupTitle"></span>
+        <button id="buaPopupClose" title="Close">&#x2715;</button>
+      </div>
+      <div id="buaPopupBody"></div>
     </div>
   </body>
 
@@ -857,6 +961,8 @@
         countyOutlineLayer.removeAll();
         layerToggleRow.style.display = "none";
         clearCrownSelection();
+        closeBuaPopup();
+        clearBuaList();
       }
 
       // ── Pie chart (SVG, DOM-built — no innerHTML for data) ───────────────
@@ -996,43 +1102,13 @@
           definitionExpression: `County = '${name.replace(/'/g, "''")}'`,
           outFields:           ["*"],
           opacity: 0.4,
+          popupEnabled:        false,
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               color:   [255, 165, 0, 200],
               outline: { color: [200, 120, 0, 255], width: 1.5 }
             })
           }),
-          popupTemplate: {
-            title: "{Settlement}",
-            outFields: ["*"],
-            content: (event) => {
-              const attrs  = event.graphic.attributes || {};
-              const SKIP   = new Set(["objectid", "shape__area", "shape__length",
-                                      "shape_area", "shape_length", "globalid"]);
-              const LABELS = { settlement: "Settlement", county: "County",
-                               population: "Population" };
-              const table  = document.createElement("table");
-              table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
-              Object.entries(attrs).forEach(([key, val]) => {
-                if (SKIP.has(key.toLowerCase())) return;
-                if (val === null || val === undefined) return;
-                const label   = LABELS[key.toLowerCase()] || key;
-                const display = (key.toLowerCase() === "population" && typeof val === "number")
-                  ? val.toLocaleString() : String(val);
-                const tr  = document.createElement("tr");
-                const td1 = document.createElement("td");
-                td1.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap";
-                td1.textContent = label;
-                const td2 = document.createElement("td");
-                td2.style.cssText = "padding:3px 0;font-weight:600";
-                td2.textContent = display;
-                tr.appendChild(td1);
-                tr.appendChild(td2);
-                table.appendChild(tr);
-              });
-              return table;
-            }
-          },
           minScale: 0, maxScale: 0
         });
         activeBuaLayer.on("layerview-create-error", e =>
@@ -1040,6 +1116,7 @@
         buaLayerToggle.checked = true;
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
+        loadBuaList(activeBuaLayer);
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
@@ -1259,12 +1336,155 @@
     const crownPopupBody  = document.getElementById("crownPopupBody");
     let crownHighlight = null;
 
+    const buaPopup      = document.getElementById("buaPopup");
+    const buaPopupTitle = document.getElementById("buaPopupTitle");
+    const buaPopupBody  = document.getElementById("buaPopupBody");
+
     function clearCrownSelection() {
       crownPopup.style.display = "none";
       if (crownHighlight) { crownHighlight.remove(); crownHighlight = null; }
     }
+    function closeBuaPopup() {
+      buaPopup.style.display = "none";
+    }
+
+    function buildBuaPopupContent(attrs) {
+      // Field name map: display label → possible attribute key variants
+      const FIELDS = [
+        { label: "Settlement",        keys: ["Settlement", "settlement"] },
+        { label: "Land area (km²)",   keys: ["land_area_km2", "Land_area_km2", "land_area"] },
+        { label: "Canopy area (km²)", keys: ["total_canopy_area_km2", "Total_canopy_area_km2"] },
+        { label: "Canopy cover",      keys: ["canopy_cover_pct", "Canopy_cover_pct"],  pct: true },
+        { label: "Forest trees",      keys: ["ft_pct", "Ft_pct"],                      pct: true },
+        { label: "Trees outside forests", keys: ["tof_pct", "Tof_pct"],               pct: true },
+      ];
+      const table = document.createElement("table");
+      table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
+      FIELDS.forEach(({ label, keys, pct }) => {
+        let val = undefined;
+        for (const k of keys) { if (attrs[k] != null) { val = attrs[k]; break; } }
+        if (val == null) return;
+        const display = (pct && typeof val === "number")
+          ? val.toFixed(1) + " %"
+          : (typeof val === "number" ? val.toLocaleString() : String(val));
+        const tr  = document.createElement("tr");
+        const td1 = document.createElement("td");
+        td1.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap";
+        td1.textContent = label;
+        const td2 = document.createElement("td");
+        td2.style.cssText = "padding:3px 0;font-weight:600";
+        td2.textContent = display;
+        tr.appendChild(td1); tr.appendChild(td2);
+        table.appendChild(tr);
+      });
+      return table;
+    }
+
+    function openBuaPopup(attrs, mapPoint) {
+      buaPopupTitle.textContent = attrs.Settlement || attrs.settlement || "Built-up Area";
+      buaPopupBody.innerHTML = "";
+      buaPopupBody.appendChild(buildBuaPopupContent(attrs));
+      const pt = view.toScreen(mapPoint);
+      const vr = document.getElementById("viewDiv").getBoundingClientRect();
+      let left = vr.left + pt.x + 14;
+      let top  = vr.top  + pt.y - 40;
+      buaPopup.style.display = "block";
+      const pw = buaPopup.offsetWidth, ph = buaPopup.offsetHeight;
+      if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
+      if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
+      if (top < 60) top = 60;
+      buaPopup.style.left = left + "px";
+      buaPopup.style.top  = top  + "px";
+    }
+
+    const buaListSection = document.getElementById("buaListSection");
+    const buaListEl      = document.getElementById("buaList");
+    const buaListCount   = document.getElementById("buaListCount");
+    let   buaHighlight   = null;
+    let   activeBuaItem  = null;
+
+    function clearBuaList() {
+      buaListSection.style.display = "none";
+      buaListEl.innerHTML = "";
+      buaListCount.textContent = "";
+      if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
+      activeBuaItem = null;
+    }
+
+    async function loadBuaList(layer) {
+      buaListEl.innerHTML = "";
+      buaListSection.style.display = "none";
+      try {
+        const q = layer.createQuery();
+        q.orderByFields = ["population DESC"];
+        q.num           = 100;
+        q.returnGeometry = true;
+        q.outFields      = ["*"];
+        const { features } = await layer.queryFeatures(q);
+
+        buaListCount.textContent = `top ${features.length} by population`;
+        buaListSection.style.display = "block";
+
+        features.forEach(graphic => {
+          const a    = graphic.attributes || {};
+          const name = a.settlement || a.Settlement || "—";
+          const pop  = a.population ?? a.Population;
+          const cc   = a.canopy_cover_pct ?? a.Canopy_cover_pct;
+
+          const li = document.createElement("li");
+
+          const nameEl = document.createElement("span");
+          nameEl.className   = "bua-name";
+          nameEl.textContent = name;
+          li.appendChild(nameEl);
+
+          if (pop != null) {
+            const metaEl = document.createElement("span");
+            metaEl.className   = "bua-meta";
+            metaEl.textContent = `Pop. ${Number(pop).toLocaleString()}`;
+            li.appendChild(metaEl);
+          }
+
+          if (cc != null) {
+            const barWrap = document.createElement("div");
+            barWrap.className = "bua-bar-wrap";
+            const fill = document.createElement("div");
+            fill.className   = "bua-bar-fill";
+            fill.style.width = Math.min(cc, 100) + "%";
+            barWrap.appendChild(fill);
+            li.appendChild(barWrap);
+            const lbl = document.createElement("span");
+            lbl.className   = "bua-bar-lbl";
+            lbl.textContent = cc.toFixed(1) + "% canopy cover";
+            li.appendChild(lbl);
+          }
+
+          li.addEventListener("click", async () => {
+            if (activeBuaItem) activeBuaItem.classList.remove("active");
+            li.classList.add("active");
+            activeBuaItem = li;
+
+            closeBuaPopup();
+            clearCrownSelection();
+            if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
+
+            await view.goTo(graphic.geometry.extent.expand(1.5));
+
+            const lv = await view.whenLayerView(layer);
+            buaHighlight = lv.highlight(graphic);
+
+            openBuaPopup(a, graphic.geometry.extent.center);
+          });
+
+          buaListEl.appendChild(li);
+        });
+      } catch (e) {
+        console.error("[buaList] query error:", e);
+      }
+    }
 
     document.getElementById("crownPopupClose").addEventListener("click", clearCrownSelection);
+    document.getElementById("buaPopupClose").addEventListener("click", closeBuaPopup);
 
     view.on("click", async (event) => {
       try {
@@ -1275,6 +1495,7 @@
             const graphic = results[0].graphic;
             const attrs   = graphic.attributes || {};
 
+            closeBuaPopup();
             if (crownHighlight) crownHighlight.remove();
             const layerView = await view.whenLayerView(results[0].layer);
             crownHighlight = layerView.highlight(graphic);
@@ -1293,22 +1514,22 @@
             if (top < 60) top = 60;
             crownPopup.style.left = left + "px";
             crownPopup.style.top  = top  + "px";
-            view.popup.close();
             return;
           }
         }
 
-        // ── Built-up areas — ArcGIS popup via popupTemplate ────────────────
+        // ── Built-up areas — custom popup ──────────────────────────────────
         clearCrownSelection();
         if (activeBuaLayer) {
           const { results: buaResults } = await view.hitTest(event, { include: [activeBuaLayer] });
           if (buaResults.length) {
-            view.popup.open({ features: [buaResults[0].graphic], location: event.mapPoint });
+            openBuaPopup(buaResults[0].graphic.attributes || {}, event.mapPoint);
             return;
           }
         }
 
-        view.popup.close();
+        clearCrownSelection();
+        closeBuaPopup();
       } catch (e) {
         console.error("[popup] error:", e);
       }
