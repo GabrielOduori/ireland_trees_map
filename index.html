@@ -271,18 +271,15 @@
       .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
 
       .county-name {
-        width: 82px;
         flex-shrink: 0;
         font-size: 12px;
         font-weight: 600;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
 
       .county-bar-container {
         flex: 1;
-        height: 20px;
+        height: 22px;
         background: #e0e0e0;
         border-radius: 2px;
         overflow: hidden;
@@ -429,16 +426,26 @@
       <button id="collapseBtn" title="Toggle panel" aria-label="Toggle panel">&#8250;</button>
       <div id="countyPanel">
         <div id="panelHeader">
-          <h2>County</h2>
+          <h2>Tree Cover</h2>
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
-              Show crown layer
+              Crowns On/Off
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
-              Show built-up areas
+              Built-up Areas On/Off
             </label>
+          </div>
+          <div style="display:flex; gap:14px; padding:6px 14px 8px; border-top:1px solid #eee; font-size:11px; color:#555;">
+            <span style="display:flex; align-items:center; gap:5px;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:2px; background:rgba(0,150,0,0.85); flex-shrink:0;"></span>
+              <span id="legendFtLabel">Forest trees</span>
+            </span>
+            <span style="display:flex; align-items:center; gap:5px;">
+              <span style="display:inline-block; width:12px; height:12px; border-radius:2px; background:rgba(150,0,150,0.85); flex-shrink:0;"></span>
+              <span id="legendTofLabel">Trees outside forests</span>
+            </span>
           </div>
         </div>
         <ul id="countyList"></ul>
@@ -579,6 +586,27 @@
       if (resp.ok) countyStatsMap = await resp.json();
     } catch (e) {
       console.warn("county_stats.json not found — pie charts will be empty:", e);
+    }
+
+    const legendFtLabel  = document.getElementById("legendFtLabel");
+    const legendTofLabel = document.getElementById("legendTofLabel");
+
+    function updateLegend(ft, tof) {
+      const total = ft + tof;
+      if (total > 0) {
+        legendFtLabel.textContent  = `Forest trees ${(ft  / total * 100).toFixed(1)}%`;
+        legendTofLabel.textContent = `Trees outside forests ${(tof / total * 100).toFixed(1)}%`;
+      } else {
+        legendFtLabel.textContent  = "Forest trees";
+        legendTofLabel.textContent = "Trees outside forests";
+      }
+    }
+
+    {
+      const allVals   = Object.values(countyStatsMap);
+      const natFt     = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
+      const natTof    = allVals.reduce((s, c) => s + (c.tof || 0), 0);
+      updateLegend(natFt, natTof);
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -813,6 +841,12 @@
         clearCrownSelection();
         closeBuaPopup();
         clearBuaList();
+        // Reset legend to national totals
+        const allVals = Object.values(countyStatsMap);
+        updateLegend(
+          allVals.reduce((s, c) => s + (c.ft  || 0), 0),
+          allVals.reduce((s, c) => s + (c.tof || 0), 0)
+        );
       }
 
       // ── Activate a county ────────────────────────────────────────────────
@@ -929,6 +963,7 @@
           const ftCount  = stats.ft  || 0;
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
+          updateLegend(ftCount, tofCount);
           // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
           // Restore VTL whenever the user zooms back out past 1:25,000.
           if (activeCrownTileLayer) {
@@ -1068,12 +1103,12 @@
             const ftBar = document.createElement("div");
             ftBar.className = "county-bar-ft";
             ftBar.style.width = `${ftPct}%`;
-            ftBar.textContent = `${ftPct}%`;
+            if (parseFloat(ftPct) * parseFloat(barPct) / 100 > 12) ftBar.textContent = `${ftPct}%`;
 
             const tofBar = document.createElement("div");
             tofBar.className = "county-bar-tof";
             tofBar.style.width = `${tofPct}%`;
-            tofBar.textContent = `${tofPct}%`;
+            if (parseFloat(tofPct) * parseFloat(barPct) / 100 > 12) tofBar.textContent = `${tofPct}%`;
 
             barWrap.appendChild(ftBar);
             barWrap.appendChild(tofBar);
