@@ -184,7 +184,7 @@
 
       #sidePanelWrapper {
         position: absolute;
-        top: 52px; right: 0; bottom: 0;
+        top: 52px; right: 0;
         z-index: 10;
         transition: transform 0.3s ease;
       }
@@ -197,17 +197,19 @@
         width: fit-content;
         min-width: 220px;
         max-width: 400px;
-        height: 100%;
+        height: auto;
+        max-height: calc(100vh - 62px);
         overflow-y: auto;
         background: white;
         box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+        border-radius: 0 0 0 6px;
       }
 
       #collapseBtn {
         position: absolute;
         left: -28px;
-        top: 50%;
-        transform: translateY(-50%);
+        top: 0;
+        transform: none;
         width: 28px;
         height: 52px;
         background: #1b5e20;
