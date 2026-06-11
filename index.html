@@ -237,8 +237,16 @@
 
       #countyPanel h2 {
         margin: 0;
-        padding: 12px 16px;
+        padding: 12px 16px 8px;
         font-size: 14px;
+      }
+
+      #activeCountyLabel {
+        padding: 0 16px 10px;
+        font-size: 12px;
+        color: #2e7d32;
+        font-weight: 600;
+        min-height: 20px;
       }
 
 
@@ -429,7 +437,8 @@
       <button id="collapseBtn" title="Toggle panel" aria-label="Toggle panel">&#8250;</button>
       <div id="countyPanel">
         <div id="panelHeader">
-          <h2>Tree Cover</h2>
+          <h2>Canopy Cover</h2>
+          <div id="activeCountyLabel"></div>
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
@@ -756,8 +765,9 @@
     view.when(() => {
       const countyList      = document.getElementById("countyList");
       const countyPanel     = document.getElementById("countyPanel");
-      const layerToggleRow  = document.getElementById("layerToggleRow");
-      const crownLayerToggle = document.getElementById("crownLayerToggle");
+      const layerToggleRow    = document.getElementById("layerToggleRow");
+      const activeCountyLabel = document.getElementById("activeCountyLabel");
+      const crownLayerToggle  = document.getElementById("crownLayerToggle");
       let activeItem           = null;
       let activeCrownTileLayer = null;
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
@@ -842,6 +852,7 @@
         }
         countyOutlineLayer.removeAll();
         layerToggleRow.style.display = "none";
+        activeCountyLabel.textContent = "";
         clearCrownSelection();
         closeBuaPopup();
         clearBuaList();
@@ -921,6 +932,7 @@
           console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
         buaLayerToggle.checked  = true;
         layerToggleRow.style.display = "block";
+        activeCountyLabel.textContent = `▸ ${name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()}`;
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
         // Load national top-100 BUAs once (no county filter) and cache the promise
@@ -961,6 +973,7 @@
           });
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
+          activeCountyLabel.textContent = `▸ ${name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()}`;
 
           // Use pre-computed stats — statistics queries are disabled on the layer
           const stats    = countyStatsMap[name.toUpperCase()] || {};
