@@ -1342,14 +1342,23 @@
       clearCrownSelection();
       if (buaHighlight) { buaHighlight.remove(); buaHighlight = null; }
 
-      const oidKey = Object.keys(attrs).find(k => k.toLowerCase() === "objectid");
+      const keys  = Object.keys(attrs);
+      const oidKey = keys.find(k => k.toLowerCase() === "objectid")
+                  || keys.find(k => k.toLowerCase() === "id");
       const oid    = oidKey ? attrs[oidKey] : null;
-      console.log("[selectBua] oidKey:", oidKey, "oid:", oid, "_nationalBuaLayer:", !!_nationalBuaLayer);
-      if (oid == null || !_nationalBuaLayer) return;
+      const settlement = attrs.settlement || attrs.Settlement;
+      const county     = attrs.county     || attrs.County;
+      console.log("[selectBua] oidKey:", oidKey, "oid:", oid, "settlement:", settlement, "_nationalBuaLayer:", !!_nationalBuaLayer);
+      if (!_nationalBuaLayer) return;
+
+      // Build where clause: prefer numeric id, fall back to settlement+county
+      const whereClause = (oid != null && oidKey)
+        ? `${oidKey} = ${oid}`
+        : `settlement = '${(settlement||"").replace(/'/g,"''")}' AND county = '${(county||"").replace(/'/g,"''")}'`;
 
       try {
         const gq = _nationalBuaLayer.createQuery();
-        gq.where          = `${oidKey} = ${oid}`;
+        gq.where          = whereClause;
         gq.returnGeometry = true;
         gq.outSpatialReference = view.spatialReference;
         gq.outFields      = ["*"];
