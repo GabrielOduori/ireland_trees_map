@@ -1348,7 +1348,6 @@
       const oid    = oidKey ? attrs[oidKey] : null;
       const settlement = attrs.settlement || attrs.Settlement;
       const county     = attrs.county     || attrs.County;
-      console.log("[selectBua] oidKey:", oidKey, "oid:", oid, "settlement:", settlement, "_nationalBuaLayer:", !!_nationalBuaLayer);
       if (!_nationalBuaLayer) return;
 
       // Build where clause: prefer numeric id, fall back to settlement+county
@@ -1363,11 +1362,9 @@
         gq.outSpatialReference = view.spatialReference;
         gq.outFields      = ["*"];
         const { features } = await _nationalBuaLayer.queryFeatures(gq);
-        console.log("[selectBua] features returned:", features.length, features[0]?.geometry?.type);
         if (features.length) {
           const g = features[0];
           const ext = g.geometry.extent;
-          console.log("[selectBua] extent:", ext);
           await view.goTo(ext.expand(1.5));
           if (_buaLayer) {
             const lv = await view.whenLayerView(_buaLayer);
