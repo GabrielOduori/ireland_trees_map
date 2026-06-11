@@ -206,10 +206,9 @@
       }
 
       #collapseBtn {
-        position: absolute;
-        left: -28px;
-        top: 0;
-        transform: none;
+        position: fixed;
+        right: 0;
+        top: 60px;
         width: 28px;
         height: 52px;
         background: #1b5e20;
@@ -222,7 +221,8 @@
         align-items: center;
         justify-content: center;
         box-shadow: -2px 2px 6px rgba(0,0,0,0.25);
-        z-index: 11;
+        z-index: 20;
+        transition: right 0.3s ease;
       }
 
       #collapseBtn:hover { background: #2e7d32; }
@@ -794,10 +794,12 @@
       // ── Panel collapse toggle ─────────────────────────────────────────────
       const collapseBtn = document.getElementById("collapseBtn");
       const sidePanelWrapper = document.getElementById("sidePanelWrapper");
+      collapseBtn.style.right = `${countyPanel.offsetWidth}px`;
       collapseBtn.addEventListener("click", () => {
         panelCollapsed = !panelCollapsed;
         sidePanelWrapper.classList.toggle("collapsed", panelCollapsed);
         collapseBtn.innerHTML = panelCollapsed ? "&#8249;" : "&#8250;";
+        collapseBtn.style.right = panelCollapsed ? "0" : `${countyPanel.offsetWidth}px`;
         updateViewPadding();
       });
 
