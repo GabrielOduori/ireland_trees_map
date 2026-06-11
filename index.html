@@ -1344,6 +1344,7 @@
 
       const oidKey = Object.keys(attrs).find(k => k.toLowerCase() === "objectid");
       const oid    = oidKey ? attrs[oidKey] : null;
+      console.log("[selectBua] oidKey:", oidKey, "oid:", oid, "_nationalBuaLayer:", !!_nationalBuaLayer);
       if (oid == null || !_nationalBuaLayer) return;
 
       try {
@@ -1353,9 +1354,11 @@
         gq.outSpatialReference = view.spatialReference;
         gq.outFields      = ["*"];
         const { features } = await _nationalBuaLayer.queryFeatures(gq);
+        console.log("[selectBua] features returned:", features.length, features[0]?.geometry?.type);
         if (features.length) {
           const g = features[0];
           const ext = g.geometry.extent;
+          console.log("[selectBua] extent:", ext);
           await view.goTo(ext.expand(1.5));
           if (_buaLayer) {
             const lv = await view.whenLayerView(_buaLayer);
