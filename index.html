@@ -1311,8 +1311,6 @@
         features.forEach(graphic => {
           const a  = graphic.attributes || {};
           const nm = a.settlement || a.Settlement || "—";
-          const cc  = a.canopy_cover_pct ?? a.Canopy_cover_pct;
-          const pop = a.population      ?? a.Population;
 
           const li = document.createElement("li");
           li.style.cssText = "cursor:pointer;padding:7px 12px;border-bottom:1px solid #f5ece0;" +
@@ -1322,14 +1320,6 @@
           nameEl.className = "bua-name";
           nameEl.textContent = nm;
           li.appendChild(nameEl);
-
-          const metaEl = document.createElement("span");
-          metaEl.className = "bua-meta";
-          const parts = [];
-          if (pop != null) parts.push(`pop. ${pop.toLocaleString()}`);
-          if (cc  != null) parts.push(`${cc.toFixed(1)}% canopy`);
-          metaEl.textContent = parts.join(" · ");
-          li.appendChild(metaEl);
 
           li.addEventListener("mouseenter", () => {
             if (li !== activeBuaItem) li.style.background = "#fff3e0";
