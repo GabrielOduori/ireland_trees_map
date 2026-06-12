@@ -134,7 +134,7 @@
         position: absolute;
         top: 104px;
         left: 10px;
-        width: 270px;
+        width: 220px;
         max-height: calc(100vh - 130px);
         z-index: 12;
         background: white;
@@ -147,15 +147,31 @@
       #buaChartHeader {
         background: #b35a00;
         color: white;
-        padding: 8px 10px 8px 14px;
+        padding: 6px 10px 6px 14px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 12px;
-        font-weight: 700;
         flex-shrink: 0;
+      }
+
+      #buaChartTitle {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      #buaChartTitleMain {
+        font-size: 11px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
+        opacity: 0.85;
+      }
+
+      #buaChartTitleCounty {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
       }
       #buaChartClose, #buaChartCollapse {
         background: none;
@@ -610,7 +626,10 @@
     <div id="zoomLevelPanel"></div>
     <div id="buaChartPanel">
       <div id="buaChartHeader">
-        <span id="buaChartTitle">Canopy Cover — Built-up Areas</span>
+        <span id="buaChartTitle">
+          <span id="buaChartTitleMain">Built-up Areas</span>
+          <span id="buaChartTitleCounty"></span>
+        </span>
         <span style="display:flex;gap:2px;align-items:center;">
           <button id="buaChartCollapse" title="Collapse">&#9660;</button>
           <button id="buaChartClose" title="Close">&#x2715;</button>
@@ -1516,8 +1535,8 @@
           return c.toLowerCase() === cLower;
         });
 
-        buaChartTitle.textContent =
-          `Built-up Areas — ${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()}`;
+        document.getElementById("buaChartTitleCounty").textContent =
+          countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase();
 
         const ul = document.createElement("ul");
         ul.style.cssText = "list-style:none;padding:0;margin:0";
