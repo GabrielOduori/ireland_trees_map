@@ -322,7 +322,7 @@
         border-left-color: #2e7d32;
       }
 
-      .bua-name { display: block; font-weight: 600; color: #333; }
+      .bua-name { display: block; font-weight: 600; color: #333; font-size: 13px; font-family: Arial, sans-serif; }
       .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
 
       .county-name {
@@ -523,16 +523,6 @@
               Built-up Areas On/Off
             </label>
           </div>
-          <div style="display:flex; gap:14px; padding:6px 14px 8px; border-top:1px solid #eee; font-size:11px; color:#555;">
-            <span style="display:flex; align-items:center; gap:5px;">
-              <span style="display:inline-block; width:12px; height:12px; border-radius:2px; background:rgba(0,150,0,0.85); flex-shrink:0;"></span>
-              <span id="legendFtLabel">Forest trees</span>
-            </span>
-            <span style="display:flex; align-items:center; gap:5px;">
-              <span style="display:inline-block; width:12px; height:12px; border-radius:2px; background:rgba(150,0,150,0.85); flex-shrink:0;"></span>
-              <span id="legendTofLabel">Trees outside forests</span>
-            </span>
-          </div>
         </div>
         <ul id="countyList"></ul>
       </div>
@@ -674,25 +664,10 @@
       console.warn("county_stats.json not found — pie charts will be empty:", e);
     }
 
-    const legendFtLabel  = document.getElementById("legendFtLabel");
-    const legendTofLabel = document.getElementById("legendTofLabel");
-
-    function updateLegend(ft, tof) {
-      const total = ft + tof;
-      if (total > 0) {
-        legendFtLabel.textContent  = `Forest trees ${(ft  / total * 100).toFixed(1)}%`;
-        legendTofLabel.textContent = `Trees outside forests ${(tof / total * 100).toFixed(1)}%`;
-      } else {
-        legendFtLabel.textContent  = "Forest trees";
-        legendTofLabel.textContent = "Trees outside forests";
-      }
-    }
-
     {
       const allVals   = Object.values(countyStatsMap);
       const natFt     = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
       const natTof    = allVals.reduce((s, c) => s + (c.tof || 0), 0);
-      updateLegend(natFt, natTof);
     }
 
     // ── Canopy stats panel (bottom-left) ────────────────────────────────────
@@ -993,8 +968,7 @@
         const allVals = Object.values(countyStatsMap);
         const natFt   = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
         const natTof  = allVals.reduce((s, c) => s + (c.tof || 0), 0);
-        updateLegend(natFt, natTof);
-        updateCanopyStats(natFt, natTof, null, null);
+          updateCanopyStats(natFt, natTof, null, null);
       }
 
       // ── Activate a county ────────────────────────────────────────────────
@@ -1113,7 +1087,6 @@
           const ftCount  = stats.ft  || 0;
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
-          updateLegend(ftCount, tofCount);
           updateCanopyStats(ftCount, tofCount, stats.canopy_pct ?? null, stats.canopy_ha ?? null,
             name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
           // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
@@ -1255,12 +1228,9 @@
             const ftBar = document.createElement("div");
             ftBar.className = "county-bar-ft";
             ftBar.style.width = `${ftPct}%`;
-            if (parseFloat(ftPct) * parseFloat(barPct) / 100 > 12) ftBar.textContent = `${ftPct}%`;
-
             const tofBar = document.createElement("div");
             tofBar.className = "county-bar-tof";
             tofBar.style.width = `${tofPct}%`;
-            if (parseFloat(tofPct) * parseFloat(barPct) / 100 > 12) tofBar.textContent = `${tofPct}%`;
 
             barWrap.appendChild(ftBar);
             barWrap.appendChild(tofBar);
