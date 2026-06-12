@@ -838,12 +838,6 @@
       console.warn("Crown layer discovery failed:", e);
     }
 
-    {
-      const allVals   = Object.values(countyStatsMap);
-      const natFt     = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
-      const natTof    = allVals.reduce((s, c) => s + (c.tof || 0), 0);
-    }
-
     // ── Canopy stats panel (bottom-left) ────────────────────────────────────
     const canopyStatsTitle = document.getElementById("canopyStatsTitleText");
     document.getElementById("canopyStatsClose").addEventListener("click", () => {
@@ -897,11 +891,11 @@
     // Initialise with national totals
     {
       const allVals  = Object.values(countyStatsMap);
-      const natFt    = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
-      const natTof   = allVals.reduce((s, c) => s + (c.tof || 0), 0);
-      const natPct   = allVals.reduce((s, c) => s + (c.canopy_pct || 0), 0) || null;
-      const natHa    = allVals.reduce((s, c) => s + (c.canopy_ha  || 0), 0) || null;
-      updateCanopyStats(natFt, natTof, natPct ? natPct / allVals.length : null, natHa || null);
+      const natFt    = allVals.reduce((s, c) => s + (c.ft       || 0), 0);
+      const natTof   = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
+      const natHa    = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
+      const natPct   = natHa > 0 ? natHa / 7027300 * 100 : null;  // 7,027,300 ha = ROI land area (70,273 km²)
+      updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -1143,11 +1137,13 @@
         clearCrownSelection();
         closeBuaPopup();
         clearBuaList();
-        // Reset legend and canopy stats to national totals
+        // Reset canopy stats to national totals
         const allVals = Object.values(countyStatsMap);
-        const natFt   = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
-        const natTof  = allVals.reduce((s, c) => s + (c.tof || 0), 0);
-          updateCanopyStats(natFt, natTof, null, null);
+        const natFt   = allVals.reduce((s, c) => s + (c.ft       || 0), 0);
+        const natTof  = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
+        const natHa   = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
+        const natPct  = natHa > 0 ? natHa / 7027300 * 100 : null;
+        updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
       }
 
       // ── Activate a county ────────────────────────────────────────────────
