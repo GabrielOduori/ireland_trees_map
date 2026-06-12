@@ -87,6 +87,9 @@
       }
 
       #canopyStatsTitle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
@@ -94,7 +97,21 @@
         color: #555;
         border-bottom: 1px solid #eee;
         padding-bottom: 5px;
+        gap: 8px;
       }
+
+      #canopyStatsClose {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #aaa;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        transition: color 0.15s;
+      }
+      #canopyStatsClose:hover { color: #555; }
 
       #canopyStatsContent {
         display: flex;
@@ -269,14 +286,16 @@
       .zoom-btn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
 
       #sidePanelWrapper {
-        position: absolute;
-        top: 0; right: 0;
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
         z-index: 10;
         transition: transform 0.3s ease;
       }
 
       #sidePanelWrapper.collapsed {
-        transform: translateX(100%);
+        transform: translateX(100%) translateY(-50%);
       }
 
       #countyPanel {
@@ -284,17 +303,18 @@
         min-width: 220px;
         max-width: 400px;
         height: auto;
-        max-height: 100vh;
+        max-height: 80vh;
         overflow-y: auto;
         background: white;
-        box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
-        border-radius: 0 0 0 6px;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
+        border-radius: 8px 0 0 8px;
       }
 
       #collapseBtn {
         position: fixed;
         right: 0;
-        top: 10px;
+        top: 50%;
+        transform: translateY(-50%);
         width: 28px;
         height: 52px;
         background: #1b5e20;
@@ -308,11 +328,11 @@
         justify-content: center;
         box-shadow: -2px 2px 6px rgba(0,0,0,0.25);
         z-index: 20;
-        transition: right 0.3s ease, background 0.15s, transform 0.12s ease;
+        transition: right 0.3s ease, background 0.15s, transform 0.15s ease;
       }
 
-      #collapseBtn:hover { background: #2e7d32; transform: scaleX(1.15); }
-      #collapseBtn:active { background: #1b5e20; transform: scaleX(0.95); }
+      #collapseBtn:hover { background: #2e7d32; transform: translateY(-50%) scaleX(1.15); }
+      #collapseBtn:active { background: #1b5e20; transform: translateY(-50%) scaleX(0.95); }
 
       #panelHeader {
         position: sticky;
@@ -602,7 +622,10 @@
     <div id="scaleBarPanel"></div>
 
     <div id="canopyStatsPanel">
-      <div id="canopyStatsTitle">National Tree Canopy</div>
+      <div id="canopyStatsTitle">
+        <span id="canopyStatsTitleText">National Tree Canopy</span>
+        <button id="canopyStatsClose" title="Close">&#x2715;</button>
+      </div>
       <div id="canopyStatsContent">
         <svg id="canopyPie" viewBox="0 0 90 90" width="72" height="72" style="flex-shrink:0"></svg>
         <div id="canopyStatsGrid">
@@ -732,7 +755,34 @@
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
-    let countyStatsMap    = {};   // pre-computed FT/TOF counts — no live stats queries needed
+    const countyStatsMap = {
+      "CARLOW":    { ft:  936361, tof:  852637, canopy_pct: 12.2, canopy_ha:  10928, max_height_m:  45.5, max_crown_area_m2: 898.8 },
+      "CAVAN":     { ft: 2151970, tof: 2279813, canopy_pct: 15.6, canopy_ha:  29565 },
+      "CLARE":     { ft: 4755476, tof: 2356258, canopy_pct: 14.9, canopy_ha:  51312, max_height_m:  83.5, max_crown_area_m2: 900.0 },
+      "CORK":      { ft: 7965327, tof: 5802235, canopy_pct: 14.3, canopy_ha: 106764 },
+      "DONEGAL":   { ft: 4950275, tof: 2060975, canopy_pct: 10.0, canopy_ha:  48521, max_height_m:  77.0, max_crown_area_m2: 899.9 },
+      "DUBLIN":    { ft:  850757, tof: 2278308, canopy_pct: 12.8, canopy_ha:  11757, max_height_m:  44.2, max_crown_area_m2: 859.1 },
+      "GALWAY":    { ft: 5851974, tof: 3695295, canopy_pct: 11.1, canopy_ha:  68269, max_height_m: 108.9, max_crown_area_m2: 899.6 },
+      "KERRY":     { ft: 4616234, tof: 2405903, canopy_pct: 11.7, canopy_ha:  56149, max_height_m:  54.0, max_crown_area_m2: 900.0 },
+      "KILDARE":   { ft:  954551, tof: 1685491, canopy_pct: 10.6, canopy_ha:  17982, max_height_m:  38.0, max_crown_area_m2: 899.9 },
+      "KILKENNY":  { ft: 2229435, tof: 1902847, canopy_pct: 14.8, canopy_ha:  30449,                      max_crown_area_m2: 899.8 },
+      "LAOIS":     { ft: 2895187, tof: 1369931, canopy_pct: 17.0, canopy_ha:  29181, max_height_m:  49.7, max_crown_area_m2: 900.0 },
+      "LEITRIM":   { ft: 2470000, tof: 1596867, canopy_pct: 17.5, canopy_ha:  27811, max_height_m:  61.4, max_crown_area_m2: 899.8 },
+      "LIMERICK":  { ft: 2284045, tof: 2195352, canopy_pct: 13.1, canopy_ha:  36219, max_height_m:  62.2, max_crown_area_m2: 899.9 },
+      "LONGFORD":  { ft:  873940, tof: 1037041, canopy_pct: 13.6, canopy_ha:  14870, max_height_m:  71.3, max_crown_area_m2: 899.4 },
+      "LOUTH":     { ft:  272735, tof:  648151, canopy_pct:  9.5, canopy_ha:   7831, max_height_m:  46.1, max_crown_area_m2: 900.0 },
+      "MAYO":      { ft: 5638188, tof: 2859324, canopy_pct: 10.7, canopy_ha:  57845, max_height_m:  49.1 },
+      "MEATH":     { ft:  846555, tof: 2421928, canopy_pct: 10.3, canopy_ha:  24068, max_height_m:  36.9, max_crown_area_m2: 898.5 },
+      "MONAGHAN":  { ft:  555370, tof: 1448581, canopy_pct: 13.5, canopy_ha:  17527, max_height_m:  43.8, max_crown_area_m2: 899.9 },
+      "OFFALY":    { ft: 2181138, tof: 1645238, canopy_pct: 13.7, canopy_ha:  27326, max_height_m:  65.9, max_crown_area_m2: 899.9 },
+      "ROSCOMMON": { ft: 2365585, tof: 2087395, canopy_pct: 12.7, canopy_ha:  32264, max_height_m: 107.2, max_crown_area_m2: 899.6 },
+      "SLIGO":     { ft: 2009068, tof: 1186683, canopy_pct: 11.7, canopy_ha:  21420, max_height_m:  38.0, max_crown_area_m2: 898.0 },
+      "TIPPERARY": { ft: 4962712, tof: 3227462, canopy_pct: 13.9, canopy_ha:  59972 },
+      "WATERFORD": { ft: 4990254, tof: 1737707, canopy_pct: 15.2, canopy_ha:  28183, max_height_m:  40.3, max_crown_area_m2: 900.0 },
+      "WESTMEATH": { ft: 1344837, tof: 1594688, canopy_pct: 12.7, canopy_ha:  23345 },
+      "WEXFORD":   { ft: 3812360, tof: 3480443, canopy_pct: 12.7, canopy_ha:  29807 },
+      "WICKLOW":   { ft: 4818820, tof: 1585758, canopy_pct: 19.9, canopy_ha:  40300 },
+    };
 
     const BUA_LAYER_ITEM_ID = "e83eac6b7292457cbbbafbd2fa103a31";
 
@@ -788,14 +838,6 @@
       console.warn("Crown layer discovery failed:", e);
     }
 
-    // Pre-computed stats — served as a static file, no query against the layer
-    try {
-      const resp = await fetch("./county_stats.json");
-      if (resp.ok) countyStatsMap = await resp.json();
-    } catch (e) {
-      console.warn("county_stats.json not found — pie charts will be empty:", e);
-    }
-
     {
       const allVals   = Object.values(countyStatsMap);
       const natFt     = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
@@ -803,7 +845,10 @@
     }
 
     // ── Canopy stats panel (bottom-left) ────────────────────────────────────
-    const canopyStatsTitle = document.getElementById("canopyStatsTitle");
+    const canopyStatsTitle = document.getElementById("canopyStatsTitleText");
+    document.getElementById("canopyStatsClose").addEventListener("click", () => {
+      document.getElementById("canopyStatsPanel").style.display = "none";
+    });
 
     function drawCanopyPie(ftPct, tofPct) {
       const svg = document.getElementById("canopyPie");
