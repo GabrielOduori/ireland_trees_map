@@ -377,10 +377,11 @@
         pointer-events: auto;
       }
       #buaPopupHeader {
-        background: #b35a00;
-        color: #fff;
+        background: #fff;
+        color: #111;
         padding: 8px 32px 8px 12px;
         border-radius: 6px 6px 0 0;
+        border-bottom: 1px solid #eee;
         font-size: 13px;
         font-weight: 600;
         position: relative;
@@ -390,7 +391,7 @@
         top: 4px; right: 8px;
         background: none;
         border: none;
-        color: #fff;
+        color: #666;
         font-size: 18px;
         cursor: pointer;
         line-height: 1;
@@ -1166,12 +1167,10 @@
     function buildBuaPopupContent(attrs) {
       // Field name map: display label → possible attribute key variants
       const FIELDS = [
-        { label: "Settlement",        keys: ["Settlement", "settlement"] },
-        { label: "Land area (km²)",   keys: ["land_area_km2", "Land_area_km2", "land_area"] },
+        { label: "Population",        keys: ["Population", "population"] },
+        { label: "Canopy cover",      keys: ["canopy_cover_pct", "Canopy_cover_pct"],             pct: true },
         { label: "Canopy area (km²)", keys: ["total_canopy_area_km2", "Total_canopy_area_km2"] },
-        { label: "Canopy cover",      keys: ["canopy_cover_pct", "Canopy_cover_pct"],  pct: true },
-        { label: "Forest trees",      keys: ["ft_pct", "Ft_pct"],                      pct: true },
-        { label: "Trees outside forests", keys: ["tof_pct", "Tof_pct"],               pct: true },
+        { label: "Land area (km²)",   keys: ["land_area_km2", "Land_area_km2", "land_area"] },
       ];
       const table = document.createElement("table");
       table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
