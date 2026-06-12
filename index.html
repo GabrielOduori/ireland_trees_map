@@ -948,8 +948,8 @@
             const { features } = await _nationalBuaLayer.queryFeatures(nq);
             return features
               .sort((a, b) =>
-                (b.attributes.land_area_km2 ?? b.attributes.Land_area_km2 ?? 0) -
-                (a.attributes.land_area_km2 ?? a.attributes.Land_area_km2 ?? 0))
+                (b.attributes.population ?? b.attributes.Population ?? 0) -
+                (a.attributes.population ?? a.attributes.Population ?? 0))
               .slice(0, 100);
           })();
         }
@@ -1312,8 +1312,8 @@
         features.forEach(graphic => {
           const a  = graphic.attributes || {};
           const nm = a.settlement || a.Settlement || "—";
-          const cc = a.canopy_cover_pct ?? a.Canopy_cover_pct;
-          const la = a.land_area_km2    ?? a.Land_area_km2;
+          const cc  = a.canopy_cover_pct ?? a.Canopy_cover_pct;
+          const pop = a.population      ?? a.Population;
 
           const li = document.createElement("li");
           li.style.cssText = "cursor:pointer;padding:7px 12px;border-bottom:1px solid #f5ece0;" +
@@ -1327,8 +1327,8 @@
           const metaEl = document.createElement("span");
           metaEl.className = "bua-meta";
           const parts = [];
-          if (la != null) parts.push(`${la.toFixed(2)} km²`);
-          if (cc != null) parts.push(`${cc.toFixed(1)}% canopy`);
+          if (pop != null) parts.push(`pop. ${pop.toLocaleString()}`);
+          if (cc  != null) parts.push(`${cc.toFixed(1)}% canopy`);
           metaEl.textContent = parts.join(" · ");
           li.appendChild(metaEl);
 
