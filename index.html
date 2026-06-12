@@ -68,6 +68,54 @@
         z-index: 15;
       }
 
+      #canopyStatsPanel {
+        position: fixed;
+        bottom: 56px;
+        left: 10px;
+        z-index: 15;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        padding: 10px 12px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 200px;
+      }
+
+      #canopyStatsTitle {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+
+      #canopyStatsContent {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      #canopyStatsGrid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3px;
+        flex: 1;
+      }
+
+      .canopy-stat {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        gap: 8px;
+      }
+
+      .canopy-stat-label { color: #666; }
+      .canopy-stat-value { font-weight: 700; color: #222; }
+
       #buaChartPanel {
         position: absolute;
         top: 104px;
@@ -422,6 +470,31 @@
     <button id="basemapBtn" title="Change basemap">&#9776; Basemaps</button>
     <div id="basemapPanel"></div>
     <div id="scaleBarPanel"></div>
+
+    <div id="canopyStatsPanel">
+      <div id="canopyStatsTitle">National Tree Canopy</div>
+      <div id="canopyStatsContent">
+        <svg id="canopyPie" viewBox="0 0 90 90" width="72" height="72" style="flex-shrink:0"></svg>
+        <div id="canopyStatsGrid">
+          <div class="canopy-stat">
+            <span class="canopy-stat-label">Total canopy</span>
+            <span class="canopy-stat-value" id="statTotalPct">—</span>
+          </div>
+          <div class="canopy-stat">
+            <span class="canopy-stat-label">Canopy area</span>
+            <span class="canopy-stat-value" id="statCanopyHa">—</span>
+          </div>
+          <div class="canopy-stat">
+            <span class="canopy-stat-label" style="color:rgba(0,150,0,0.9)">Forest</span>
+            <span class="canopy-stat-value" id="statFtPct">—</span>
+          </div>
+          <div class="canopy-stat">
+            <span class="canopy-stat-label" style="color:rgba(150,0,150,0.9)">Outside forests</span>
+            <span class="canopy-stat-value" id="statTofPct">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="zoomLevelPanel"></div>
     <div id="buaChartPanel">
       <div id="buaChartHeader">
@@ -620,6 +693,63 @@
       const natFt     = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
       const natTof    = allVals.reduce((s, c) => s + (c.tof || 0), 0);
       updateLegend(natFt, natTof);
+    }
+
+    // ── Canopy stats panel (bottom-left) ────────────────────────────────────
+    const canopyStatsTitle = document.getElementById("canopyStatsTitle");
+
+    function drawCanopyPie(ftPct, tofPct) {
+      const svg = document.getElementById("canopyPie");
+      svg.innerHTML = "";
+      const ns = "http://www.w3.org/2000/svg";
+      const cx = 45, cy = 45, r = 40;
+      const total = ftPct + tofPct;
+      if (total === 0) return;
+
+      function ptAt(angle) {
+        const rad = (angle - 90) * Math.PI / 180;
+        return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+      }
+      function addSlice(start, end, fill) {
+        if (Math.abs(end - start) >= 359.99) {
+          const c = document.createElementNS(ns, "circle");
+          c.setAttribute("cx", cx); c.setAttribute("cy", cy);
+          c.setAttribute("r", r);   c.setAttribute("fill", fill);
+          svg.appendChild(c); return;
+        }
+        const [x1,y1] = ptAt(start), [x2,y2] = ptAt(end);
+        const p = document.createElementNS(ns, "path");
+        p.setAttribute("d", `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${end-start>180?1:0} 1 ${x2},${y2} Z`);
+        p.setAttribute("fill", fill);
+        svg.appendChild(p);
+      }
+      const ftAngle = (ftPct / total) * 360;
+      addSlice(0, ftAngle, "rgba(0,150,0,0.85)");
+      addSlice(ftAngle, 360, "rgba(150,0,150,0.85)");
+    }
+
+    function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
+      const total = ft + tof;
+      const ftPct  = total > 0 ? ft  / total * 100 : 0;
+      const tofPct = total > 0 ? tof / total * 100 : 0;
+      canopyStatsTitle.textContent = label || "National Tree Canopy";
+      document.getElementById("statTotalPct").textContent =
+        canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
+      document.getElementById("statCanopyHa").textContent =
+        canopyHa  != null ? `${canopyHa.toLocaleString()} ha` : "—";
+      document.getElementById("statFtPct").textContent  = total > 0 ? `${ftPct.toFixed(1)} %`  : "—";
+      document.getElementById("statTofPct").textContent = total > 0 ? `${tofPct.toFixed(1)} %` : "—";
+      drawCanopyPie(ftPct, tofPct);
+    }
+
+    // Initialise with national totals
+    {
+      const allVals  = Object.values(countyStatsMap);
+      const natFt    = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
+      const natTof   = allVals.reduce((s, c) => s + (c.tof || 0), 0);
+      const natPct   = allVals.reduce((s, c) => s + (c.canopy_pct || 0), 0) || null;
+      const natHa    = allVals.reduce((s, c) => s + (c.canopy_ha  || 0), 0) || null;
+      updateCanopyStats(natFt, natTof, natPct ? natPct / allVals.length : null, natHa || null);
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -859,12 +989,12 @@
         clearCrownSelection();
         closeBuaPopup();
         clearBuaList();
-        // Reset legend to national totals
+        // Reset legend and canopy stats to national totals
         const allVals = Object.values(countyStatsMap);
-        updateLegend(
-          allVals.reduce((s, c) => s + (c.ft  || 0), 0),
-          allVals.reduce((s, c) => s + (c.tof || 0), 0)
-        );
+        const natFt   = allVals.reduce((s, c) => s + (c.ft  || 0), 0);
+        const natTof  = allVals.reduce((s, c) => s + (c.tof || 0), 0);
+        updateLegend(natFt, natTof);
+        updateCanopyStats(natFt, natTof, null, null);
       }
 
       // ── Activate a county ────────────────────────────────────────────────
@@ -984,6 +1114,8 @@
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
           updateLegend(ftCount, tofCount);
+          updateCanopyStats(ftCount, tofCount, stats.canopy_pct ?? null, stats.canopy_ha ?? null,
+            name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
           // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
           // Restore VTL whenever the user zooms back out past 1:25,000.
           if (activeCrownTileLayer) {
