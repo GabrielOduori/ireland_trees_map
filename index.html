@@ -435,7 +435,7 @@
       }
 
       .county-bar-ft {
-        background: rgba(0, 150, 0, 0.85);
+        background: rgba(0, 255, 0, 0.85);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -447,7 +447,7 @@
       }
 
       .county-bar-tof {
-        background: rgba(150, 0, 150, 0.85);
+        background: rgba(255, 0, 255, 0.85);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -638,12 +638,12 @@
             <span class="canopy-stat-value" id="statCanopyHa">—</span>
           </div>
           <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:rgba(0,150,0,0.9)">Forest</span>
-            <span class="canopy-stat-value" id="statFtPct">—</span>
+            <span class="canopy-stat-label" style="color:rgba(0,255,0,0.9)">Forest</span>
+            <span class="canopy-stat-value" id="statFtPct" style="color:rgba(0,255,0,0.9)">—</span>
           </div>
           <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:rgba(150,0,150,0.9)">Outside forests</span>
-            <span class="canopy-stat-value" id="statTofPct">—</span>
+            <span class="canopy-stat-label" style="color:rgba(255,0,255,0.9)">Outside forests</span>
+            <span class="canopy-stat-value" id="statTofPct" style="color:rgba(255,0,255,0.9)">—</span>
           </div>
         </div>
       </div>
@@ -876,8 +876,8 @@
         svg.appendChild(p);
       }
       const ftAngle = (ftPct / total) * 360;
-      addSlice(0, ftAngle, "rgba(0,150,0,0.85)");
-      addSlice(ftAngle, 360, "rgba(150,0,150,0.85)");
+      addSlice(0, ftAngle, "rgba(0,255,0,0.85)");
+      addSlice(ftAngle, 360, "rgba(255,0,255,0.85)");
     }
 
     function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
@@ -1235,10 +1235,12 @@
           : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
         activeMdLayer = new FeatureLayer({
           portalItem:           mdPortalRef,
-          definitionExpression: `county = '${escapeSql(name)}'`,
-          outFields:            ["*"],
+          definitionExpression: `County = '${escapeSql(name)}'`,
+          outFields:            [],
           opacity:              0.8,
           popupEnabled:         false,
+          minScale:             0,
+          maxScale:             0,
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
