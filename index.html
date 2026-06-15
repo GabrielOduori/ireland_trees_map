@@ -1025,11 +1025,6 @@
     });
 
     const countyOutlineLayer = new GraphicsLayer();
-    const countyOutlineSymbol = new SimpleFillSymbol({
-      color: [0, 0, 0, 0],
-      outline: { color: [255, 200, 0, 255], width: 2.5 }
-    });
-
     map.add(countyOutlineLayer);
 
     const view = new MapView({
@@ -1328,11 +1323,6 @@
         }
 
         if (countyFeature?.geometry) {
-          countyOutlineLayer.add(new Graphic({
-            geometry: countyFeature.geometry,
-            symbol: countyOutlineSymbol
-          }));
-
           // Mask: large WGS84 bounding box minus the county = dimmed surround
           try {
             const outerBox = new Polygon({
