@@ -435,7 +435,7 @@
       }
 
       .county-bar-ft {
-        background: rgba(0, 255, 0, 0.85);
+        background: rgba(0, 255, 0, 1);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -447,7 +447,7 @@
       }
 
       .county-bar-tof {
-        background: rgba(255, 0, 255, 0.85);
+        background: rgba(255, 0, 255, 1);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -638,12 +638,12 @@
             <span class="canopy-stat-value" id="statCanopyHa">—</span>
           </div>
           <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:rgba(0,255,0,0.9)">Forest</span>
-            <span class="canopy-stat-value" id="statFtPct" style="color:rgba(0,255,0,0.9)">—</span>
+            <span class="canopy-stat-label" style="color:rgba(0,255,0,1)">Forest</span>
+            <span class="canopy-stat-value" id="statFtPct" style="color:rgba(0,255,0,1)">—</span>
           </div>
           <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:rgba(255,0,255,0.9)">Outside forests</span>
-            <span class="canopy-stat-value" id="statTofPct" style="color:rgba(255,0,255,0.9)">—</span>
+            <span class="canopy-stat-label" style="color:rgba(255,0,255,1)">Outside forests</span>
+            <span class="canopy-stat-value" id="statTofPct" style="color:rgba(255,0,255,1)">—</span>
           </div>
         </div>
       </div>
@@ -1229,18 +1229,17 @@
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
-        // Municipal districts — filtered to active county, sits above BUAs
+        // Municipal districts — all districts, blue outline only, sits above BUAs
         const mdPortalRef = _portal
           ? { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID, portal: _portal }
           : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
         activeMdLayer = new FeatureLayer({
-          portalItem:           mdPortalRef,
-          definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:            [],
-          opacity:              0.8,
-          popupEnabled:         false,
-          minScale:             0,
-          maxScale:             0,
+          portalItem:   mdPortalRef,
+          outFields:    [],
+          opacity:      0.8,
+          popupEnabled: false,
+          minScale:     0,
+          maxScale:     0,
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
@@ -1249,7 +1248,7 @@
           }),
         });
         activeMdLayer.on("layerview-create-error", e =>
-          console.error(`[md] failed to render municipal district layer for ${name}:`, e.error));
+          console.error(`[md] layer error:`, e.error));
         map.add(activeMdLayer, 1);  // just above BUA layer
 
         // Load national top-100 BUAs once (no county filter) and cache the promise
