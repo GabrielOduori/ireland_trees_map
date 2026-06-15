@@ -435,27 +435,13 @@
       }
 
       .county-bar-ft {
-        background: rgba(0, 255, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: #43a047;
         overflow: hidden;
-        font-size: 11px;
-        color: #fff;
-        font-weight: 700;
-        white-space: nowrap;
       }
 
       .county-bar-tof {
-        background: rgba(255, 0, 255, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: #ab47bc;
         overflow: hidden;
-        font-size: 11px;
-        color: #fff;
-        font-weight: 700;
-        white-space: nowrap;
       }
 
       #viewDiv {
@@ -637,13 +623,13 @@
             <span class="canopy-stat-label">Canopy area</span>
             <span class="canopy-stat-value" id="statCanopyHa">—</span>
           </div>
-          <div class="canopy-stat" style="background:rgba(128,128,128,0.4);border-radius:3px;padding:2px 4px;">
-            <span class="canopy-stat-label" style="color:rgba(0,255,0,1)">Forest</span>
-            <span class="canopy-stat-value" id="statFtPct" style="color:rgba(0,255,0,1)">—</span>
+          <div class="canopy-stat">
+            <span class="canopy-stat-label" style="color:#43a047">Forest</span>
+            <span class="canopy-stat-value" id="statFtPct" style="color:#43a047">—</span>
           </div>
-          <div class="canopy-stat" style="background:rgba(128,128,128,0.4);border-radius:3px;padding:2px 4px;">
-            <span class="canopy-stat-label" style="color:rgba(255,0,255,1)">Outside forests</span>
-            <span class="canopy-stat-value" id="statTofPct" style="color:rgba(255,0,255,1)">—</span>
+          <div class="canopy-stat">
+            <span class="canopy-stat-label" style="color:#ab47bc">Outside forests</span>
+            <span class="canopy-stat-value" id="statTofPct" style="color:#ab47bc">—</span>
           </div>
         </div>
       </div>
@@ -875,9 +861,24 @@
         p.setAttribute("fill", fill);
         svg.appendChild(p);
       }
+      function addLabel(midAngle, text) {
+        const rad = (midAngle - 90) * Math.PI / 180;
+        const t = document.createElementNS(ns, "text");
+        t.setAttribute("x", cx + 22 * Math.cos(rad));
+        t.setAttribute("y", cy + 22 * Math.sin(rad));
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("dominant-baseline", "middle");
+        t.setAttribute("fill", "white");
+        t.setAttribute("font-size", "9");
+        t.setAttribute("font-weight", "bold");
+        t.textContent = text;
+        svg.appendChild(t);
+      }
       const ftAngle = (ftPct / total) * 360;
-      addSlice(0, ftAngle, "rgba(0,255,0,0.6)");
-      addSlice(ftAngle, 360, "rgba(255,0,255,0.6)");
+      addSlice(0, ftAngle, "#43a047");
+      addSlice(ftAngle, 360, "#ab47bc");
+      if (ftAngle > 25)           addLabel(ftAngle / 2,                  ftPct.toFixed(1)  + "%");
+      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
     }
 
     function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
@@ -1230,11 +1231,15 @@
           : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
         activeMdLayer = new FeatureLayer({
           portalItem:   mdPortalRef,
-          outFields:    [],
+          outFields:    ["*"],
           opacity:      0.8,
-          popupEnabled: false,
+          popupEnabled: true,
           minScale:     0,
           maxScale:     0,
+          popupTemplate: {
+            title: "Municipal District",
+            content: [{ type: "fields" }]
+          },
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
