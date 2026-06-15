@@ -83,7 +83,7 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        min-width: 200px;
+        min-width: 240px;
       }
 
       #canopyStatsTitle {
@@ -613,7 +613,7 @@
         <button id="canopyStatsClose" title="Close">&#x2715;</button>
       </div>
       <div id="canopyStatsContent">
-        <svg id="canopyPie" viewBox="0 0 90 90" width="72" height="72" style="flex-shrink:0"></svg>
+        <svg id="canopyPie" viewBox="0 0 90 90" width="110" height="110" style="flex-shrink:0"></svg>
         <div id="canopyStatsGrid">
           <div class="canopy-stat">
             <span class="canopy-stat-label">Total canopy</span>
@@ -625,11 +625,11 @@
           </div>
           <div class="canopy-stat">
             <span class="canopy-stat-label" style="color:rgba(0,255,0,0.6)">Forest</span>
-            <span class="canopy-stat-value" id="statFtPct" style="color:rgba(0,255,0,0.6)">—</span>
+            <span class="canopy-stat-value" id="statFtPct">—</span>
           </div>
           <div class="canopy-stat">
             <span class="canopy-stat-label" style="color:rgba(255,0,255,0.6)">Outside forests</span>
-            <span class="canopy-stat-value" id="statTofPct" style="color:rgba(255,0,255,0.6)">—</span>
+            <span class="canopy-stat-value" id="statTofPct">—</span>
           </div>
         </div>
       </div>
@@ -869,7 +869,7 @@
         t.setAttribute("text-anchor", "middle");
         t.setAttribute("dominant-baseline", "middle");
         t.setAttribute("fill", "#333");
-        t.setAttribute("font-size", "9");
+        t.setAttribute("font-size", "12");
         t.setAttribute("font-weight", "bold");
         t.textContent = text;
         svg.appendChild(t);
