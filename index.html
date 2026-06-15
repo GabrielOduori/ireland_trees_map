@@ -677,6 +677,10 @@
               <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
               Built-up Areas On/Off
             </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
+              <input type="checkbox" id="mdLayerToggle" checked style="cursor:pointer;">
+              Municipal Districts On/Off
+            </label>
           </div>
         </div>
         <ul id="countyList"></ul>
@@ -1054,6 +1058,7 @@
       let panelCollapsed       = false;
 
       const buaLayerToggle   = document.getElementById("buaLayerToggle");
+      const mdLayerToggle    = document.getElementById("mdLayerToggle");
 
       crownLayerToggle.addEventListener("change", () => {
         activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
@@ -1061,6 +1066,9 @@
       });
       buaLayerToggle.addEventListener("change", () => {
         if (activeBuaLayer) activeBuaLayer.visible = buaLayerToggle.checked;
+      });
+      mdLayerToggle.addEventListener("change", () => {
+        if (activeMdLayer) activeMdLayer.visible = mdLayerToggle.checked;
       });
 
       // ── view.padding tells ArcGIS the panel obscures the right side,
@@ -1218,6 +1226,7 @@
         activeBuaLayer.on("layerview-create-error", e =>
           console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
         buaLayerToggle.checked  = true;
+        mdLayerToggle.checked   = true;
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
@@ -1229,8 +1238,14 @@
           portalItem:           mdPortalRef,
           definitionExpression: `county = '${escapeSql(name)}'`,
           outFields:            ["*"],
-          opacity:              0.6,
+          opacity:              0.8,
           popupEnabled:         false,
+          renderer: new SimpleRenderer({
+            symbol: new SimpleFillSymbol({
+              style:   "none",
+              outline: { color: [0, 120, 255, 255], width: 2, style: "solid" }
+            })
+          }),
         });
         activeMdLayer.on("layerview-create-error", e =>
           console.error(`[md] failed to render municipal district layer for ${name}:`, e.error));
