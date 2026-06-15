@@ -435,7 +435,7 @@
       }
 
       .county-bar-ft {
-        background: rgba(0, 255, 0, 1);
+        background: rgba(0, 255, 0, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -447,7 +447,7 @@
       }
 
       .county-bar-tof {
-        background: rgba(255, 0, 255, 1);
+        background: rgba(255, 0, 255, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -876,8 +876,8 @@
         svg.appendChild(p);
       }
       const ftAngle = (ftPct / total) * 360;
-      addSlice(0, ftAngle, "rgba(0,255,0,0.85)");
-      addSlice(ftAngle, 360, "rgba(255,0,255,0.85)");
+      addSlice(0, ftAngle, "rgba(0,255,0,0.6)");
+      addSlice(ftAngle, 360, "rgba(255,0,255,0.6)");
     }
 
     function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
