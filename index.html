@@ -784,7 +784,10 @@
       "WICKLOW":   { ft: 4818820, tof: 1585758, canopy_pct: 19.9, canopy_ha:  40300 },
     };
 
-    const BUA_LAYER_ITEM_ID = "e83eac6b7292457cbbbafbd2fa103a31";
+    const MUNICIPAL_DISTRICT_LAYER_ITEM_ID = "f0e1c3d8b9a14f5e9c2b4a7d6e8f9a12";
+
+
+    const BUA_LAYER_ITEM_ID = "4758e1d99f8472b874484b50f0dcf10";
 
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
@@ -1036,6 +1039,7 @@
 
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
+    let activeMdLayer      = null;   // municipal district layer, county-activated
     let _buaTop100Promise  = null;   // resolves to national top-100 BUAs by area, loaded once
     let _nationalBuaLayer  = null;   // unfiltered layer used for geometry queries in selectBua
 
@@ -1128,6 +1132,7 @@
         }
         if (_vtlHandoffHandle) { _vtlHandoffHandle.remove(); _vtlHandoffHandle = null; }
         if (activeBuaLayer) { map.remove(activeBuaLayer); activeBuaLayer = null; }
+        if (activeMdLayer)  { map.remove(activeMdLayer);  activeMdLayer  = null; }
         if (activeCrownTileLayer) {
           map.remove(activeCrownTileLayer);
           activeCrownTileLayer = null;
@@ -1215,6 +1220,21 @@
         buaLayerToggle.checked  = true;
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
+
+        // Municipal districts — filtered to active county, sits above BUAs
+        const mdPortalRef = _portal
+          ? { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID, portal: _portal }
+          : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
+        activeMdLayer = new FeatureLayer({
+          portalItem:           mdPortalRef,
+          definitionExpression: `county = '${escapeSql(name)}'`,
+          outFields:            ["*"],
+          opacity:              0.6,
+          popupEnabled:         false,
+        });
+        activeMdLayer.on("layerview-create-error", e =>
+          console.error(`[md] failed to render municipal district layer for ${name}:`, e.error));
+        map.add(activeMdLayer, 1);  // just above BUA layer
 
         // Load national top-100 BUAs once (no county filter) and cache the promise
         if (!_buaTop100Promise) {
