@@ -667,6 +667,10 @@
               <input type="checkbox" id="mdLayerToggle" checked style="cursor:pointer;">
               Municipal Districts On/Off
             </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
+              <input type="checkbox" id="laLayerToggle" checked style="cursor:pointer;">
+              Local Authorities On/Off
+            </label>
           </div>
         </div>
         <ul id="countyList"></ul>
@@ -777,6 +781,8 @@
     const MUNICIPAL_DISTRICT_LAYER_ITEM_ID = "44758e1d99f8472b874484b50f0dcf10";
 
     const BUA_LAYER_ITEM_ID = "e83eac6b7292457cbbbafbd2fa103a31";
+
+    const LOCAL_AUTHORITY_LAYER_ITEM_ID = "59581215294543f5a5edd2e2a110c191";
 
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
@@ -1039,6 +1045,7 @@
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
     let activeMdLayer      = null;   // municipal district layer, county-activated
+    let activeLaLayer      = null;   // local authority layer, county-activated
     let _buaTop100Promise  = null;   // resolves to national top-100 BUAs by area, loaded once
     let _nationalBuaLayer  = null;   // unfiltered layer used for geometry queries in selectBua
 
@@ -1054,6 +1061,7 @@
 
       const buaLayerToggle   = document.getElementById("buaLayerToggle");
       const mdLayerToggle    = document.getElementById("mdLayerToggle");
+      const laLayerToggle    = document.getElementById("laLayerToggle");
 
       crownLayerToggle.addEventListener("change", () => {
         activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
@@ -1064,6 +1072,9 @@
       });
       mdLayerToggle.addEventListener("change", () => {
         if (activeMdLayer) activeMdLayer.visible = mdLayerToggle.checked;
+      });
+      laLayerToggle.addEventListener("change", () => {
+        if (activeLaLayer) activeLaLayer.visible = laLayerToggle.checked;
       });
 
       // ── view.padding tells ArcGIS the panel obscures the right side,
@@ -1136,6 +1147,7 @@
         if (_vtlHandoffHandle) { _vtlHandoffHandle.remove(); _vtlHandoffHandle = null; }
         if (activeBuaLayer) { map.remove(activeBuaLayer); activeBuaLayer = null; }
         if (activeMdLayer)  { map.remove(activeMdLayer);  activeMdLayer  = null; }
+        if (activeLaLayer)  { map.remove(activeLaLayer);  activeLaLayer  = null; }
         if (activeCrownTileLayer) {
           map.remove(activeCrownTileLayer);
           activeCrownTileLayer = null;
@@ -1213,7 +1225,7 @@
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
-              outline: { color: [255, 255, 255, 255], width: 3, style: "solid" }
+              outline: { color: [240, 59, 32, 255], width: 3, style: "solid" }
             })
           }),
           minScale: 0, maxScale: 0
@@ -1225,17 +1237,18 @@
         layerToggleRow.style.display = "block";
         map.add(activeBuaLayer, 0);  // insert below all operational layers, just above basemap
 
-        // Municipal districts — all districts, blue outline only, sits above BUAs
+        // Municipal districts — filtered to active county, sits above BUAs
         const mdPortalRef = _portal
           ? { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID, portal: _portal }
           : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
         activeMdLayer = new FeatureLayer({
-          portalItem:   mdPortalRef,
-          outFields:    ["*"],
-          opacity:      0.8,
-          popupEnabled: true,
-          minScale:     0,
-          maxScale:     0,
+          portalItem:           mdPortalRef,
+          definitionExpression: `County = '${escapeSql(name)}'`,
+          outFields:            ["*"],
+          opacity:              0.8,
+          popupEnabled:         true,
+          minScale:              0,
+          maxScale:              0,
           popupTemplate: {
             title: "Municipal District",
             content: [{ type: "fields" }]
@@ -1243,13 +1256,41 @@
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
-              outline: { color: [0, 120, 255, 255], width: 2, style: "solid" }
+              outline: { color: [255, 237, 160, 255], width: 2, style: "solid" }
             })
           }),
         });
         activeMdLayer.on("layerview-create-error", e =>
           console.error(`[md] layer error:`, e.error));
         map.add(activeMdLayer, 1);  // just above BUA layer
+
+        // Local authorities — filtered to active county, sits above Municipal Districts
+        const laPortalRef = _portal
+          ? { id: LOCAL_AUTHORITY_LAYER_ITEM_ID, portal: _portal }
+          : { id: LOCAL_AUTHORITY_LAYER_ITEM_ID };
+        activeLaLayer = new FeatureLayer({
+          portalItem:           laPortalRef,
+          definitionExpression: `County = '${escapeSql(name)}'`,
+          outFields:            ["*"],
+          opacity:              0.8,
+          popupEnabled:         true,
+          minScale:             0,
+          maxScale:             0,
+          popupTemplate: {
+            title: "Local Authority",
+            content: [{ type: "fields" }]
+          },
+          renderer: new SimpleRenderer({
+            symbol: new SimpleFillSymbol({
+              style:   "none",
+              outline: { color: [254, 178, 76, 255], width: 2, style: "solid" }
+            })
+          }),
+        });
+        activeLaLayer.on("layerview-create-error", e =>
+          console.error(`[la] layer error:`, e.error));
+        laLayerToggle.checked = true;
+        map.add(activeLaLayer, 2);  // just above Municipal Districts
 
         // Load national top-100 BUAs once (no county filter) and cache the promise
         if (!_buaTop100Promise) {
