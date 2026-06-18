@@ -1581,11 +1581,11 @@
         const perPerson = (canopyAreaKm2 * 1e6) / population;
         const tr     = document.createElement("tr");
         const tdIcon = document.createElement("td");
-        tdIcon.style.cssText = "padding:6px 8px 6px 0;white-space:nowrap";
+        tdIcon.style.cssText = "padding:6px 8px 6px 0;white-space:nowrap;text-align:center;";
         const icon = document.createElement("img");
         icon.src = "assets/tree_p_c.png";
         icon.alt = "Canopy area per person";
-        icon.style.cssText = "height:22px;display:block;";
+        icon.style.cssText = "height:22px;display:block;margin:0 auto;filter:contrast(1.5) saturate(1.6);";
         tdIcon.appendChild(icon);
         const tdVal = document.createElement("td");
         tdVal.style.cssText = "padding:6px 0;font-weight:600";
