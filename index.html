@@ -1696,9 +1696,22 @@
           ul.appendChild(li);
         });
         buaChartBody.appendChild(ul);
-        if (features.length > 0) buaChartPanel.style.display = "flex";
+        if (features.length === 0) {
+          const empty = document.createElement("li");
+          empty.style.cssText = "padding:10px 12px;color:#999;font-size:12px;";
+          empty.textContent = "No features found for this county.";
+          buaChartBody.appendChild(empty);
+          console.warn("[loadFilteredList] 0 features — definitionExpression may be using the wrong field. Layer fields:",
+            layer.fields?.map(f => f.name));
+        }
+        buaChartPanel.style.display = "flex";
       } catch (e) {
         console.error("[loadFilteredList] error:", e?.message || e);
+        const errLi = document.createElement("li");
+        errLi.style.cssText = "padding:10px 12px;color:#c0392b;font-size:12px;";
+        errLi.textContent = "Failed to load list — see console.";
+        buaChartBody.appendChild(errLi);
+        buaChartPanel.style.display = "flex";
       }
     }
 
