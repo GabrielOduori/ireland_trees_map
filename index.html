@@ -773,7 +773,6 @@
     const Portal            = await $arcgis.import("@arcgis/core/portal/Portal.js");
     const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
     const Basemap           = await $arcgis.import("@arcgis/core/Basemap.js");
-    const FeatureFilter     = await $arcgis.import("@arcgis/core/layers/support/FeatureFilter.js");
 
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
@@ -1271,12 +1270,13 @@
           ? { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID, portal: _portal }
           : { id: MUNICIPAL_DISTRICT_LAYER_ITEM_ID };
         activeMdLayer = new FeatureLayer({
-          portalItem:   mdPortalRef,
-          outFields:    ["*"],
-          opacity:      0.8,
-          popupEnabled: true,
-          minScale:     0,
-          maxScale:     0,
+          portalItem:           mdPortalRef,
+          definitionExpression: `County = '${escapeSql(name)}'`,
+          outFields:            ["*"],
+          opacity:              0.8,
+          popupEnabled:         true,
+          minScale:             0,
+          maxScale:             0,
           popupTemplate: {
             title: "Municipal District",
             content: [{ type: "fields" }]
@@ -1291,15 +1291,6 @@
         activeMdLayer.on("layerview-create-error", e =>
           console.error(`[md] layer error:`, e.error));
         map.add(activeMdLayer, 1);  // just above BUA layer
-        // No county column on this layer — filter spatially by the active county's geometry instead
-        if (countyFeature?.geometry) {
-          view.whenLayerView(activeMdLayer).then(lv => {
-            lv.filter = new FeatureFilter({
-              geometry: countyFeature.geometry,
-              spatialRelationship: "intersects"
-            });
-          }).catch(() => {});
-        }
 
         // Local authorities — filtered to active county, sits above Municipal Districts
         const laPortalRef = _portal
@@ -1345,8 +1336,7 @@
               .slice(0, 100);
           })();
         }
-        _activeCountyName     = name;
-        _activeCountyGeometry = countyFeature?.geometry || null;
+        _activeCountyName = name;
         refreshChartPanel();
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
@@ -1615,9 +1605,8 @@
       md:  { label: "Municipal Districts",  color: "#ffeda0", text: "#333" },
       la:  { label: "Local Authorities",    color: "#feb24c", text: "#333" },
     };
-    let _activeChartTab       = "bua";
-    let _activeCountyName     = null;
-    let _activeCountyGeometry = null;
+    let _activeChartTab   = "bua";
+    let _activeCountyName = null;
 
     document.querySelectorAll(".chart-tab").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -1638,7 +1627,7 @@
       if (_activeChartTab === "bua") {
         loadBuaList(activeBuaLayer, _activeCountyName);
       } else if (_activeChartTab === "md") {
-        loadFilteredList(activeMdLayer, _activeCountyName, _activeCountyGeometry);
+        loadFilteredList(activeMdLayer, _activeCountyName);
       } else {
         loadFilteredList(activeLaLayer, _activeCountyName);
       }
@@ -1678,7 +1667,7 @@
       }
     }
 
-    async function loadFilteredList(layer, countyName, filterGeometry) {
+    async function loadFilteredList(layer, countyName) {
       buaChartBody.innerHTML      = "";
       buaChartPanel.style.display = "none";
       activeFilteredItem = null;
@@ -1694,10 +1683,6 @@
         q.outFields            = ["*"];
         q.returnGeometry       = true;
         q.outSpatialReference  = view.spatialReference;
-        if (filterGeometry) {
-          q.geometry             = filterGeometry;
-          q.spatialRelationship  = "intersects";
-        }
         const { features } = await layer.queryFeatures(q);
 
         const ul = document.createElement("ul");
@@ -1708,7 +1693,10 @@
           const li = document.createElement("li");
           li.style.cssText = "cursor:pointer;padding:7px 12px;border-bottom:1px solid #eee;" +
                               "border-left:3px solid transparent;transition:background 0.15s";
-          li.textContent = nm;
+          const nameEl = document.createElement("span");
+          nameEl.className = "bua-name";
+          nameEl.textContent = nm;
+          li.appendChild(nameEl);
           li.addEventListener("mouseenter", () => { if (li !== activeFilteredItem) li.style.background = "#f5f5f5"; });
           li.addEventListener("mouseleave", () => { if (li !== activeFilteredItem) li.style.background = ""; });
           li.addEventListener("click", () => selectFilteredFeature(graphic, li, layer));
@@ -1753,9 +1741,8 @@
       const collapseBtn = document.getElementById("buaChartCollapse");
       if (collapseBtn) collapseBtn.innerHTML = "&#9660;";
       if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
-      activeFilteredItem  = null;
-      _activeCountyName     = null;
-      _activeCountyGeometry = null;
+      activeFilteredItem = null;
+      _activeCountyName  = null;
     }
 
     async function selectBua(attrs, li) {
