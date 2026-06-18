@@ -1625,9 +1625,11 @@
       const table = document.createElement("table");
       table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
 
-      function addRow(label, val) {
+      function addRow(label, val, pct) {
         if (val == null) return;
-        const display = typeof val === "number" ? val.toLocaleString() : String(val);
+        const display = (pct && typeof val === "number")
+          ? val.toFixed(1) + " %"
+          : (typeof val === "number" ? val.toLocaleString() : String(val));
         const tr  = document.createElement("tr");
         const td1 = document.createElement("td");
         td1.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap";
@@ -1639,40 +1641,16 @@
         table.appendChild(tr);
       }
 
-      function addSeparator() {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 2;
-        td.style.cssText = "padding:4px 0;border-top:1px solid #eee;";
-        tr.appendChild(td);
-        table.appendChild(tr);
+      const canopyAreaKm2 = getVal(["total_canopy_area_km2", "Total_canopy_area_km2", "canopy_area_km2", "Canopy_area_km2"]);
+      const landAreaKm2   = getVal(["land_area_km2", "Land_area_km2", "land_area"]);
+      let   canopyPct     = getVal(["canopy_cover_pct", "Canopy_cover_pct", "canopy_pct", "Canopy_pct"]);
+      if (canopyPct == null && canopyAreaKm2 != null && landAreaKm2) {
+        canopyPct = (canopyAreaKm2 / landAreaKm2) * 100;
       }
 
-      const totalTrees   = getVal(["total_trees", "Total_Trees", "TOTAL_TREES"]);
-      const forestTrees  = getVal(["forest_trees", "Forest_Trees", "FOREST_TREES"]);
-      const outsideTrees = getVal(["trees_outside_forests", "Trees_Outside_Forests", "TREES_OUTSIDE_FORESTS"]);
-
-      addRow("Total trees", totalTrees);
-
-      if (forestTrees != null || outsideTrees != null) {
-        addSeparator();
-        addRow("Forest trees", forestTrees);
-        addRow("Trees outside forests", outsideTrees);
-      }
-
-      if (totalTrees && forestTrees != null) {
-        addSeparator();
-        const pct = (forestTrees / totalTrees * 100).toFixed(1);
-        const tr     = document.createElement("tr");
-        const tdIcon = document.createElement("td");
-        tdIcon.style.cssText = "padding:6px 8px 6px 0;font-size:18px;white-space:nowrap";
-        tdIcon.textContent = "🌳";
-        const tdVal = document.createElement("td");
-        tdVal.style.cssText = "padding:6px 0;font-weight:600";
-        tdVal.textContent = pct + "% forest";
-        tr.appendChild(tdIcon); tr.appendChild(tdVal);
-        table.appendChild(tr);
-      }
+      addRow("Canopy cover",      canopyPct, true);
+      addRow("Canopy area (km²)", canopyAreaKm2);
+      addRow("Land area (km²)",   landAreaKm2);
 
       return table;
     }
