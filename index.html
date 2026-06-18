@@ -661,14 +661,17 @@
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f03b20;flex-shrink:0;"></span>
               Built-up Areas On/Off
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="mdLayerToggle" checked style="cursor:pointer;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ffeda0;flex-shrink:0;"></span>
               Municipal Districts On/Off
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="laLayerToggle" checked style="cursor:pointer;">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#feb24c;flex-shrink:0;"></span>
               Local Authorities On/Off
             </label>
           </div>
@@ -1357,6 +1360,7 @@
               });
             });
             _vtlHandoffHandle = view.watch("scale", scale => {
+              if (!crownLayerToggle.checked) return;
               if (scale > 25000) {
                 _tileRef.visible = true;
                 _readyLayers.clear();
