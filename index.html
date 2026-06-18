@@ -923,7 +923,7 @@
       document.getElementById("statTotalPct").textContent =
         canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
       document.getElementById("statCanopyHa").textContent =
-        canopyHa  != null ? `${canopyHa.toLocaleString()} ha` : "—";
+        canopyHa  != null ? `${canopyHa.toFixed(2)} ha` : "—";
       document.getElementById("statFtPct").textContent  = total > 0 ? `${ftPct.toFixed(1)} %`  : "—";
       document.getElementById("statTofPct").textContent = total > 0 ? `${tofPct.toFixed(1)} %` : "—";
       drawCanopyPie(ftPct, tofPct);
@@ -985,7 +985,7 @@
         <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${treeId}</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(meanH)} m</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(maxH)} m</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(area)} m²</td></tr>
+        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(area, 2)} m²</td></tr>
         <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(perim)} m</td></tr>
       </table>`;
     }
@@ -1541,10 +1541,12 @@
       const table = document.createElement("table");
       table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
 
-      function addRow(label, val, pct) {
+      function addRow(label, val, pct, dp) {
         if (val == null) return;
         const display = (pct && typeof val === "number")
           ? val.toFixed(1) + " %"
+          : (dp != null && typeof val === "number")
+          ? val.toFixed(dp)
           : (typeof val === "number" ? val.toLocaleString() : String(val));
         const tr  = document.createElement("tr");
         const td1 = document.createElement("td");
@@ -1579,18 +1581,22 @@
         const perPerson = (canopyAreaKm2 * 1e6) / population;
         const tr     = document.createElement("tr");
         const tdIcon = document.createElement("td");
-        tdIcon.style.cssText = "padding:6px 8px 6px 0;font-size:18px;white-space:nowrap";
-        tdIcon.textContent = "🌳 🧍";
+        tdIcon.style.cssText = "padding:6px 8px 6px 0;white-space:nowrap";
+        const icon = document.createElement("img");
+        icon.src = "assets/tree_p_c.png";
+        icon.alt = "Canopy area per person";
+        icon.style.cssText = "height:22px;display:block;";
+        tdIcon.appendChild(icon);
         const tdVal = document.createElement("td");
         tdVal.style.cssText = "padding:6px 0;font-weight:600";
-        tdVal.textContent = perPerson.toFixed(1) + " m²/person";
+        tdVal.textContent = perPerson.toFixed(2) + " m²";
         tr.appendChild(tdIcon); tr.appendChild(tdVal);
         table.appendChild(tr);
         addSeparator();
       }
 
-      addRow("Canopy area (km²)", canopyAreaKm2);
-      addRow("Land area (km²)",   landAreaKm2);
+      addRow("Canopy area (km²)", canopyAreaKm2, false, 2);
+      addRow("Land area (km²)",   landAreaKm2,   false, 2);
 
       return table;
     }
@@ -1625,10 +1631,12 @@
       const table = document.createElement("table");
       table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
 
-      function addRow(label, val, pct) {
+      function addRow(label, val, pct, dp) {
         if (val == null) return;
         const display = (pct && typeof val === "number")
           ? val.toFixed(1) + " %"
+          : (dp != null && typeof val === "number")
+          ? val.toFixed(dp)
           : (typeof val === "number" ? val.toLocaleString() : String(val));
         const tr  = document.createElement("tr");
         const td1 = document.createElement("td");
@@ -1649,8 +1657,8 @@
       }
 
       addRow("Canopy cover",      canopyPct, true);
-      addRow("Canopy area (km²)", canopyAreaKm2);
-      addRow("Land area (km²)",   landAreaKm2);
+      addRow("Canopy area (km²)", canopyAreaKm2, false, 2);
+      addRow("Land area (km²)",   landAreaKm2,   false, 2);
 
       return table;
     }
@@ -1686,6 +1694,10 @@
         _activeChartTab = btn.dataset.tab;
         document.querySelectorAll(".chart-tab").forEach(b => b.classList.toggle("active", b === btn));
         closeBuaPopup();
+        if (activeBuaItem) { activeBuaItem.classList.remove("active"); activeBuaItem = null; }
+        if (buaHighlight)  { buaHighlight.remove();  buaHighlight  = null; }
+        if (activeFilteredItem) { activeFilteredItem.classList.remove("active"); activeFilteredItem = null; }
+        if (filteredHighlight)  { filteredHighlight.remove();  filteredHighlight  = null; }
         refreshChartPanel();
       });
     });
