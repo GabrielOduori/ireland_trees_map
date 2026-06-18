@@ -1280,7 +1280,7 @@
         activeMdLayer = new FeatureLayer({
           portalItem:           mdPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:            ["*"],
+          outFields:            ["district_name", "canopy_cover_pct", "total_canopy_area_km2", "land_area_km2"],
           opacity:              0.8,
           popupEnabled:         false,
           minScale:             0,
