@@ -86,6 +86,13 @@
         min-width: 240px;
       }
 
+      @keyframes statsUpdatePulse {
+        0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(46,125,50,0.5); }
+        30%  { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(46,125,50,0.25); }
+        100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(46,125,50,0); }
+      }
+      #canopyStatsPanel.pulse { animation: statsUpdatePulse 0.5s ease-out; }
+
       #canopyStatsTitle {
         display: flex;
         justify-content: space-between;
@@ -920,6 +927,11 @@
       const ftPct  = total > 0 ? ft  / total * 100 : 0;
       const tofPct = total > 0 ? tof / total * 100 : 0;
       canopyStatsTitle.textContent = label || "National Tree Canopy";
+
+      const statsPanel = document.getElementById("canopyStatsPanel");
+      statsPanel.classList.remove("pulse");
+      void statsPanel.offsetWidth; // force reflow so the animation re-triggers on repeat updates
+      statsPanel.classList.add("pulse");
       document.getElementById("statTotalPct").textContent =
         canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
       document.getElementById("statCanopyHa").textContent =
