@@ -1727,7 +1727,13 @@
     }
 
     function titleCase(str) {
-      return str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+      return str.replace(/[A-Za-z]+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+
+    // Only re-case strings that are genuinely ALL CAPS — leave already
+    // mixed-case names (e.g. "Municipal District of Athlone-Moate") untouched.
+    function maybeTitleCase(str) {
+      return str === str.toUpperCase() && str !== str.toLowerCase() ? titleCase(str) : str;
     }
 
     // Generic name-field guesser for layers whose schema isn't fully known
@@ -1735,9 +1741,9 @@
       const preferred = ["name", "Name", "NAME", "title", "Title",
         "district_name", "District_Name", "local_authority", "Local_Authority",
         "LA_Name", "MD_Name", "ED_ENGLISH"];
-      for (const k of preferred) if (attrs[k]) return titleCase(String(attrs[k]));
+      for (const k of preferred) if (attrs[k]) return maybeTitleCase(String(attrs[k]));
       for (const [k, v] of Object.entries(attrs)) {
-        if (typeof v === "string" && v.trim() && !/^(objectid|fid|id|county|shape)/i.test(k)) return titleCase(v);
+        if (typeof v === "string" && v.trim() && !/^(objectid|fid|id|county|shape)/i.test(k)) return maybeTitleCase(v);
       }
       return "—";
     }
