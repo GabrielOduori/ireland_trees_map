@@ -1274,13 +1274,9 @@
           definitionExpression: `County = '${escapeSql(name)}'`,
           outFields:            ["*"],
           opacity:              0.8,
-          popupEnabled:         true,
+          popupEnabled:         false,
           minScale:             0,
           maxScale:             0,
-          popupTemplate: {
-            title: "Municipal District",
-            content: [{ type: "fields" }]
-          },
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
@@ -1301,13 +1297,9 @@
           definitionExpression: `County = '${escapeSql(name)}'`,
           outFields:            ["*"],
           opacity:              0.8,
-          popupEnabled:         true,
+          popupEnabled:         false,
           minScale:             0,
           maxScale:             0,
-          popupTemplate: {
-            title: "Local Authority",
-            content: [{ type: "fields" }]
-          },
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
@@ -1603,10 +1595,10 @@
       return table;
     }
 
-    function openBuaPopup(attrs, mapPoint) {
-      buaPopupTitle.textContent = attrs.Settlement || attrs.settlement || "Built-up Area";
+    function showPopupAt(title, contentEl, mapPoint) {
+      buaPopupTitle.textContent = title;
       buaPopupBody.innerHTML = "";
-      buaPopupBody.appendChild(buildBuaPopupContent(attrs));
+      buaPopupBody.appendChild(contentEl);
       const pt = view.toScreen(mapPoint);
       const vr = document.getElementById("viewDiv").getBoundingClientRect();
       let left = vr.left + pt.x + 14;
@@ -1618,6 +1610,75 @@
       if (top < 60) top = 60;
       buaPopup.style.left = left + "px";
       buaPopup.style.top  = top  + "px";
+    }
+
+    function openBuaPopup(attrs, mapPoint) {
+      showPopupAt(attrs.Settlement || attrs.settlement || "Built-up Area", buildBuaPopupContent(attrs), mapPoint);
+    }
+
+    function buildFilteredPopupContent(attrs) {
+      function getVal(keys) {
+        for (const k of keys) { if (attrs[k] != null) return attrs[k]; }
+        return undefined;
+      }
+
+      const table = document.createElement("table");
+      table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
+
+      function addRow(label, val) {
+        if (val == null) return;
+        const display = typeof val === "number" ? val.toLocaleString() : String(val);
+        const tr  = document.createElement("tr");
+        const td1 = document.createElement("td");
+        td1.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap";
+        td1.textContent = label;
+        const td2 = document.createElement("td");
+        td2.style.cssText = "padding:3px 0;font-weight:600";
+        td2.textContent = display;
+        tr.appendChild(td1); tr.appendChild(td2);
+        table.appendChild(tr);
+      }
+
+      function addSeparator() {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 2;
+        td.style.cssText = "padding:4px 0;border-top:1px solid #eee;";
+        tr.appendChild(td);
+        table.appendChild(tr);
+      }
+
+      const totalTrees   = getVal(["total_trees", "Total_Trees", "TOTAL_TREES"]);
+      const forestTrees  = getVal(["forest_trees", "Forest_Trees", "FOREST_TREES"]);
+      const outsideTrees = getVal(["trees_outside_forests", "Trees_Outside_Forests", "TREES_OUTSIDE_FORESTS"]);
+
+      addRow("Total trees", totalTrees);
+
+      if (forestTrees != null || outsideTrees != null) {
+        addSeparator();
+        addRow("Forest trees", forestTrees);
+        addRow("Trees outside forests", outsideTrees);
+      }
+
+      if (totalTrees && forestTrees != null) {
+        addSeparator();
+        const pct = (forestTrees / totalTrees * 100).toFixed(1);
+        const tr     = document.createElement("tr");
+        const tdIcon = document.createElement("td");
+        tdIcon.style.cssText = "padding:6px 8px 6px 0;font-size:18px;white-space:nowrap";
+        tdIcon.textContent = "🌳";
+        const tdVal = document.createElement("td");
+        tdVal.style.cssText = "padding:6px 0;font-weight:600";
+        tdVal.textContent = pct + "% forest";
+        tr.appendChild(tdIcon); tr.appendChild(tdVal);
+        table.appendChild(tr);
+      }
+
+      return table;
+    }
+
+    function openFilteredPopup(attrs, mapPoint) {
+      showPopupAt(pickDisplayName(attrs), buildFilteredPopupContent(attrs), mapPoint);
     }
 
     const buaChartPanel  = document.getElementById("buaChartPanel");
@@ -1646,6 +1707,7 @@
         if (btn.dataset.tab === _activeChartTab) return;
         _activeChartTab = btn.dataset.tab;
         document.querySelectorAll(".chart-tab").forEach(b => b.classList.toggle("active", b === btn));
+        closeBuaPopup();
         refreshChartPanel();
       });
     });
@@ -1689,12 +1751,14 @@
       if (activeFilteredItem) activeFilteredItem.classList.remove("active");
       li.classList.add("active");
       activeFilteredItem = li;
+      closeBuaPopup();
       if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
       try {
         const ext = graphic.geometry.extent;
         await view.goTo(ext.expand(1.5));
         const lv = await view.whenLayerView(layer);
         filteredHighlight = lv.highlight(graphic);
+        openFilteredPopup(graphic.attributes || {}, ext.center);
       } catch (e) {
         console.error("[selectFilteredFeature] error:", e?.message || e);
       }
@@ -1917,6 +1981,17 @@
           const { results: buaResults } = await view.hitTest(event, { include: [activeBuaLayer] });
           if (buaResults.length) {
             openBuaPopup(buaResults[0].graphic.attributes || {}, event.mapPoint);
+            return;
+          }
+        }
+
+        // ── Municipal districts / Local authorities — custom popup ─────────
+        if (activeMdLayer || activeLaLayer) {
+          const { results: filteredResults } = await view.hitTest(event, {
+            include: [activeMdLayer, activeLaLayer].filter(Boolean)
+          });
+          if (filteredResults.length) {
+            openFilteredPopup(filteredResults[0].graphic.attributes || {}, event.mapPoint);
             return;
           }
         }
