@@ -1541,18 +1541,15 @@
     }
 
     function buildBuaPopupContent(attrs) {
-      // Field name map: display label → possible attribute key variants
-      const FIELDS = [
-        { label: "Population",        keys: ["Population", "population"] },
-        { label: "Canopy cover",      keys: ["canopy_cover_pct", "Canopy_cover_pct"],             pct: true },
-        { label: "Canopy area (km²)", keys: ["total_canopy_area_km2", "Total_canopy_area_km2"] },
-        { label: "Land area (km²)",   keys: ["land_area_km2", "Land_area_km2", "land_area"] },
-      ];
+      function getVal(keys) {
+        for (const k of keys) { if (attrs[k] != null) return attrs[k]; }
+        return undefined;
+      }
+
       const table = document.createElement("table");
       table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
-      FIELDS.forEach(({ label, keys, pct }) => {
-        let val = undefined;
-        for (const k of keys) { if (attrs[k] != null) { val = attrs[k]; break; } }
+
+      function addRow(label, val, pct) {
         if (val == null) return;
         const display = (pct && typeof val === "number")
           ? val.toFixed(1) + " %"
@@ -1566,7 +1563,43 @@
         td2.textContent = display;
         tr.appendChild(td1); tr.appendChild(td2);
         table.appendChild(tr);
-      });
+      }
+
+      function addSeparator() {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 2;
+        td.style.cssText = "padding:4px 0;border-top:1px solid #eee;";
+        tr.appendChild(td);
+        table.appendChild(tr);
+      }
+
+      const population     = getVal(["Population", "population"]);
+      const canopyCoverPct = getVal(["canopy_cover_pct", "Canopy_cover_pct"]);
+      const canopyAreaKm2  = getVal(["total_canopy_area_km2", "Total_canopy_area_km2"]);
+      const landAreaKm2    = getVal(["land_area_km2", "Land_area_km2", "land_area"]);
+
+      addRow("Population",   population);
+      addRow("Canopy cover", canopyCoverPct, true);
+
+      if (population && canopyAreaKm2 != null) {
+        addSeparator();
+        const perPerson = (canopyAreaKm2 * 1e6) / population;
+        const tr     = document.createElement("tr");
+        const tdIcon = document.createElement("td");
+        tdIcon.style.cssText = "padding:6px 8px 6px 0;font-size:18px;white-space:nowrap";
+        tdIcon.textContent = "🌳 🧍";
+        const tdVal = document.createElement("td");
+        tdVal.style.cssText = "padding:6px 0;font-weight:600";
+        tdVal.textContent = perPerson.toFixed(1) + " m²/person";
+        tr.appendChild(tdIcon); tr.appendChild(tdVal);
+        table.appendChild(tr);
+        addSeparator();
+      }
+
+      addRow("Canopy area (km²)", canopyAreaKm2);
+      addRow("Land area (km²)",   landAreaKm2);
+
       return table;
     }
 
