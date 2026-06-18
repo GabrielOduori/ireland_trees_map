@@ -655,11 +655,9 @@
           </div>
           <div class="canopy-stat">
             <span class="canopy-stat-label" style="color:green">Forest Canopy</span>
-            <span class="canopy-stat-value" id="statFtPct">—</span>
           </div>
           <div class="canopy-stat">
             <span class="canopy-stat-label" style="color:rgba(255,0,255,0.6)">Canopy Outside Forest</span>
-            <span class="canopy-stat-value" id="statTofPct">—</span>
           </div>
         </div>
       </div>
@@ -936,8 +934,6 @@
         canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
       document.getElementById("statCanopyHa").textContent =
         canopyHa  != null ? `${canopyHa.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha` : "—";
-      document.getElementById("statFtPct").textContent  = total > 0 ? `${ftPct.toFixed(1)}`  : "—";
-      document.getElementById("statTofPct").textContent = total > 0 ? `${tofPct.toFixed(1)}` : "—";
       drawCanopyPie(ftPct, tofPct);
     }
 
