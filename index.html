@@ -151,7 +151,7 @@
         overflow: hidden;
       }
       #buaChartHeader {
-        background: #b35a00;
+        background: #f03b20;
         color: white;
         padding: 6px 10px 6px 14px;
         display: flex;
@@ -159,6 +159,26 @@
         align-items: center;
         flex-shrink: 0;
       }
+
+      #chartTabs {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+      }
+      .chart-tab {
+        flex: 1;
+        border: none;
+        background: #f5f5f5;
+        padding: 6px 4px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        color: #777;
+      }
+      .chart-tab.active { background: white; color: #222; }
+      .chart-tab[data-tab="bua"].active { box-shadow: inset 0 -3px 0 #f03b20; }
+      .chart-tab[data-tab="md"].active  { box-shadow: inset 0 -3px 0 #ffeda0; }
+      .chart-tab[data-tab="la"].active  { box-shadow: inset 0 -3px 0 #feb24c; }
 
       #buaChartTitle {
         display: flex;
@@ -648,6 +668,11 @@
           <button id="buaChartCollapse" title="Collapse">&#9660;</button>
           <button id="buaChartClose" title="Close">&#x2715;</button>
         </span>
+      </div>
+      <div id="chartTabs">
+        <button class="chart-tab active" data-tab="bua">Built-up Areas</button>
+        <button class="chart-tab" data-tab="md">Municipal Districts</button>
+        <button class="chart-tab" data-tab="la">Local Authorities</button>
       </div>
       <div id="buaChartBody"></div>
     </div>
@@ -1311,7 +1336,8 @@
               .slice(0, 100);
           })();
         }
-        loadBuaList(activeBuaLayer, name);
+        _activeCountyName = name;
+        refreshChartPanel();
 
         const crownItemIds = crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
@@ -1564,6 +1590,7 @@
     const buaChartPanel  = document.getElementById("buaChartPanel");
     const buaChartBody   = document.getElementById("buaChartBody");
     const buaChartTitle  = document.getElementById("buaChartTitle");
+    const buaChartHeader = document.getElementById("buaChartHeader");
     let   buaHighlight   = null;
     let   activeBuaItem  = null;
     let   _buaLayer      = null;
@@ -1571,6 +1598,109 @@
     document.getElementById("buaChartClose").addEventListener("click", () => {
       buaChartPanel.style.display = "none";
     });
+
+    // ── Layer tabs (BUA / Municipal Districts / Local Authorities) ────────
+    const CHART_TABS = {
+      bua: { label: "Built-up Areas",       color: "#f03b20", text: "#fff" },
+      md:  { label: "Municipal Districts",  color: "#ffeda0", text: "#333" },
+      la:  { label: "Local Authorities",    color: "#feb24c", text: "#333" },
+    };
+    let _activeChartTab   = "bua";
+    let _activeCountyName = null;
+
+    document.querySelectorAll(".chart-tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.tab === _activeChartTab) return;
+        _activeChartTab = btn.dataset.tab;
+        document.querySelectorAll(".chart-tab").forEach(b => b.classList.toggle("active", b === btn));
+        refreshChartPanel();
+      });
+    });
+
+    function refreshChartPanel() {
+      if (!_activeCountyName) return;
+      const cfg = CHART_TABS[_activeChartTab];
+      buaChartHeader.style.background = cfg.color;
+      buaChartHeader.style.color      = cfg.text;
+      document.getElementById("buaChartTitleMain").textContent = cfg.label;
+
+      if (_activeChartTab === "bua") {
+        loadBuaList(activeBuaLayer, _activeCountyName);
+      } else if (_activeChartTab === "md") {
+        loadFilteredList(activeMdLayer, _activeCountyName);
+      } else {
+        loadFilteredList(activeLaLayer, _activeCountyName);
+      }
+    }
+
+    // Generic name-field guesser for layers whose schema isn't fully known
+    function pickDisplayName(attrs) {
+      const preferred = ["name", "Name", "NAME", "title", "Title",
+        "district_name", "District_Name", "local_authority", "Local_Authority",
+        "LA_Name", "MD_Name", "ED_ENGLISH"];
+      for (const k of preferred) if (attrs[k]) return String(attrs[k]);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (typeof v === "string" && v.trim() && !/^(objectid|fid|id|county|shape)/i.test(k)) return v;
+      }
+      return "—";
+    }
+
+    let activeFilteredItem = null;
+    let filteredHighlight  = null;
+
+    async function selectFilteredFeature(graphic, li, layer) {
+      if (activeFilteredItem) activeFilteredItem.classList.remove("active");
+      li.classList.add("active");
+      activeFilteredItem = li;
+      if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
+      try {
+        const ext = graphic.geometry.extent;
+        await view.goTo(ext.expand(1.5));
+        const lv = await view.whenLayerView(layer);
+        filteredHighlight = lv.highlight(graphic);
+      } catch (e) {
+        console.error("[selectFilteredFeature] error:", e?.message || e);
+      }
+    }
+
+    async function loadFilteredList(layer, countyName) {
+      buaChartBody.innerHTML      = "";
+      buaChartPanel.style.display = "none";
+      activeFilteredItem = null;
+      if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
+
+      document.getElementById("buaChartTitleCounty").textContent =
+        countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase();
+
+      if (!layer) return;
+      try {
+        await layer.load();
+        const q = layer.createQuery();
+        q.outFields            = ["*"];
+        q.returnGeometry       = true;
+        q.outSpatialReference  = view.spatialReference;
+        const { features } = await layer.queryFeatures(q);
+
+        const ul = document.createElement("ul");
+        ul.style.cssText = "list-style:none;padding:0;margin:0";
+        features.forEach(graphic => {
+          const a  = graphic.attributes || {};
+          const nm = pickDisplayName(a);
+          const li = document.createElement("li");
+          li.style.cssText = "cursor:pointer;padding:7px 12px;border-bottom:1px solid #eee;" +
+                              "border-left:3px solid transparent;transition:background 0.15s";
+          li.textContent = nm;
+          li.addEventListener("mouseenter", () => { if (li !== activeFilteredItem) li.style.background = "#f5f5f5"; });
+          li.addEventListener("mouseleave", () => { if (li !== activeFilteredItem) li.style.background = ""; });
+          li.addEventListener("click", () => selectFilteredFeature(graphic, li, layer));
+          ul.appendChild(li);
+        });
+        buaChartBody.appendChild(ul);
+        if (features.length > 0) buaChartPanel.style.display = "flex";
+      } catch (e) {
+        console.error("[loadFilteredList] error:", e?.message || e);
+      }
+    }
 
     let _buaPanelCollapsed = false;
     document.getElementById("buaChartCollapse").addEventListener("click", () => {
@@ -1590,6 +1720,9 @@
       buaChartBody.style.display = "";
       const collapseBtn = document.getElementById("buaChartCollapse");
       if (collapseBtn) collapseBtn.innerHTML = "&#9660;";
+      if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
+      activeFilteredItem  = null;
+      _activeCountyName    = null;
     }
 
     async function selectBua(attrs, li) {
