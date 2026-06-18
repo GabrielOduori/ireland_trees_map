@@ -639,7 +639,7 @@
 
     <div id="canopyStatsPanel">
       <div id="canopyStatsTitle">
-        <span id="canopyStatsTitleText">National Tree Canopy</span>
+        <span id="canopyStatsTitleText">National Canopy</span>
         <button id="canopyStatsClose" title="Close">&#x2715;</button>
       </div>
       <div id="canopyStatsContent">
@@ -688,7 +688,7 @@
     <div id="sidePanelWrapper">
       <div id="countyPanel">
         <div id="panelHeader">
-          <h2>Canopy Cover</h2>
+          <h2>County Canopy</h2>
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
@@ -926,7 +926,7 @@
       const total = ft + tof;
       const ftPct  = total > 0 ? ft  / total * 100 : 0;
       const tofPct = total > 0 ? tof / total * 100 : 0;
-      canopyStatsTitle.textContent = label || "National Tree Canopy";
+      canopyStatsTitle.textContent = label || "National Canopy";
 
       const statsPanel = document.getElementById("canopyStatsPanel");
       statsPanel.classList.remove("pulse");
@@ -1595,9 +1595,9 @@
         const tdIcon = document.createElement("td");
         tdIcon.style.cssText = "padding:6px 8px 6px 0;white-space:nowrap;text-align:center;";
         const icon = document.createElement("img");
-        icon.src = "assets/tree_p_c.png";
+        icon.src = "assets/tree.png";
         icon.alt = "Canopy area per person";
-        icon.style.cssText = "height:22px;display:block;margin:0 auto;filter:grayscale(1) contrast(1.8);";
+        icon.style.cssText = "height:22px;display:block;margin:0 auto;";
         tdIcon.appendChild(icon);
         const tdVal = document.createElement("td");
         tdVal.style.cssText = "padding:6px 0;font-weight:600";
