@@ -1720,9 +1720,9 @@
       if (_activeChartTab === "bua") {
         loadBuaList(activeBuaLayer, _activeCountyName);
       } else if (_activeChartTab === "md") {
-        loadFilteredList(activeMdLayer, _activeCountyName);
+        loadFilteredList(activeMdLayer, _activeCountyName, "Municipal Districts");
       } else {
-        loadFilteredList(activeLaLayer, _activeCountyName);
+        loadFilteredList(activeLaLayer, _activeCountyName, "Local Authorities");
       }
     }
 
@@ -1768,7 +1768,7 @@
       }
     }
 
-    async function loadFilteredList(layer, countyName) {
+    async function loadFilteredList(layer, countyName, layerLabel) {
       buaChartBody.innerHTML      = "";
       buaChartPanel.style.display = "flex";
       activeFilteredItem = null;
@@ -1806,10 +1806,11 @@
         buaChartBody.appendChild(ul);
         if (features.length === 0) {
           const empty = document.createElement("li");
-          empty.style.cssText = "padding:10px 12px;color:#999;font-size:12px;";
-          empty.textContent = "No features found for this county.";
+          empty.style.cssText = "padding:10px 12px;color:#999;font-size:12px;line-height:1.4;";
+          const label = layerLabel || "features";
+          empty.textContent = `${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()} has no ${label.toLowerCase()} — some counties are structured without this division (e.g. city/county boroughs).`;
           buaChartBody.appendChild(empty);
-          console.warn("[loadFilteredList] 0 features — definitionExpression may be using the wrong field. Layer fields:",
+          console.warn(`[loadFilteredList] 0 features for ${layerLabel || "layer"} — if this county should have data, the definitionExpression may be using the wrong field. Layer fields:`,
             layer.fields?.map(f => f.name));
         }
         buaChartPanel.style.display = "flex";
