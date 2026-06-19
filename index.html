@@ -453,6 +453,22 @@
         color: #1b5e20;
       }
 
+      #countyList li.kbd-focus { background: #f0faf0; outline: 2px solid #2e7d32; outline-offset: -2px; }
+      #countyList li.no-match  { display: none; }
+      #countyList .county-name mark { background: #cdeccd; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+      #countySearchWrap { padding: 6px 16px; border-bottom: 1px solid #eee; }
+      #countySearchInput {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        outline: none;
+      }
+      #countySearchInput:focus { border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); }
+
       .bua-name { display: block; font-weight: 600; color: #333; font-size: 13px; font-family: Arial, sans-serif; }
       .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
 
@@ -634,6 +650,16 @@
         transform: translate(0, -50%);
       }
 
+      /* Narrow-viewport anti-collision: countyPanel (right) and
+         buaChartPanel/canopyStatsPanel (left) were sized for desktop and
+         can overlap on phone-width screens. Cap their widths relative to
+         the viewport instead of a fixed px value. Desktop is unaffected. */
+      @media (max-width: 700px) {
+        #countyPanel      { min-width: 150px; max-width: 55vw; }
+        #buaChartPanel    { width: min(220px, 42vw); }
+        #canopyStatsPanel { min-width: 150px; max-width: 55vw; }
+      }
+
     </style>
     <script type="module" src="https://js.arcgis.com/5.0/"></script>
   </head>
@@ -709,21 +735,24 @@
           <div id="layerToggleRow" style="display:none; padding: 4px 16px 8px; border-top: 1px solid #eee;">
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none;">
               <input type="checkbox" id="crownLayerToggle" checked style="cursor:pointer;">
-              Canopy Layers On/Off
+              Canopy Layers
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="buaLayerToggle" checked style="cursor:pointer;">
-              Built-up Areas On/Off
+              Built-up Areas
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="mdLayerToggle" checked style="cursor:pointer;">
-              Municipal Districts On/Off
+              Municipal Districts
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#555; cursor:pointer; user-select:none; margin-top:4px;">
               <input type="checkbox" id="laLayerToggle" checked style="cursor:pointer;">
-              Local Authorities On/Off
+              Local Authorities
             </label>
           </div>
+        </div>
+        <div id="countySearchWrap">
+          <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
         </div>
         <ul id="countyList"></ul>
       </div>
@@ -1122,6 +1151,89 @@
       let activeCrownTileLayer = null;
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
+      const _countyLookup      = {};    // lowercase county name -> { item, feature, name }, built as the list loads
+
+      // ── Shareable URLs: restore ?county=&tab= on initial page load ────────
+      function restoreFromUrl() {
+        const params     = new URLSearchParams(window.location.search);
+        const countyParam = params.get("county");
+        if (!countyParam) return;
+        const entry = _countyLookup[countyParam.toLowerCase()];
+        if (!entry) return;
+        const tabParam = params.get("tab");
+        if (tabParam && CHART_TABS[tabParam]) {
+          _activeChartTab = tabParam;
+          document.querySelectorAll(".chart-tab").forEach(b =>
+            b.classList.toggle("active", b.dataset.tab === tabParam));
+        }
+        activateCounty(entry.name, entry.feature, entry.item, true);
+      }
+
+      // ── County list filter: type-to-search with highlighting + keyboard nav ─
+      function setUpCountySearch() {
+        const input = document.getElementById("countySearchInput");
+        let kbdFocusIndex = -1;
+
+        function visibleItems() {
+          return Array.from(countyList.querySelectorAll("li")).filter(li => !li.classList.contains("no-match"));
+        }
+
+        function highlightMatch(nameSpan, fullName, query) {
+          nameSpan.innerHTML = "";
+          if (!query) { nameSpan.textContent = fullName; return; }
+          const idx = fullName.toLowerCase().indexOf(query.toLowerCase());
+          if (idx === -1) { nameSpan.textContent = fullName; return; }
+          if (idx > 0) nameSpan.appendChild(document.createTextNode(fullName.slice(0, idx)));
+          const mark = document.createElement("mark");
+          mark.textContent = fullName.slice(idx, idx + query.length);
+          nameSpan.appendChild(mark);
+          if (idx + query.length < fullName.length) {
+            nameSpan.appendChild(document.createTextNode(fullName.slice(idx + query.length)));
+          }
+        }
+
+        function updateKbdFocus(visible) {
+          visible.forEach((li, i) => li.classList.toggle("kbd-focus", i === kbdFocusIndex));
+          const focused = visible[kbdFocusIndex];
+          if (focused) focused.scrollIntoView({ block: "nearest" });
+        }
+
+        function applyFilter() {
+          const query = input.value.trim();
+          kbdFocusIndex = -1;
+          countyList.querySelectorAll("li").forEach(li => {
+            const fullName = li.dataset.name;
+            const nameSpan = li.querySelector(".county-name");
+            const matches  = !query || fullName.toLowerCase().includes(query.toLowerCase());
+            li.classList.remove("kbd-focus");
+            li.classList.toggle("no-match", !matches);
+            highlightMatch(nameSpan, fullName, matches ? query : "");
+          });
+        }
+
+        input.addEventListener("input", applyFilter);
+
+        input.addEventListener("keydown", (e) => {
+          const visible = visibleItems();
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            kbdFocusIndex = Math.min(kbdFocusIndex + 1, visible.length - 1);
+            updateKbdFocus(visible);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            kbdFocusIndex = Math.max(kbdFocusIndex - 1, 0);
+            updateKbdFocus(visible);
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            const target = visible[kbdFocusIndex] || visible[0];
+            if (target) target.click();
+          } else if (e.key === "Escape") {
+            input.value = "";
+            applyFilter();
+            input.blur();
+          }
+        });
+      }
 
       const buaLayerToggle   = document.getElementById("buaLayerToggle");
       const mdLayerToggle    = document.getElementById("mdLayerToggle");
@@ -1508,6 +1620,7 @@
           const nameSpan = document.createElement("span");
           nameSpan.className = "county-name";
           nameSpan.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+          item.dataset.name = nameSpan.textContent;
           item.appendChild(nameSpan);
 
           const stats   = countyStatsMap[name.toUpperCase()] || {};
@@ -1541,9 +1654,12 @@
 
           item.addEventListener("click", () => activateCounty(name, feature, item));
           countyList.appendChild(item);
+          _countyLookup[name.toLowerCase()] = { item, feature, name };
         });
 
         updateViewPadding();
+        setUpCountySearch();
+        restoreFromUrl();
       }).catch(() => {
       });
 
@@ -1736,6 +1852,17 @@
     let _activeChartTab   = "bua";
     let _activeCountyName = null;
 
+    // ── Shareable URLs: keep ?county=&tab= in sync with current view ───────
+    function updateUrlState() {
+      const params = new URLSearchParams();
+      if (_activeCountyName) {
+        params.set("county", _activeCountyName.toLowerCase());
+        params.set("tab", _activeChartTab);
+      }
+      const qs = params.toString();
+      history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+
     document.querySelectorAll(".chart-tab").forEach(btn => {
       btn.addEventListener("click", () => {
         if (btn.dataset.tab === _activeChartTab) return;
@@ -1752,6 +1879,7 @@
 
     function refreshChartPanel() {
       if (!_activeCountyName) return;
+      updateUrlState();
       const cfg = CHART_TABS[_activeChartTab];
       buaChartHeader.style.background = cfg.color;
       buaChartHeader.style.color      = cfg.text;
@@ -1858,7 +1986,12 @@
         buaChartBody.innerHTML = "";
         const errLi = document.createElement("li");
         errLi.style.cssText = "padding:10px 12px;color:#c0392b;font-size:12px;";
-        errLi.textContent = "Failed to load list — see console.";
+        errLi.textContent = "Failed to load list. ";
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "Try again";
+        retryBtn.style.cssText = "margin-left:4px;border:1px solid #c0392b;background:none;color:#c0392b;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;";
+        retryBtn.addEventListener("click", () => loadFilteredList(layer, countyName, layerLabel));
+        errLi.appendChild(retryBtn);
         buaChartBody.appendChild(errLi);
         buaChartPanel.style.display = "flex";
       }
@@ -1885,6 +2018,7 @@
       if (filteredHighlight) { filteredHighlight.remove(); filteredHighlight = null; }
       activeFilteredItem = null;
       _activeCountyName  = null;
+      updateUrlState();
     }
 
     async function selectBua(attrs, li) {
@@ -1990,7 +2124,12 @@
         buaChartBody.innerHTML = "";
         const errLi = document.createElement("li");
         errLi.style.cssText = "padding:10px 12px;color:#c0392b;font-size:12px;";
-        errLi.textContent = "Failed to load list — see console.";
+        errLi.textContent = "Failed to load list. ";
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "Try again";
+        retryBtn.style.cssText = "margin-left:4px;border:1px solid #c0392b;background:none;color:#c0392b;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;";
+        retryBtn.addEventListener("click", () => loadBuaList(layer, countyName));
+        errLi.appendChild(retryBtn);
         buaChartBody.appendChild(errLi);
       }
     }
