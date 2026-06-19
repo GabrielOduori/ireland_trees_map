@@ -1816,7 +1816,7 @@
           const empty = document.createElement("li");
           empty.style.cssText = "padding:10px 12px;color:#999;font-size:12px;line-height:1.4;";
           const label = layerLabel || "features";
-          empty.textContent = `${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()} has no ${label.toLowerCase()} — some counties are structured without this division (e.g. city/county boroughs).`;
+          empty.textContent = `${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()} has no ${label}. Some counties are structured without this division (e.g. city/county boroughs).`;
           buaChartBody.appendChild(empty);
         }
         buaChartPanel.style.display = "flex";
