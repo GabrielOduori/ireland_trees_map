@@ -823,8 +823,6 @@
       const portal = new Portal({ url: "https://www.arcgis.com", authMode: "immediate" });
       await portal.load();
       _portal = portal;
-      const username = portal.user?.username;
-      console.log("[discovery] portal user:", username);
 
       // Feature layers — tagged IrelandsTREEMAP
       const crownItems = await portal.queryItems(new PortalQueryParams({
@@ -840,9 +838,6 @@
         query: tileQuery, num: 50, sortField: "title", sortOrder: "asc"
       }));
 
-      console.log(`[discovery] ${crownItems.results.length} feature layers, ${tileItems.results.length} tile layers`);
-      crownItems.results.forEach(item => console.log(`  feature: ${item.title} (id=${item.id}) url=${item.url}`));
-      tileItems.results.forEach(item => console.log(`  tile: ${item.title} (type=${item.type}) url=${item.url}`));
 
       crownItems.results.forEach(item => {
         const raw    = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
@@ -988,14 +983,28 @@
       const area  = a.crown_area_m2 ?? a.area ?? a.Area;
       const treeId  = a.ntm_id    || a.NTM_ID    || "—";
       const perim   = a.perimeter ?? a.Perimeter;
-      return `<table style="width:100%;border-collapse:collapse;font-size:13px">
-        <tr><td style="padding:3px 6px;color:#666">Type</td><td style="padding:3px 6px;font-weight:600">${type}</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Tree ID</td><td style="padding:3px 6px">${treeId}</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Mean Height</td><td style="padding:3px 6px">${fmt(meanH)} m</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Max Height</td><td style="padding:3px 6px">${fmt(maxH)} m</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Crown Area</td><td style="padding:3px 6px">${fmt(area, 2)} m²</td></tr>
-        <tr><td style="padding:3px 6px;color:#666">Perimeter</td><td style="padding:3px 6px">${fmt(perim)} m</td></tr>
-      </table>`;
+
+      const table = document.createElement("table");
+      table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
+      [
+        ["Type",        type],
+        ["Tree ID",     treeId],
+        ["Mean Height", `${fmt(meanH)} m`],
+        ["Max Height",  `${fmt(maxH)} m`],
+        ["Crown Area",  `${fmt(area, 2)} m²`],
+        ["Perimeter",   `${fmt(perim)} m`],
+      ].forEach(([label, value], i) => {
+        const tr  = document.createElement("tr");
+        const td1 = document.createElement("td");
+        td1.style.cssText = "padding:3px 6px;color:#666";
+        td1.textContent = label;
+        const td2 = document.createElement("td");
+        td2.style.cssText = i === 0 ? "padding:3px 6px;font-weight:600" : "padding:3px 6px";
+        td2.textContent = value;
+        tr.appendChild(td1); tr.appendChild(td2);
+        table.appendChild(tr);
+      });
+      return table;
     }
 
     const crownPopupTemplate = {
@@ -1228,7 +1237,6 @@
           // URLs on the tiles CDN are cached tile services — TileLayer, not MapImageLayer.
           const isTilesCdn  = /tiles(-eu1)?\.arcgis\.com/.test(tileUrl);
           const isDynamic   = !isVtl && !isTilesCdn && (tileType === "Map Image Layer" || tileType === "Map Service");
-          console.log(`[tile] ${name} — type="${tileType}" isVtl=${isVtl} isTilesCdn=${isTilesCdn} isDynamic=${isDynamic}`);
           if (isVtl) {
             // Use direct URL when available — skips portal metadata roundtrip so tiles start loading immediately.
             activeCrownTileLayer = tileUrl
@@ -1254,7 +1262,7 @@
           : { id: BUA_LAYER_ITEM_ID };
         activeBuaLayer = new FeatureLayer({
           portalItem:          buaPortalRef,
-          definitionExpression: `County = '${name.replace(/'/g, "''")}'`,
+          definitionExpression: `County = '${escapeSql(name)}'`,
           outFields:           ["*"],
           opacity: 0.4,
           popupEnabled:        false,
@@ -1865,7 +1873,7 @@
       // Build where clause: prefer numeric id, fall back to settlement+county
       const whereClause = (oid != null && oidKey)
         ? `${oidKey} = ${oid}`
-        : `settlement = '${(settlement||"").replace(/'/g,"''")}' AND county = '${(county||"").replace(/'/g,"''")}'`;
+        : `settlement = '${escapeSql(settlement||"")}' AND county = '${escapeSql(county||"")}'`;
 
       try {
         const gq = _nationalBuaLayer.createQuery();
@@ -1969,7 +1977,8 @@
             crownHighlight = layerView.highlight(graphic);
 
             crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
-            crownPopupBody.innerHTML = buildPopupContent(attrs);
+            crownPopupBody.innerHTML = "";
+            crownPopupBody.appendChild(buildPopupContent(attrs));
 
             const pt = view.toScreen(event.mapPoint);
             const vr = document.getElementById("viewDiv").getBoundingClientRect();
