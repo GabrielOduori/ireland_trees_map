@@ -1810,8 +1810,6 @@
           const label = layerLabel || "features";
           empty.textContent = `${countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase()} has no ${label.toLowerCase()} — some counties are structured without this division (e.g. city/county boroughs).`;
           buaChartBody.appendChild(empty);
-          console.warn(`[loadFilteredList] 0 features for ${layerLabel || "layer"} — if this county should have data, the definitionExpression may be using the wrong field. Layer fields:`,
-            layer.fields?.map(f => f.name));
         }
         buaChartPanel.style.display = "flex";
       } catch (e) {
