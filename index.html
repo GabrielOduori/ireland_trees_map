@@ -328,6 +328,90 @@
       #homeBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
       #homeBtn svg { width: 18px; height: 18px; fill: currentColor; }
 
+      /* ── Floating info button ───────────────────────────────────────────── */
+      #infoBtn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 0;
+        color: #2e7d32;
+        font-weight: 700;
+        font-size: 16px;
+        font-family: 'Inter', Arial, sans-serif;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      }
+      #infoBtn:hover {
+        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+        transform: translateY(-1px);
+      }
+      #infoBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+
+      /* ── Info modal ──────────────────────────────────────────────────────── */
+      #infoOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+      }
+      #infoOverlay.visible { display: flex; }
+      #infoModal {
+        background: white;
+        border-radius: 8px;
+        max-width: 480px;
+        width: calc(100% - 40px);
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+        position: relative;
+      }
+      #infoModalHeader {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 16px 40px 12px 20px;
+        border-bottom: 1px solid #eee;
+      }
+      #infoModalHeader h2 { margin: 0; font-size: 17px; }
+      #infoModalClose {
+        position: absolute;
+        top: 12px; right: 12px;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 18px;
+        color: #888;
+        cursor: pointer;
+        line-height: 1;
+        padding: 4px;
+      }
+      #infoModalClose:hover { color: #444; }
+      #infoModalBody { padding: 16px 20px 20px; font-size: 13px; line-height: 1.55; color: #333; }
+      #infoModalBody h3 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        margin: 18px 0 6px;
+      }
+      #infoModalBody h3:first-child { margin-top: 0; }
+      #infoModalBody p { margin: 0 0 8px; }
+      #infoModalBody ul { margin: 0 0 8px; padding-left: 20px; }
+
       /* ── Floating search box ────────────────────────────────────────────── */
       #floatingSearch {
         position: absolute;
@@ -713,6 +797,33 @@
         <path d="M8 1L1 7v8h5V9h4v6h5V7z"/>
       </svg>
     </button>
+    <button id="infoBtn" title="About this map" aria-label="About this map">i</button>
+    <div id="infoOverlay">
+      <div id="infoModal">
+        <div id="infoModalHeader">
+          <h2>About this map</h2>
+          <button id="infoModalClose" title="Close" aria-label="Close">&#x2715;</button>
+        </div>
+        <div id="infoModalBody">
+          <h3>About this map</h3>
+          <p>This map shows tree canopy cover across Ireland, broken down by county, built-up area, municipal district, and local authority.</p>
+
+          <h3>Data sources &amp; methodology</h3>
+          <p>Tree crown data is derived from remote sensing analysis, classified into Forest Trees (FT) and Trees Outside Forests (TOF). Boundary layers (counties, built-up areas, municipal districts, local authorities) are sourced from Ordnance Survey Ireland administrative boundaries. Canopy statistics are computed via spatial joins against tree crown polygons.</p>
+
+          <h3>How to use the map</h3>
+          <ul>
+            <li>Click a county in the list (or search for one) to zoom in and see its canopy breakdown.</li>
+            <li>Switch between the Built-up Areas / Municipal Districts / Local Authorities tabs to explore each boundary type within the active county.</li>
+            <li>Click a tree crown on the map for details on that individual crown.</li>
+            <li>Use the layer toggles to show/hide each boundary layer.</li>
+          </ul>
+
+          <h3>Contact &amp; attribution</h3>
+          <p>Built by Gabriel Oduori. For questions or feedback, contact <a href="mailto:gabriel.oduori@gmail.com">gabriel.oduori@gmail.com</a>.</p>
+        </div>
+      </div>
+    </div>
     <div id="floatingSearch"></div>
     <div id="zoomBtns">
       <button class="zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">+</button>
@@ -1330,6 +1441,21 @@
 
       // ── Home button (in header — always visible) ─────────────────────────
       document.getElementById("homeBtn").addEventListener("click", goHome);
+
+      // ── Info modal ────────────────────────────────────────────────────────
+      const infoOverlay = document.getElementById("infoOverlay");
+      document.getElementById("infoBtn").addEventListener("click", () => {
+        infoOverlay.classList.add("visible");
+      });
+      document.getElementById("infoModalClose").addEventListener("click", () => {
+        infoOverlay.classList.remove("visible");
+      });
+      infoOverlay.addEventListener("click", (e) => {
+        if (e.target === infoOverlay) infoOverlay.classList.remove("visible");
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") infoOverlay.classList.remove("visible");
+      });
 
       // ── Search (floating overlay) ─────────────────────────────────────────
       const search = new Search({
