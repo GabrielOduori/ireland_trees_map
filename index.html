@@ -698,12 +698,6 @@
             <span class="canopy-stat-label">Canopy area</span>
             <span class="canopy-stat-value" id="statCanopyHa">—</span>
           </div>
-          <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:green">Forest Canopy</span>
-          </div>
-          <div class="canopy-stat">
-            <span class="canopy-stat-label" style="color:rgba(255,0,255,0.6)">Canopy Outside Forest</span>
-          </div>
         </div>
       </div>
     </div>
@@ -943,19 +937,33 @@
         p.setAttribute("fill", fill);
         svg.appendChild(p);
       }
-      function addLabel(midAngle, text) {
+      function addLabel(midAngle, name, pct) {
         const rad = (midAngle - 90) * Math.PI / 180;
         const labelR = (r + rInner) / 2;
-        const t = document.createElementNS(ns, "text");
-        t.setAttribute("x", cx + labelR * Math.cos(rad));
-        t.setAttribute("y", cy + labelR * Math.sin(rad));
-        t.setAttribute("text-anchor", "middle");
-        t.setAttribute("dominant-baseline", "middle");
-        t.setAttribute("fill", "#333");
-        t.setAttribute("font-size", "10");
-        t.setAttribute("font-weight", "normal");
-        t.textContent = text;
-        svg.appendChild(t);
+        const lx = cx + labelR * Math.cos(rad);
+        const ly = cy + labelR * Math.sin(rad);
+
+        const nameEl = document.createElementNS(ns, "text");
+        nameEl.setAttribute("x", lx);
+        nameEl.setAttribute("y", ly - 4);
+        nameEl.setAttribute("text-anchor", "middle");
+        nameEl.setAttribute("dominant-baseline", "middle");
+        nameEl.setAttribute("fill", "#333");
+        nameEl.setAttribute("font-size", "6.5");
+        nameEl.setAttribute("font-weight", "600");
+        nameEl.textContent = name;
+        svg.appendChild(nameEl);
+
+        const pctEl = document.createElementNS(ns, "text");
+        pctEl.setAttribute("x", lx);
+        pctEl.setAttribute("y", ly + 5);
+        pctEl.setAttribute("text-anchor", "middle");
+        pctEl.setAttribute("dominant-baseline", "middle");
+        pctEl.setAttribute("fill", "#333");
+        pctEl.setAttribute("font-size", "9");
+        pctEl.setAttribute("font-weight", "normal");
+        pctEl.textContent = pct;
+        svg.appendChild(pctEl);
       }
       const ftAngle = (ftPct / total) * 360;
       addSlice(0, ftAngle, "rgba(0,255,0,0.6)");
@@ -968,8 +976,8 @@
       hole.setAttribute("fill", "white");
       svg.appendChild(hole);
 
-      if (ftAngle > 25)           addLabel(ftAngle / 2,                  ftPct.toFixed(1)  + "%");
-      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
+      if (ftAngle > 25)           addLabel(ftAngle / 2,                  "Forest",         ftPct.toFixed(1)  + "%");
+      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, "Outside Forest", tofPct.toFixed(1) + "%");
 
       // Center label: overall canopy cover %
       if (canopyPct != null) {
