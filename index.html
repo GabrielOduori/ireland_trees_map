@@ -1063,7 +1063,7 @@
       const perim   = a.perimeter ?? a.Perimeter;
 
       const table = document.createElement("table");
-      table.style.cssText = "width:100%;border-collapse:collapse;font-size:13px";
+      table.style.cssText = "width:100%;table-layout:fixed;border-collapse:collapse;font-size:13px";
       [
         ["Type",        type],
         ["Tree ID",     treeId],
@@ -1074,11 +1074,11 @@
       ].forEach(([label, value], i) => {
         const tr  = document.createElement("tr");
         const td1 = document.createElement("td");
-        td1.style.cssText = "padding:3px 6px;color:#666";
+        td1.style.cssText = "padding:3px 6px;color:#666;width:90px;white-space:nowrap;";
         td1.textContent = label;
         const td2 = document.createElement("td");
         td2.style.cssText = (i === 0 ? "padding:3px 6px;font-weight:600;" : "padding:3px 6px;") +
-                             "overflow-wrap:break-word;word-break:break-all;max-width:0;";
+                             "overflow-wrap:break-word;";
         td2.textContent = value;
         tr.appendChild(td1); tr.appendChild(td2);
         table.appendChild(tr);
