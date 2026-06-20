@@ -280,6 +280,26 @@
         box-shadow: 0 1px 4px rgba(0,0,0,0.2);
       }
 
+      #crownLoadingBadge {
+        display: none;
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 16;
+        background: white;
+        border-radius: 14px;
+        padding: 6px 14px 6px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #444;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+        align-items: center;
+        gap: 8px;
+      }
+      #crownLoadingBadge.visible { display: flex; }
+      #crownLoadingBadge .chart-spinner { width: 12px; height: 12px; }
+
       /* ── Floating home button ───────────────────────────────────────────── */
       #homeBtn {
         position: absolute;
@@ -728,6 +748,10 @@
       </div>
     </div>
     <div id="zoomLevelPanel"></div>
+    <div id="crownLoadingBadge">
+      <span class="chart-spinner"></span>
+      <span>Loading detailed tree crowns…</span>
+    </div>
     <div id="buaChartPanel">
       <div id="buaChartHeader">
         <span id="buaChartTitle">
@@ -1338,7 +1362,8 @@
 
       const scaleBar = new ScaleBar({ view, unit: "metric", container: "scaleBarPanel" });
 
-      const zoomLevelPanel = document.getElementById("zoomLevelPanel");
+      const zoomLevelPanel    = document.getElementById("zoomLevelPanel");
+      const crownLoadingBadge = document.getElementById("crownLoadingBadge");
       view.watch("zoom", z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; });
 
       // ── Security: escape SQL string values ───────────────────────────────
@@ -1386,6 +1411,7 @@
         // Remove previous per-county layers
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
+        crownLoadingBadge.classList.remove("visible");
 
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
@@ -1529,7 +1555,8 @@
           });
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
-  
+          crownLoadingBadge.classList.add("visible");
+
           // Use pre-computed stats — statistics queries are disabled on the layer
           const stats    = countyStatsMap[name.toUpperCase()] || {};
           const ftCount  = stats.ft  || 0;
@@ -1537,24 +1564,29 @@
           const total    = ftCount + tofCount;
           updateCanopyStats(ftCount, tofCount, stats.canopy_pct ?? null, stats.canopy_ha ?? null,
             name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
+
+          // Track when every feature layer finishes its initial load — hides the
+          // loading badge regardless of whether this county has a VTL fallback.
+          const _readyLayers  = new Set();
+          const _featureTotal = activeCrownLayers.length;
+          activeCrownLayers.forEach((fl, idx) => {
+            view.whenLayerView(fl).then(lv => {
+              lv.watch("updating", updating => {
+                if (!updating) {
+                  _readyLayers.add(idx);
+                  if (_readyLayers.size >= _featureTotal) {
+                    crownLoadingBadge.classList.remove("visible");
+                    if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
+                  }
+                }
+              });
+            });
+          });
+
           // VTL ↔ feature handoff: keep VTL visible while features load, then hide it.
           // Restore VTL whenever the user zooms back out past 1:25,000.
           if (activeCrownTileLayer) {
-            const _tileRef      = activeCrownTileLayer;
-            const _readyLayers  = new Set();
-            const _featureTotal = activeCrownLayers.length;
-            activeCrownLayers.forEach((fl, idx) => {
-              view.whenLayerView(fl).then(lv => {
-                lv.watch("updating", updating => {
-                  if (!updating) {
-                    _readyLayers.add(idx);
-                    if (_readyLayers.size >= _featureTotal && view.scale <= 25000) {
-                      _tileRef.visible = false;
-                    }
-                  }
-                });
-              });
-            });
+            const _tileRef = activeCrownTileLayer;
             _vtlHandoffHandle = view.watch("scale", scale => {
               if (!crownLayerToggle.checked) return;
               if (scale > 25000) {
@@ -1596,6 +1628,7 @@
         vectorTileLayers.forEach(l => l.visible = true);
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
+        crownLoadingBadge.classList.remove("visible");
         clearActiveCounty();
       }
 
@@ -1697,9 +1730,10 @@
     });
 
     // ── Crown polygon popup ───────────────────────────────────────────────────
-    const crownPopup      = document.getElementById("crownPopup");
-    const crownPopupTitle = document.getElementById("crownPopupTitle");
-    const crownPopupBody  = document.getElementById("crownPopupBody");
+    const crownPopup       = document.getElementById("crownPopup");
+    const crownPopupHeader = document.getElementById("crownPopupHeader");
+    const crownPopupTitle  = document.getElementById("crownPopupTitle");
+    const crownPopupBody   = document.getElementById("crownPopupBody");
     let crownHighlight = null;
 
     const buaPopup      = document.getElementById("buaPopup");
@@ -2183,6 +2217,9 @@
             if (crownHighlight) crownHighlight.remove();
             const layerView = await view.whenLayerView(results[0].layer);
             crownHighlight = layerView.highlight(graphic);
+
+            const crownClass = (attrs.tree_class || attrs.class || attrs.Class || "").toLowerCase();
+            crownPopupHeader.style.background = crownClass === "tof" ? "#7b1fa2" : "#1b5e20";
 
             crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
             crownPopupBody.innerHTML = "";
