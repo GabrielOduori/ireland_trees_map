@@ -83,7 +83,7 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        min-width: 240px;
+        width: 220px;
       }
 
       @keyframes statsUpdatePulse {
@@ -122,15 +122,16 @@
 
       #canopyStatsContent {
         display: flex;
-        gap: 10px;
+        flex-direction: column;
         align-items: center;
+        gap: 6px;
       }
 
       #canopyStatsGrid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 3px;
-        flex: 1;
+        width: 100%;
       }
 
       .canopy-stat {
@@ -976,8 +977,8 @@
       hole.setAttribute("fill", "white");
       svg.appendChild(hole);
 
-      if (ftAngle > 25)           addLabel(ftAngle / 2,                  "Forest",         ftPct.toFixed(1)  + "%");
-      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, "Outside Forest", tofPct.toFixed(1) + "%");
+      if (ftAngle > 25)           addLabel(ftAngle / 2,                  "Forest Canopy",         ftPct.toFixed(1)  + "%");
+      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, "Canopy Outside Forest", tofPct.toFixed(1) + "%");
 
       // Center label: overall canopy cover %
       if (canopyPct != null) {
