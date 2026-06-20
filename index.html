@@ -80,6 +80,7 @@
         border-radius: 6px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         padding: 10px 12px 10px 10px;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -137,7 +138,7 @@
 
       .canopy-legend {
         flex: 1;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 600;
         line-height: 1.25;
         text-align: center;
@@ -934,7 +935,7 @@
       document.getElementById("canopyStatsPanel").style.display = "none";
     });
 
-    function drawCanopyPie(ftPct, tofPct, canopyPct) {
+    function drawCanopyPie(ftPct, tofPct) {
       const svg = document.getElementById("canopyPie");
       svg.innerHTML = "";
       const ns = "http://www.w3.org/2000/svg";
@@ -986,31 +987,6 @@
 
       if (ftAngle > 25)           addLabel(ftAngle / 2,                  ftPct.toFixed(1)  + "%");
       if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
-
-      // Center label: overall canopy cover %
-      if (canopyPct != null) {
-        const centerText = document.createElementNS(ns, "text");
-        centerText.setAttribute("x", cx);
-        centerText.setAttribute("y", cy - 4);
-        centerText.setAttribute("text-anchor", "middle");
-        centerText.setAttribute("dominant-baseline", "middle");
-        centerText.setAttribute("fill", "#222");
-        centerText.setAttribute("font-size", "13");
-        centerText.setAttribute("font-weight", "700");
-        centerText.textContent = canopyPct.toFixed(1) + "%";
-        svg.appendChild(centerText);
-
-        const centerCaption = document.createElementNS(ns, "text");
-        centerCaption.setAttribute("x", cx);
-        centerCaption.setAttribute("y", cy + 8);
-        centerCaption.setAttribute("text-anchor", "middle");
-        centerCaption.setAttribute("dominant-baseline", "middle");
-        centerCaption.setAttribute("fill", "#888");
-        centerCaption.setAttribute("font-size", "6.5");
-        centerCaption.setAttribute("font-weight", "normal");
-        centerCaption.textContent = "Canopy Cover";
-        svg.appendChild(centerCaption);
-      }
     }
 
     function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
@@ -1020,6 +996,7 @@
       canopyStatsTitle.textContent = label || "National Canopy";
 
       const statsPanel = document.getElementById("canopyStatsPanel");
+      statsPanel.style.display = "flex"; // re-show if the user closed it earlier — county/national switches should always bring it back
       statsPanel.classList.remove("pulse");
       void statsPanel.offsetWidth; // force reflow so the animation re-triggers on repeat updates
       statsPanel.classList.add("pulse");
@@ -1027,7 +1004,7 @@
         canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
       document.getElementById("statCanopyHa").textContent =
         canopyHa  != null ? `${canopyHa.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha` : "—";
-      drawCanopyPie(ftPct, tofPct, canopyPct);
+      drawCanopyPie(ftPct, tofPct);
     }
 
     // Initialise with national totals
