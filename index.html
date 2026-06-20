@@ -918,17 +918,17 @@
       document.getElementById("canopyStatsPanel").style.display = "none";
     });
 
-    function drawCanopyPie(ftPct, tofPct) {
+    function drawCanopyPie(ftPct, tofPct, canopyPct) {
       const svg = document.getElementById("canopyPie");
       svg.innerHTML = "";
       const ns = "http://www.w3.org/2000/svg";
-      const cx = 45, cy = 45, r = 40;
+      const cx = 45, cy = 45, r = 40, rInner = 24;
       const total = ftPct + tofPct;
       if (total === 0) return;
 
-      function ptAt(angle) {
+      function ptAt(radius, angle) {
         const rad = (angle - 90) * Math.PI / 180;
-        return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+        return [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
       }
       function addSlice(start, end, fill) {
         if (Math.abs(end - start) >= 359.99) {
@@ -937,7 +937,7 @@
           c.setAttribute("r", r);   c.setAttribute("fill", fill);
           svg.appendChild(c); return;
         }
-        const [x1,y1] = ptAt(start), [x2,y2] = ptAt(end);
+        const [x1,y1] = ptAt(r, start), [x2,y2] = ptAt(r, end);
         const p = document.createElementNS(ns, "path");
         p.setAttribute("d", `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${end-start>180?1:0} 1 ${x2},${y2} Z`);
         p.setAttribute("fill", fill);
@@ -945,13 +945,14 @@
       }
       function addLabel(midAngle, text) {
         const rad = (midAngle - 90) * Math.PI / 180;
+        const labelR = (r + rInner) / 2;
         const t = document.createElementNS(ns, "text");
-        t.setAttribute("x", cx + 22 * Math.cos(rad));
-        t.setAttribute("y", cy + 22 * Math.sin(rad));
+        t.setAttribute("x", cx + labelR * Math.cos(rad));
+        t.setAttribute("y", cy + labelR * Math.sin(rad));
         t.setAttribute("text-anchor", "middle");
         t.setAttribute("dominant-baseline", "middle");
         t.setAttribute("fill", "#333");
-        t.setAttribute("font-size", "12");
+        t.setAttribute("font-size", "10");
         t.setAttribute("font-weight", "normal");
         t.textContent = text;
         svg.appendChild(t);
@@ -959,8 +960,30 @@
       const ftAngle = (ftPct / total) * 360;
       addSlice(0, ftAngle, "rgba(0,255,0,0.6)");
       addSlice(ftAngle, 360, "rgba(255,0,255,0.6)");
+
+      // Punch the donut hole
+      const hole = document.createElementNS(ns, "circle");
+      hole.setAttribute("cx", cx); hole.setAttribute("cy", cy);
+      hole.setAttribute("r", rInner);
+      hole.setAttribute("fill", "white");
+      svg.appendChild(hole);
+
       if (ftAngle > 25)           addLabel(ftAngle / 2,                  ftPct.toFixed(1)  + "%");
       if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
+
+      // Center label: overall canopy cover %
+      if (canopyPct != null) {
+        const centerText = document.createElementNS(ns, "text");
+        centerText.setAttribute("x", cx);
+        centerText.setAttribute("y", cy);
+        centerText.setAttribute("text-anchor", "middle");
+        centerText.setAttribute("dominant-baseline", "middle");
+        centerText.setAttribute("fill", "#222");
+        centerText.setAttribute("font-size", "13");
+        centerText.setAttribute("font-weight", "700");
+        centerText.textContent = canopyPct.toFixed(1) + "%";
+        svg.appendChild(centerText);
+      }
     }
 
     function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
@@ -977,7 +1000,7 @@
         canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
       document.getElementById("statCanopyHa").textContent =
         canopyHa  != null ? `${canopyHa.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha` : "—";
-      drawCanopyPie(ftPct, tofPct);
+      drawCanopyPie(ftPct, tofPct, canopyPct);
     }
 
     // Initialise with national totals
