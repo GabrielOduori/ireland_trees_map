@@ -975,7 +975,7 @@
       if (canopyPct != null) {
         const centerText = document.createElementNS(ns, "text");
         centerText.setAttribute("x", cx);
-        centerText.setAttribute("y", cy);
+        centerText.setAttribute("y", cy - 4);
         centerText.setAttribute("text-anchor", "middle");
         centerText.setAttribute("dominant-baseline", "middle");
         centerText.setAttribute("fill", "#222");
@@ -983,6 +983,17 @@
         centerText.setAttribute("font-weight", "700");
         centerText.textContent = canopyPct.toFixed(1) + "%";
         svg.appendChild(centerText);
+
+        const centerCaption = document.createElementNS(ns, "text");
+        centerCaption.setAttribute("x", cx);
+        centerCaption.setAttribute("y", cy + 8);
+        centerCaption.setAttribute("text-anchor", "middle");
+        centerCaption.setAttribute("dominant-baseline", "middle");
+        centerCaption.setAttribute("fill", "#888");
+        centerCaption.setAttribute("font-size", "6.5");
+        centerCaption.setAttribute("font-weight", "normal");
+        centerCaption.textContent = "Canopy Cover";
+        svg.appendChild(centerCaption);
       }
     }
 
