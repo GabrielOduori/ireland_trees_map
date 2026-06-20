@@ -1077,7 +1077,8 @@
         td1.style.cssText = "padding:3px 6px;color:#666";
         td1.textContent = label;
         const td2 = document.createElement("td");
-        td2.style.cssText = i === 0 ? "padding:3px 6px;font-weight:600" : "padding:3px 6px";
+        td2.style.cssText = (i === 0 ? "padding:3px 6px;font-weight:600;" : "padding:3px 6px;") +
+                             "overflow-wrap:break-word;word-break:break-all;max-width:0;";
         td2.textContent = value;
         tr.appendChild(td1); tr.appendChild(td2);
         table.appendChild(tr);
