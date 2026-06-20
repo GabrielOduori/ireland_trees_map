@@ -127,6 +127,23 @@
         gap: 6px;
       }
 
+      #canopyPieRow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+      }
+
+      .canopy-legend {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.25;
+        text-align: center;
+        overflow-wrap: break-word;
+      }
+
       #canopyStatsGrid {
         display: grid;
         grid-template-columns: 1fr;
@@ -689,7 +706,11 @@
         <button id="canopyStatsClose" title="Close">&#x2715;</button>
       </div>
       <div id="canopyStatsContent">
-        <svg id="canopyPie" viewBox="0 0 90 90" width="100" height="100" style="flex-shrink:0"></svg>
+        <div id="canopyPieRow">
+          <span class="canopy-legend" style="color:green">Forest Canopy</span>
+          <svg id="canopyPie" viewBox="0 0 90 90" width="100" height="100" style="flex-shrink:0"></svg>
+          <span class="canopy-legend" style="color:rgba(255,0,255,0.6)">Canopy Outside Forest</span>
+        </div>
         <div id="canopyStatsGrid">
           <div class="canopy-stat">
             <span class="canopy-stat-label">Canopy Cover</span>
@@ -938,26 +959,12 @@
         p.setAttribute("fill", fill);
         svg.appendChild(p);
       }
-      function addLabel(midAngle, name, pct) {
+      function addLabel(midAngle, pct) {
         const rad = (midAngle - 90) * Math.PI / 180;
         const labelR = (r + rInner) / 2;
-        const lx = cx + labelR * Math.cos(rad);
-        const ly = cy + labelR * Math.sin(rad);
-
-        const nameEl = document.createElementNS(ns, "text");
-        nameEl.setAttribute("x", lx);
-        nameEl.setAttribute("y", ly - 4);
-        nameEl.setAttribute("text-anchor", "middle");
-        nameEl.setAttribute("dominant-baseline", "middle");
-        nameEl.setAttribute("fill", "#333");
-        nameEl.setAttribute("font-size", "6.5");
-        nameEl.setAttribute("font-weight", "600");
-        nameEl.textContent = name;
-        svg.appendChild(nameEl);
-
         const pctEl = document.createElementNS(ns, "text");
-        pctEl.setAttribute("x", lx);
-        pctEl.setAttribute("y", ly + 5);
+        pctEl.setAttribute("x", cx + labelR * Math.cos(rad));
+        pctEl.setAttribute("y", cy + labelR * Math.sin(rad));
         pctEl.setAttribute("text-anchor", "middle");
         pctEl.setAttribute("dominant-baseline", "middle");
         pctEl.setAttribute("fill", "#333");
@@ -977,8 +984,8 @@
       hole.setAttribute("fill", "white");
       svg.appendChild(hole);
 
-      if (ftAngle > 25)           addLabel(ftAngle / 2,                  "Forest Canopy",         ftPct.toFixed(1)  + "%");
-      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, "Canopy Outside Forest", tofPct.toFixed(1) + "%");
+      if (ftAngle > 25)           addLabel(ftAngle / 2,                  ftPct.toFixed(1)  + "%");
+      if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
 
       // Center label: overall canopy cover %
       if (canopyPct != null) {
