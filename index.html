@@ -574,8 +574,8 @@
         background: #fff;
         border-radius: 6px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        min-width: 220px;
-        max-width: 300px;
+        min-width: 150px;
+        max-width: 220px;
         font-family: 'Inter', Arial, sans-serif;
         pointer-events: auto;
       }
@@ -1995,6 +1995,7 @@
                               "border-left:3px solid transparent;transition:background 0.15s";
           const nameEl = document.createElement("span");
           nameEl.className = "bua-name";
+          nameEl.style.fontSize = "13px";
           nameEl.textContent = nm;
           li.appendChild(nameEl);
           li.addEventListener("mouseenter", () => { if (li !== activeFilteredItem) li.style.background = "#f5f5f5"; });
@@ -2128,6 +2129,7 @@
 
           const nameEl = document.createElement("span");
           nameEl.className = "bua-name";
+          nameEl.style.fontSize = "13px";
           nameEl.textContent = nm;
           li.appendChild(nameEl);
 
