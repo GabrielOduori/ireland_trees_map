@@ -1912,8 +1912,10 @@
     }
     function closeBuaPopup() {
       buaPopup.style.display = "none";
-      if (buaHighlight)  { buaHighlight.remove(); buaHighlight = null; }
-      if (activeBuaItem) { activeBuaItem.classList.remove("active"); activeBuaItem = null; }
+      if (buaHighlight)       { buaHighlight.remove(); buaHighlight = null; }
+      if (activeBuaItem)      { activeBuaItem.classList.remove("active"); activeBuaItem = null; }
+      if (filteredHighlight)  { filteredHighlight.remove(); filteredHighlight = null; }
+      if (activeFilteredItem) { activeFilteredItem.classList.remove("active"); activeFilteredItem = null; }
     }
 
     function buildBuaPopupContent(attrs) {
@@ -2174,7 +2176,12 @@
         await view.goTo(ext.expand(1.5));
         const lv = await view.whenLayerView(layer);
         filteredHighlight = lv.highlight(graphic);
-        openFilteredPopup(graphic.attributes || {}, ext.center);
+        // Anchor away from the polygon's center, same as selectBua — the
+        // goTo(expand(1.5)) margin keeps this corner clear of the feature.
+        const anchor = ext.center.clone();
+        anchor.x = ext.xmax;
+        anchor.y = ext.ymax;
+        openFilteredPopup(graphic.attributes || {}, anchor);
       } catch (e) {
         console.error("[selectFilteredFeature] error:", e?.message || e);
       }
