@@ -1309,6 +1309,14 @@
       zoom: 7
     });
 
+    // Default highlight (subtle cyan glow) was hard to spot against both basemaps —
+    // brighten it for every highlight() call in the app (BUA/MD/LA selection, search flash).
+    view.highlightOptions = {
+      color:       [255, 255, 0, 1],
+      haloOpacity: 0.9,
+      fillOpacity: 0.25
+    };
+
 
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
@@ -1808,8 +1816,19 @@
               const { features: hits } = await landedBuaLayer.queryFeatures(bq);
               if (hits.length) {
                 await view.goTo(hits[0].geometry.extent.expand(1.3));
-                const flash = lv.highlight(hits[0]);
-                setTimeout(() => { try { flash.remove(); } catch (_) {} }, 2200);
+                // A held highlight is easy to miss as a one-off — blink it a few
+                // times instead, since motion draws the eye far better than a
+                // static glow against a busy basemap.
+                let flash = null;
+                let blinks = 0;
+                const blinkOn  = () => { flash = lv.highlight(hits[0]); };
+                const blinkOff = () => { if (flash) { flash.remove(); flash = null; } };
+                blinkOn();
+                const timer = setInterval(() => {
+                  blinks++;
+                  if (blinks >= 6) { clearInterval(timer); blinkOff(); return; }
+                  (blinks % 2 === 0) ? blinkOn() : blinkOff();
+                }, 350);
               }
             } catch (_) {}
           }
