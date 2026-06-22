@@ -1325,6 +1325,49 @@
     let _buaTop100Promise  = null;   // resolves to national top-100 BUAs by area, loaded once
     let _nationalBuaLayer  = null;   // unfiltered layer used for geometry queries in selectBua
 
+    // BUA discoverability — "other BUAs" give no cue they're clickable (original
+    // feedback). Each BUA's object id is blinked here at most once per session,
+    // whether the trigger is a search landing on it or normal zoom/pan bringing it
+    // into view — shared so the two triggers don't double-blink the same BUA.
+    const _flashedBuaIds = new Set();
+    function blinkHighlight(layerView, target) {
+      let on = false, blinks = 0, handle = null;
+      const timer = setInterval(() => {
+        on = !on;
+        if (handle) { handle.remove(); handle = null; }
+        if (on) handle = layerView.highlight(target);
+        blinks++;
+        if (blinks >= 6) { clearInterval(timer); if (handle) handle.remove(); }
+      }, 350);
+    }
+
+    // Zoomed-in enough that individual BUA boundaries are the relevant thing to
+    // notice (matches the crown tile/feature-layer switch threshold elsewhere).
+    const BUA_FLASH_SCALE = 25000;
+    async function flashNewlyVisibleBuas() {
+      const layer = activeBuaLayer;
+      if (!layer || view.scale > BUA_FLASH_SCALE) return;
+      try {
+        const lv = await view.whenLayerView(layer);
+        const oidField = layer.objectIdField || "OBJECTID";
+        const q = layer.createQuery();
+        q.geometry            = view.extent;
+        q.spatialRelationship = "intersects";
+        q.returnGeometry      = false;
+        q.outFields           = [oidField];
+        const { features } = await layer.queryFeatures(q);
+        const newIds = [];
+        features.forEach(f => {
+          const id = f.attributes[oidField];
+          if (id == null || _flashedBuaIds.has(id)) return;
+          _flashedBuaIds.add(id);
+          newIds.push(id);
+        });
+        if (newIds.length) blinkHighlight(lv, newIds);
+      } catch (_) {}
+    }
+    view.watch("stationary", (stationary) => { if (stationary) flashNewlyVisibleBuas(); });
+
     view.when(() => {
       const countyList      = document.getElementById("countyList");
       const countyPanel     = document.getElementById("countyPanel");
@@ -1807,28 +1850,19 @@
           if (landedBuaLayer) {
             try {
               const lv = await view.whenLayerView(landedBuaLayer);
+              const oidField = landedBuaLayer.objectIdField || "OBJECTID";
               const bq = landedBuaLayer.createQuery();
               bq.geometry            = geometry;
               bq.spatialRelationship = "intersects";
               bq.returnGeometry      = true;
               bq.outSpatialReference = view.spatialReference;
-              bq.outFields           = [];
+              bq.outFields           = [oidField];
               const { features: hits } = await landedBuaLayer.queryFeatures(bq);
               if (hits.length) {
                 await view.goTo(hits[0].geometry.extent.expand(1.3));
-                // A held highlight is easy to miss as a one-off — blink it a few
-                // times instead, since motion draws the eye far better than a
-                // static glow against a busy basemap.
-                let flash = null;
-                let blinks = 0;
-                const blinkOn  = () => { flash = lv.highlight(hits[0]); };
-                const blinkOff = () => { if (flash) { flash.remove(); flash = null; } };
-                blinkOn();
-                const timer = setInterval(() => {
-                  blinks++;
-                  if (blinks >= 6) { clearInterval(timer); blinkOff(); return; }
-                  (blinks % 2 === 0) ? blinkOn() : blinkOff();
-                }, 350);
+                const id = hits[0].attributes[oidField];
+                if (id != null) _flashedBuaIds.add(id);
+                blinkHighlight(lv, hits[0]);
               }
             } catch (_) {}
           }
