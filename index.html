@@ -924,7 +924,7 @@
     <div id="buaPopup">
       <div id="buaPopupHeader">
         <span id="buaPopupTitle"></span>
-        <button id="buaPopupClose" title="Close">&#x2715;</button>
+        <button id="buaPopupClose" title="Close and clear selection">&#x2715;</button>
       </div>
       <div id="buaPopupBody"></div>
     </div>
@@ -1106,9 +1106,12 @@
         pctEl.setAttribute("y", cy + labelR * Math.sin(rad));
         pctEl.setAttribute("text-anchor", "middle");
         pctEl.setAttribute("dominant-baseline", "middle");
-        pctEl.setAttribute("fill", "#333");
+        pctEl.setAttribute("fill", "#222");
+        pctEl.setAttribute("stroke", "#fff");
+        pctEl.setAttribute("stroke-width", "3");
+        pctEl.setAttribute("paint-order", "stroke");
         pctEl.setAttribute("font-size", "9");
-        pctEl.setAttribute("font-weight", "normal");
+        pctEl.setAttribute("font-weight", "600");
         pctEl.textContent = pct;
         svg.appendChild(pctEl);
       }
@@ -1583,7 +1586,7 @@
           renderer: new SimpleRenderer({
             symbol: new SimpleFillSymbol({
               style:   "none",
-              outline: { color: [240, 59, 32, 255], width: 3, style: "solid" }
+              outline: { color: [255, 87, 34, 255], width: 4, style: "solid" }
             })
           }),
           minScale: 0, maxScale: 0
@@ -1872,6 +1875,8 @@
     }
     function closeBuaPopup() {
       buaPopup.style.display = "none";
+      if (buaHighlight)  { buaHighlight.remove(); buaHighlight = null; }
+      if (activeBuaItem) { activeBuaItem.classList.remove("active"); activeBuaItem = null; }
     }
 
     function buildBuaPopupContent(attrs) {
@@ -2250,7 +2255,12 @@
             const lv = await view.whenLayerView(_buaLayer);
             buaHighlight = lv.highlight(g);
           }
-          openBuaPopup(attrs, ext.center);
+          // Anchor away from the polygon's center so the popup doesn't sit on top of
+          // the feature it describes — the goTo(expand(1.5)) margin keeps this corner clear.
+          const anchor = ext.center.clone();
+          anchor.x = ext.xmax;
+          anchor.y = ext.ymax;
+          openBuaPopup(attrs, anchor);
         } else {
           console.warn("[selectBua] no feature returned for", oidKey, "=", oid);
         }
@@ -2329,6 +2339,21 @@
 
     document.getElementById("crownPopupClose").addEventListener("click", clearCrownSelection);
     document.getElementById("buaPopupClose").addEventListener("click", closeBuaPopup);
+
+    // Hover cue: show a pointer cursor over clickable boundaries (BUA/MD/LA) so viewers
+    // discover they can click them — boundary lines give no other affordance, especially
+    // the "other BUAs" outline which is easy to miss on the aerial basemap.
+    let _hoverHitTestPending = false;
+    view.on("pointer-move", (event) => {
+      if (_hoverHitTestPending) return;
+      _hoverHitTestPending = true;
+      const layers = [activeBuaLayer, activeMdLayer, activeLaLayer].filter(Boolean);
+      if (!layers.length) { _hoverHitTestPending = false; return; }
+      view.hitTest(event, { include: layers }).then(({ results }) => {
+        view.container.style.cursor = results.length ? "pointer" : "";
+        _hoverHitTestPending = false;
+      }).catch(() => { _hoverHitTestPending = false; });
+    });
 
     view.on("click", async (event) => {
       try {
