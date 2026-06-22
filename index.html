@@ -1788,6 +1788,26 @@
             if (li.querySelector(".county-name")?.textContent === name) matchItem = li;
           });
           activateCounty(name, feat, matchItem, false);
+
+          // Searching an address gives no clue that the BUA boundary around it is
+          // clickable — briefly flash it (not a persistent selection/highlight) so
+          // the viewer notices there's something to click on arrival.
+          const landedBuaLayer = activeBuaLayer;
+          if (landedBuaLayer) {
+            try {
+              const lv = await view.whenLayerView(landedBuaLayer);
+              const bq = landedBuaLayer.createQuery();
+              bq.geometry            = geometry;
+              bq.spatialRelationship = "intersects";
+              bq.returnGeometry      = false;
+              bq.outFields           = [];
+              const { features: hits } = await landedBuaLayer.queryFeatures(bq);
+              if (hits.length) {
+                const flash = lv.highlight(hits[0]);
+                setTimeout(() => { try { flash.remove(); } catch (_) {} }, 2200);
+              }
+            } catch (_) {}
+          }
         } catch (_) {}
       });
 
