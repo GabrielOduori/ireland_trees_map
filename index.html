@@ -657,7 +657,10 @@
         font-size: 13px;
         font-weight: 600;
         position: relative;
+        cursor: grab;
+        touch-action: none;
       }
+      #crownPopupHeader:active { cursor: grabbing; }
       #crownPopupClose {
         position: absolute;
         top: 4px; right: 8px;
@@ -692,7 +695,10 @@
         font-size: 13px;
         font-weight: 600;
         position: relative;
+        cursor: grab;
+        touch-action: none;
       }
+      #buaPopupHeader:active { cursor: grabbing; }
       #buaPopupClose {
         position: absolute;
         top: 4px; right: 8px;
@@ -1865,9 +1871,40 @@
     const crownPopupBody   = document.getElementById("crownPopupBody");
     let crownHighlight = null;
 
-    const buaPopup      = document.getElementById("buaPopup");
-    const buaPopupTitle = document.getElementById("buaPopupTitle");
-    const buaPopupBody  = document.getElementById("buaPopupBody");
+    const buaPopup       = document.getElementById("buaPopup");
+    const buaPopupHeader = document.getElementById("buaPopupHeader");
+    const buaPopupTitle  = document.getElementById("buaPopupTitle");
+    const buaPopupBody   = document.getElementById("buaPopupBody");
+
+    // Let users drag a popup off whatever it's covering — grab the header (not the
+    // close button) and reposition with the pointer; clamps to the viewport so it
+    // can't be dragged out of reach.
+    function makeDraggable(popupEl, handleEl) {
+      let dragging = false, startX, startY, startLeft, startTop;
+      handleEl.addEventListener("pointerdown", (e) => {
+        if (e.target.closest("button")) return;
+        dragging = true;
+        startX = e.clientX; startY = e.clientY;
+        const rect = popupEl.getBoundingClientRect();
+        startLeft = rect.left; startTop = rect.top;
+        handleEl.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      handleEl.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const pw = popupEl.offsetWidth, ph = popupEl.offsetHeight;
+        let left = startLeft + (e.clientX - startX);
+        let top  = startTop  + (e.clientY - startY);
+        left = Math.max(4, Math.min(left, window.innerWidth  - pw - 4));
+        top  = Math.max(4, Math.min(top,  window.innerHeight - ph - 4));
+        popupEl.style.left = left + "px";
+        popupEl.style.top  = top  + "px";
+      });
+      handleEl.addEventListener("pointerup",     () => { dragging = false; });
+      handleEl.addEventListener("pointercancel", () => { dragging = false; });
+    }
+    makeDraggable(crownPopup, crownPopupHeader);
+    makeDraggable(buaPopup,   buaPopupHeader);
 
     function clearCrownSelection() {
       crownPopup.style.display = "none";
@@ -1958,7 +1995,18 @@
       let top  = vr.top  + pt.y - 40;
       buaPopup.style.display = "block";
       const pw = buaPopup.offsetWidth, ph = buaPopup.offsetHeight;
-      if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
+
+      // The right side panel sits on top of the map (fixed, right:0) but below the
+      // popup's z-index — treat its left edge as the right-hand boundary too, so the
+      // popup doesn't render on top of it when expanded.
+      const sidePanel = document.getElementById("sidePanelWrapper");
+      let rightBound = window.innerWidth - 8;
+      if (sidePanel && !sidePanel.classList.contains("collapsed")) {
+        rightBound = Math.min(rightBound, sidePanel.getBoundingClientRect().left - 8);
+      }
+
+      if (left + pw > rightBound) left = vr.left + pt.x - pw - 14;
+      if (left < 8) left = 8;
       if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
       if (top < 60) top = 60;
       buaPopup.style.left = left + "px";
@@ -2382,7 +2430,13 @@
             let top  = vr.top  + pt.y - 40;
             crownPopup.style.display = "block";
             const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
-            if (left + pw > window.innerWidth  - 8) left = vr.left + pt.x - pw - 14;
+            const sidePanel = document.getElementById("sidePanelWrapper");
+            let rightBound = window.innerWidth - 8;
+            if (sidePanel && !sidePanel.classList.contains("collapsed")) {
+              rightBound = Math.min(rightBound, sidePanel.getBoundingClientRect().left - 8);
+            }
+            if (left + pw > rightBound) left = vr.left + pt.x - pw - 14;
+            if (left < 8) left = 8;
             if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
             if (top < 60) top = 60;
             crownPopup.style.left = left + "px";
