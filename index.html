@@ -1318,6 +1318,31 @@
       fillOpacity: 0.25
     };
 
+    // Stop zooming in on the landing page once the national VTL tiles would start
+    // disappearing — past that point there's nothing to see, so the constraint
+    // forces the viewer toward picking a county for the full-detail feature layer.
+    // Computed from the actual published tile LODs rather than a guessed scale, so
+    // it stays correct if the VTLs are ever republished with a different zoom range.
+    let _nationalMinScale = null;
+    (async () => {
+      try {
+        await Promise.allSettled(vectorTileLayers.map(l => l.load()));
+        const deepestScales = vectorTileLayers
+          .map(l => l.tileInfo?.lods?.length ? l.tileInfo.lods[l.tileInfo.lods.length - 1].scale : null)
+          .filter(s => s != null);
+        if (deepestScales.length) {
+          // The least-detailed county's deepest LOD is where tiles first start
+          // disappearing — that's the safe zoom-in limit for the whole national view.
+          // Safe to apply unconditionally here: this runs at startup, before
+          // view.when() wires up county selection, so no county can be active yet.
+          _nationalMinScale = Math.max(...deepestScales);
+          view.constraints.minScale = _nationalMinScale;
+        }
+      } catch (e) {
+        console.warn("[national-vtl] couldn't compute zoom-in limit from tile LODs:", e);
+      }
+    })();
+
 
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
@@ -1594,6 +1619,9 @@
         }
 
         vectorTileLayers.forEach(l => l.visible = false);
+        // Lift the national landing-page zoom-in limit — the per-county feature
+        // layer has its own full-detail rendering, no need to stop the viewer here.
+        view.constraints.minScale = 0;
 
         // Remove previous per-county layers
         activeCrownLayers.forEach(l => map.remove(l));
@@ -1793,6 +1821,7 @@
       function goHome() {
         view.goTo({ center: [-8, 53], zoom: 7 });
         vectorTileLayers.forEach(l => l.visible = true);
+        if (_nationalMinScale) view.constraints.minScale = _nationalMinScale;
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
         crownLoadingBadge.classList.remove("visible");
