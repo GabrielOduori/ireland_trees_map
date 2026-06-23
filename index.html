@@ -1318,7 +1318,6 @@
       fillOpacity: 0.25
     };
 
-    let _nationalMinScale = null; // set once we have a verified-safe scale value — see below
 
     let activeCrownLayers  = [];
     let activeBuaLayer     = null;   // module scope — needed by click handler outside view.when()
@@ -1595,7 +1594,6 @@
         }
 
         vectorTileLayers.forEach(l => l.visible = false);
-        if (_nationalMinScale) view.constraints.minScale = 0;
 
         // Remove previous per-county layers
         activeCrownLayers.forEach(l => map.remove(l));
@@ -1795,7 +1793,6 @@
       function goHome() {
         view.goTo({ center: [-8, 53], zoom: 7 });
         vectorTileLayers.forEach(l => l.visible = true);
-        if (_nationalMinScale) view.constraints.minScale = _nationalMinScale;
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
         crownLoadingBadge.classList.remove("visible");
