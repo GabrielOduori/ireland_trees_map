@@ -991,7 +991,6 @@
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
-    let nationalVtlInfo   = null; // { id, type, url } — single national overview VTL, replaces groupServiceNames
     const countyStatsMap = {
       "CARLOW":    { ft:  936361, tof:  852637, canopy_pct: 12.2, canopy_ha:  10928, max_height_m:  45.5, max_crown_area_m2: 898.8 },
       "CAVAN":     { ft: 2151970, tof: 2279813, canopy_pct: 15.6, canopy_ha:  29565 },
@@ -1064,12 +1063,6 @@
 
       tileItems.results.forEach(item => {
         if (tilePriority(item.type) === Infinity) return;   // skip non-tile types
-        // National overview VTL — not a per-county tile, replaces the old groupServiceNames
-        // tiles as the landing-page layer shown before any county is selected.
-        if (item.title === "Ireland_Trees_Crowns_VTL_County") {
-          nationalVtlInfo = { id: item.id, type: item.type, url: item.url };
-          return;
-        }
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
         const existing = crownTileLayerMap[county];
         if (!existing || tilePriority(item.type) < tilePriority(existing.type)) {
@@ -1260,19 +1253,45 @@
 
     const map = new Map({ basemap: "hybrid" });
 
-    // National overview — single consolidated VTL ("Ireland_Trees_Crowns_VTL_County",
-    // discovered above) replaces the old 28-service groupServiceNames split.
-    const vectorTileLayers = [];
-    if (nationalVtlInfo) {
-      const layer = nationalVtlInfo.url
-        ? new VectorTileLayer({ url: nationalVtlInfo.url })
-        : new VectorTileLayer({ portalItem: _portal ? { id: nationalVtlInfo.id, portal: _portal } : { id: nationalVtlInfo.id } });
+    // Builds the right Layer type for a discovered tile item — shared between the
+    // national overview (one per county, all shown at once) and per-county activation
+    // (one at a time, in activateCounty) so the VTL/dynamic/plain-tile branching only
+    // lives in one place.
+    function buildCrownTileLayer(info) {
+      const portalRef = _portal ? { id: info.id, portal: _portal } : { id: info.id };
+      const tileType  = info.type || "";
+      const tileUrl   = info.url  || "";
+      const isVtl      = tileType === "Vector Tile Service" || tileUrl.includes("/VectorTileServer");
+      // URLs on the tiles CDN are cached tile services — TileLayer, not MapImageLayer.
+      const isTilesCdn = /tiles(-eu1)?\.arcgis\.com/.test(tileUrl);
+      const isDynamic  = !isVtl && !isTilesCdn && (tileType === "Map Image Layer" || tileType === "Map Service");
+      if (isVtl) {
+        // Use direct URL when available — skips portal metadata roundtrip so tiles start loading immediately.
+        return tileUrl
+          ? new VectorTileLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
+          : new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+      } else if (isDynamic) {
+        return tileUrl
+          ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
+          : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+      } else if (tileUrl) {
+        return new TileLayer({ url: tileUrl, minScale: 0, maxScale: 0 });
+      }
+      return new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+    }
+
+    // National overview — one VTL per county (Ireland_Trees_Crowns_VTL_<COUNTY>,
+    // discovered above into crownTileLayerMap) shown together, replacing the old
+    // 28-service groupServiceNames split.
+    const vectorTileLayers = Object.entries(crownTileLayerMap).map(([county, info]) => {
+      const layer = buildCrownTileLayer(info);
       layer.on("layerview-create-error", e =>
-        console.error("[national-vtl] failed to render Ireland_Trees_Crowns_VTL_County:", e.error));
+        console.error(`[national-vtl] failed to render ${county} tile layer:`, e.error));
       map.add(layer);
-      vectorTileLayers.push(layer);
-    } else {
-      console.warn("[national-vtl] Ireland_Trees_Crowns_VTL_County not found — landing page will have no national overview layer.");
+      return layer;
+    });
+    if (!vectorTileLayers.length) {
+      console.warn("[national-vtl] No per-county VTLs found — landing page will have no national overview layer.");
     }
 
     const countyLayer = new FeatureLayer({
@@ -1586,27 +1605,7 @@
         // Tile overview layer — visible at all scales down to 1:25,000 where the
         // feature layer takes over.  maxScale:25000 hides it cleanly at that threshold.
         if (crownTileItemId) {
-          const portalRef  = _portal ? { id: crownTileItemId.id, portal: _portal } : { id: crownTileItemId.id };
-          const tileType   = crownTileItemId.type || "";
-          const tileUrl    = crownTileItemId.url  || "";
-          const isVtl       = tileType === "Vector Tile Service" || tileUrl.includes("/VectorTileServer");
-          // URLs on the tiles CDN are cached tile services — TileLayer, not MapImageLayer.
-          const isTilesCdn  = /tiles(-eu1)?\.arcgis\.com/.test(tileUrl);
-          const isDynamic   = !isVtl && !isTilesCdn && (tileType === "Map Image Layer" || tileType === "Map Service");
-          if (isVtl) {
-            // Use direct URL when available — skips portal metadata roundtrip so tiles start loading immediately.
-            activeCrownTileLayer = tileUrl
-              ? new VectorTileLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
-              : new VectorTileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
-          } else if (isDynamic) {
-            activeCrownTileLayer = tileUrl
-              ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
-              : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
-          } else if (tileUrl) {
-            activeCrownTileLayer = new TileLayer({ url: tileUrl, minScale: 0, maxScale: 0 });
-          } else {
-            activeCrownTileLayer = new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
-          }
+          activeCrownTileLayer = buildCrownTileLayer(crownTileItemId);
           activeCrownTileLayer.on("layerview-create-error", e =>
             console.error(`[tile] failed to render ${name} tile layer:`, e.error));
           map.add(activeCrownTileLayer);
