@@ -991,6 +991,7 @@
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
+    let nationalVtlInfo   = null; // { id, type, url } — single national overview VTL, replaces groupServiceNames
     const countyStatsMap = {
       "CARLOW":    { ft:  936361, tof:  852637, canopy_pct: 12.2, canopy_ha:  10928, max_height_m:  45.5, max_crown_area_m2: 898.8 },
       "CAVAN":     { ft: 2151970, tof: 2279813, canopy_pct: 15.6, canopy_ha:  29565 },
@@ -1063,6 +1064,12 @@
 
       tileItems.results.forEach(item => {
         if (tilePriority(item.type) === Infinity) return;   // skip non-tile types
+        // National overview VTL — not a per-county tile, replaces the old groupServiceNames
+        // tiles as the landing-page layer shown before any county is selected.
+        if (item.title === "Ireland_Trees_Crowns_VTL_County") {
+          nationalVtlInfo = { id: item.id, type: item.type, url: item.url };
+          return;
+        }
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
         const existing = crownTileLayerMap[county];
         if (!existing || tilePriority(item.type) < tilePriority(existing.type)) {
@@ -1253,45 +1260,20 @@
 
     const map = new Map({ basemap: "hybrid" });
 
-    const vectorTileBaseUrl = "https://tiles-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/";
-    const groupServiceNames = [
-      "group_01_4800k",
-      "group_02_4773k_MATCH01",
-      "group_03_4927k_MATCH01",
-      "group_04_4981k_MATCH01",
-      "group_05_4844k_MATCH01",
-      "group_06_4895k_MATCH01",
-      "group_07_4914k_MATCH01",
-      "group_08_4980k_MATCH01",
-      "group_09_4903k_MATCH01",
-      "group_10_4820k_MATCH01",
-      "group_11_4854k_MATCH01",
-      "group_12_4791k_MATCH01",
-      "group_13_4818k_MATCH01",
-      "group_14_4760k_MATCH01",
-      "group_15_4612k_MATCH01",
-      "group_16_4874k_MATCH01",
-      "group_17_4602k_MATCH01",
-      "group_18_4713k_MATCH01",
-      "group_19_4846k_MATCH01",
-      "group_20_4832k_MATCH01",
-      "group_21_4984k_MATCH01",
-      "group_22_4882k_MATCH01",
-      "group_23_4836k_MATCH01",
-      "group_24_4971k_MATCH01",
-      "group_25_4930k_MATCH01",
-      "group_26_4840k_MATCH01",
-      "group_27_4817k_MATCH01",
-      "group_28_2212k_MATCH01",
-    ];
-
-    const vectorTileLayers = groupServiceNames.map(name => {
-      const layer = new VectorTileLayer({
-        url: `${vectorTileBaseUrl}${name}/VectorTileServer`
-      });
+    // National overview — single consolidated VTL ("Ireland_Trees_Crowns_VTL_County",
+    // discovered above) replaces the old 28-service groupServiceNames split.
+    const vectorTileLayers = [];
+    if (nationalVtlInfo) {
+      const layer = nationalVtlInfo.url
+        ? new VectorTileLayer({ url: nationalVtlInfo.url })
+        : new VectorTileLayer({ portalItem: _portal ? { id: nationalVtlInfo.id, portal: _portal } : { id: nationalVtlInfo.id } });
+      layer.on("layerview-create-error", e =>
+        console.error("[national-vtl] failed to render Ireland_Trees_Crowns_VTL_County:", e.error));
       map.add(layer);
-      return layer;
-    });
+      vectorTileLayers.push(layer);
+    } else {
+      console.warn("[national-vtl] Ireland_Trees_Crowns_VTL_County not found — landing page will have no national overview layer.");
+    }
 
     const countyLayer = new FeatureLayer({
       url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
