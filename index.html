@@ -2034,7 +2034,7 @@
         tdIcon.appendChild(icon);
         const tdVal = document.createElement("td");
         tdVal.style.cssText = "padding:6px 0;font-weight:600";
-        tdVal.textContent = perPerson.toFixed(2) + " m²";
+        tdVal.textContent = perPerson.toFixed(0) + " m²";
         tr.appendChild(tdIcon); tr.appendChild(tdVal);
         table.appendChild(tr);
         addSeparator();
