@@ -2024,18 +2024,22 @@
       if (population && canopyAreaKm2 != null) {
         addSeparator();
         const perPerson = (canopyAreaKm2 * 1e6) / population;
-        const tr     = document.createElement("tr");
-        const tdIcon = document.createElement("td");
-        tdIcon.style.cssText = "padding:6px 8px 6px 0;white-space:nowrap;text-align:center;";
+        const tr      = document.createElement("tr");
+        // The icon bakes "Canopy per capita" in as tiny vector text, illegible at
+        // small sizes — use it purely as a decorative tree pictogram and label the
+        // row with real HTML text instead, matching the other rows' style.
+        const tdLabel = document.createElement("td");
+        tdLabel.style.cssText = "padding:3px 8px 3px 0;color:#666;white-space:nowrap;vertical-align:middle;";
         const icon = document.createElement("img");
         icon.src = "assets/CanopyperCapita3.svg";
-        icon.alt = "Canopy area per person";
-        icon.style.cssText = "height:22px;display:block;margin:0 auto;";
-        tdIcon.appendChild(icon);
+        icon.alt = "";
+        icon.style.cssText = "height:16px;width:auto;vertical-align:middle;margin-right:5px;";
+        tdLabel.appendChild(icon);
+        tdLabel.appendChild(document.createTextNode("Canopy area per person"));
         const tdVal = document.createElement("td");
-        tdVal.style.cssText = "padding:6px 0;font-weight:600";
+        tdVal.style.cssText = "padding:3px 0;font-weight:600";
         tdVal.textContent = perPerson.toFixed(0) + " m²";
-        tr.appendChild(tdIcon); tr.appendChild(tdVal);
+        tr.appendChild(tdLabel); tr.appendChild(tdVal);
         table.appendChild(tr);
         addSeparator();
       }
