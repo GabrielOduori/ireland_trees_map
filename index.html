@@ -991,34 +991,9 @@
     // ── Discover published county crown layers from ArcGIS Online ──────────
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
-    const countyStatsMap = {
-      "CARLOW":    { ft:  936361, tof:  852637, canopy_pct: 12.2, canopy_ha:  10928, max_height_m:  45.5, max_crown_area_m2: 898.8 },
-      "CAVAN":     { ft: 2151970, tof: 2279813, canopy_pct: 15.6, canopy_ha:  29565 },
-      "CLARE":     { ft: 4755476, tof: 2356258, canopy_pct: 14.9, canopy_ha:  51312, max_height_m:  83.5, max_crown_area_m2: 900.0 },
-      "CORK":      { ft: 7965327, tof: 5802235, canopy_pct: 14.3, canopy_ha: 106764 },
-      "DONEGAL":   { ft: 4950275, tof: 2060975, canopy_pct: 10.0, canopy_ha:  48521, max_height_m:  77.0, max_crown_area_m2: 899.9 },
-      "DUBLIN":    { ft:  850757, tof: 2278308, canopy_pct: 12.8, canopy_ha:  11757, max_height_m:  44.2, max_crown_area_m2: 859.1 },
-      "GALWAY":    { ft: 5851974, tof: 3695295, canopy_pct: 11.1, canopy_ha:  68269, max_height_m: 108.9, max_crown_area_m2: 899.6 },
-      "KERRY":     { ft: 4616234, tof: 2405903, canopy_pct: 11.7, canopy_ha:  56149, max_height_m:  54.0, max_crown_area_m2: 900.0 },
-      "KILDARE":   { ft:  954551, tof: 1685491, canopy_pct: 10.6, canopy_ha:  17982, max_height_m:  38.0, max_crown_area_m2: 899.9 },
-      "KILKENNY":  { ft: 2229435, tof: 1902847, canopy_pct: 14.8, canopy_ha:  30449,                      max_crown_area_m2: 899.8 },
-      "LAOIS":     { ft: 2895187, tof: 1369931, canopy_pct: 17.0, canopy_ha:  29181, max_height_m:  49.7, max_crown_area_m2: 900.0 },
-      "LEITRIM":   { ft: 2470000, tof: 1596867, canopy_pct: 17.5, canopy_ha:  27811, max_height_m:  61.4, max_crown_area_m2: 899.8 },
-      "LIMERICK":  { ft: 2284045, tof: 2195352, canopy_pct: 13.1, canopy_ha:  36219, max_height_m:  62.2, max_crown_area_m2: 899.9 },
-      "LONGFORD":  { ft:  873940, tof: 1037041, canopy_pct: 13.6, canopy_ha:  14870, max_height_m:  71.3, max_crown_area_m2: 899.4 },
-      "LOUTH":     { ft:  272735, tof:  648151, canopy_pct:  9.5, canopy_ha:   7831, max_height_m:  46.1, max_crown_area_m2: 900.0 },
-      "MAYO":      { ft: 5638188, tof: 2859324, canopy_pct: 10.7, canopy_ha:  57845, max_height_m:  49.1 },
-      "MEATH":     { ft:  846555, tof: 2421928, canopy_pct: 10.3, canopy_ha:  24068, max_height_m:  36.9, max_crown_area_m2: 898.5 },
-      "MONAGHAN":  { ft:  555370, tof: 1448581, canopy_pct: 13.5, canopy_ha:  17527, max_height_m:  43.8, max_crown_area_m2: 899.9 },
-      "OFFALY":    { ft: 2181138, tof: 1645238, canopy_pct: 13.7, canopy_ha:  27326, max_height_m:  65.9, max_crown_area_m2: 899.9 },
-      "ROSCOMMON": { ft: 2365585, tof: 2087395, canopy_pct: 12.7, canopy_ha:  32264, max_height_m: 107.2, max_crown_area_m2: 899.6 },
-      "SLIGO":     { ft: 2009068, tof: 1186683, canopy_pct: 11.7, canopy_ha:  21420, max_height_m:  38.0, max_crown_area_m2: 898.0 },
-      "TIPPERARY": { ft: 4962712, tof: 3227462, canopy_pct: 13.9, canopy_ha:  59972 },
-      "WATERFORD": { ft: 4990254, tof: 1737707, canopy_pct: 15.2, canopy_ha:  28183, max_height_m:  40.3, max_crown_area_m2: 900.0 },
-      "WESTMEATH": { ft: 1344837, tof: 1594688, canopy_pct: 12.7, canopy_ha:  23345 },
-      "WEXFORD":   { ft: 3812360, tof: 3480443, canopy_pct: 12.7, canopy_ha:  29807 },
-      "WICKLOW":   { ft: 4818820, tof: 1585758, canopy_pct: 19.9, canopy_ha:  40300 },
-    };
+    // Populated live below from the county stats hosted feature layer
+    // (COUNTY_LAYER_ITEM_ID) — replaces the old hardcoded per-county snapshot.
+    let countyStatsMap = {};
 
     const MUNICIPAL_DISTRICT_LAYER_ITEM_ID = "44758e1d99f8472b874484b50f0dcf10";
 
@@ -1026,12 +1001,43 @@
 
     const LOCAL_AUTHORITY_LAYER_ITEM_ID = "59581215294543f5a5edd2e2a110c191";
 
+    const COUNTY_LAYER_ITEM_ID = "259ee297ee034edaa3d22b082ab03732";
+
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
     try {
       const portal = new Portal({ url: "https://www.arcgis.com", authMode: "immediate" });
       await portal.load();
       _portal = portal;
+
+      // County stats — replaces the old hardcoded countyStatsMap with a live query
+      // against mv_county_stats, published the same way as BUA/MD/LA.
+      try {
+        const countyPortalRef = { id: COUNTY_LAYER_ITEM_ID, portal };
+        const countyStatsLayer = new FeatureLayer({ portalItem: countyPortalRef });
+        await countyStatsLayer.load();
+        const csq = countyStatsLayer.createQuery();
+        csq.where          = "1=1";
+        csq.outFields      = ["*"];
+        csq.returnGeometry = false;
+        const { features: countyFeatures } = await countyStatsLayer.queryFeatures(csq);
+        countyFeatures.forEach(f => {
+          const a   = f.attributes;
+          const key = (a.county_name || "").toUpperCase();
+          if (!key) return;
+          countyStatsMap[key] = {
+            ft:                 a.forest_trees,
+            tof:                a.trees_outside_forests,
+            canopy_pct:         a.canopy_cover_pct,
+            // mv_county_stats stores km² — countyStatsMap/updateCanopyStats expect ha.
+            canopy_ha:          a.total_canopy_area_km2 != null ? a.total_canopy_area_km2 * 100 : null,
+            max_height_m:       a.max_height_m,
+            max_crown_area_m2:  a.max_canopy_area_m2
+          };
+        });
+      } catch (e) {
+        console.warn("County stats layer query failed — canopy stats panel/county list will be empty:", e);
+      }
 
       // Feature layers — tagged IrelandsTREEMAP
       const crownItems = await portal.queryItems(new PortalQueryParams({
