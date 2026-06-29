@@ -300,7 +300,9 @@
       #crownLoadingBadge.visible { display: flex; }
       #crownLoadingBadge .chart-spinner { width: 12px; height: 12px; }
 
-      /* ── Floating home button ───────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Floating home button */
+      /* --------------------------------------------------------------------------- */
       #homeBtn {
         position: absolute;
         top: 10px;
@@ -328,7 +330,9 @@
       #homeBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
       #homeBtn svg { width: 18px; height: 18px; fill: currentColor; }
 
-      /* ── Floating info button ───────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Floating info button */
+      /* --------------------------------------------------------------------------- */
       #infoBtn {
         position: absolute;
         top: 10px;
@@ -358,7 +362,9 @@
       }
       #infoBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
 
-      /* ── Info modal ──────────────────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Info modal */
+      /* --------------------------------------------------------------------------- */
       #infoOverlay {
         display: none;
         position: fixed;
@@ -412,7 +418,9 @@
       #infoModalBody p { margin: 0 0 8px; }
       #infoModalBody ul { margin: 0 0 8px; padding-left: 20px; }
 
-      /* ── Floating search box ────────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Floating search box */
+      /* --------------------------------------------------------------------------- */
       #floatingSearch {
         position: absolute;
         top: 10px;
@@ -422,7 +430,9 @@
         max-width: calc(100vw - 120px);
       }
 
-      /* ── Zoom buttons ───────────────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Zoom buttons */
+      /* --------------------------------------------------------------------------- */
       #zoomBtns {
         position: absolute;
         top: 56px;
@@ -712,7 +722,9 @@
       }
       #buaPopupBody { padding: 8px 4px; }
 
-      /* ── Toggle switches ─────────────────────────────────────────────────── */
+      /* --------------------------------------------------------------------------- */
+      /* Toggle switches */
+      /* --------------------------------------------------------------------------- */
       #layerToggleRow input[type="checkbox"] {
         appearance: none;
         -webkit-appearance: none;
@@ -988,7 +1000,9 @@
     const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
     const Basemap           = await $arcgis.import("@arcgis/core/Basemap.js");
 
-    // ── Discover published county crown layers from ArcGIS Online ──────────
+    // ---------------------------------------------------------------------------
+    // Discover published county crown layers from ArcGIS Online
+    // ---------------------------------------------------------------------------
     let crownLayerMap     = {};   // Feature Layer item IDs (interactive, minScale 25k)
     let crownTileLayerMap = {};   // Tile layer item IDs — { id, type } (overview, all scales)
     // Populated live below from the county stats hosted feature layer
@@ -1079,7 +1093,9 @@
       console.warn("Crown layer discovery failed:", e);
     }
 
-    // ── Canopy stats panel (bottom-left) ────────────────────────────────────
+    // ---------------------------------------------------------------------------
+    // Canopy stats panel (bottom-left)
+    // ---------------------------------------------------------------------------
     const canopyStatsTitle = document.getElementById("canopyStatsTitleText");
     document.getElementById("canopyStatsClose").addEventListener("click", () => {
       document.getElementById("canopyStatsPanel").style.display = "none";
@@ -1386,7 +1402,9 @@
       let panelCollapsed       = false;
       const _countyLookup      = {};    // lowercase county name -> { item, feature, name }, built as the list loads
 
-      // ── Shareable URLs: restore ?county=&tab= on initial page load ────────
+      // ---------------------------------------------------------------------------
+      // Shareable URLs: restore ?county=&tab= on initial page load
+      // ---------------------------------------------------------------------------
       function restoreFromUrl() {
         const params     = new URLSearchParams(window.location.search);
         const countyParam = params.get("county");
@@ -1402,7 +1420,9 @@
         activateCounty(entry.name, entry.feature, entry.item, true);
       }
 
-      // ── County list filter: type-to-search with highlighting + keyboard nav ─
+      // ---------------------------------------------------------------------------
+      // County list filter: type-to-search with highlighting + keyboard nav
+      // ---------------------------------------------------------------------------
       function setUpCountySearch() {
         const input = document.getElementById("countySearchInput");
         let kbdFocusIndex = -1;
@@ -1486,15 +1506,19 @@
         if (activeLaLayer) activeLaLayer.visible = laLayerToggle.checked;
       });
 
-      // ── view.padding tells ArcGIS the panel obscures the right side,
-      //    so all UI widgets are placed in the visible map area ──────────────
+      // ---------------------------------------------------------------------------
+      // view.padding tells ArcGIS the panel obscures the right side, so all
+      // UI widgets are placed in the visible map area
+      // ---------------------------------------------------------------------------
       function updateViewPadding() {
         view.padding = { right: panelCollapsed ? 0 : countyPanel.offsetWidth };
       }
       updateViewPadding();
       new ResizeObserver(updateViewPadding).observe(countyPanel);
 
-      // ── Panel collapse toggle ─────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Panel collapse toggle
+      // ---------------------------------------------------------------------------
       const collapseBtn = document.getElementById("collapseBtn");
       const sidePanelWrapper = document.getElementById("sidePanelWrapper");
       collapseBtn.style.right = `${countyPanel.offsetWidth}px`;
@@ -1506,10 +1530,14 @@
         updateViewPadding();
       });
 
-      // ── Home button (in header — always visible) ─────────────────────────
+      // ---------------------------------------------------------------------------
+      // Home button (in header — always visible)
+      // ---------------------------------------------------------------------------
       document.getElementById("homeBtn").addEventListener("click", goHome);
 
-      // ── Info modal ────────────────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Info modal
+      // ---------------------------------------------------------------------------
       const infoOverlay = document.getElementById("infoOverlay");
       document.getElementById("infoBtn").addEventListener("click", () => {
         infoOverlay.classList.add("visible");
@@ -1524,7 +1552,9 @@
         if (e.key === "Escape") infoOverlay.classList.remove("visible");
       });
 
-      // ── Search (floating overlay) ─────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Search (floating overlay)
+      // ---------------------------------------------------------------------------
       const search = new Search({
         view,
         container: "floatingSearch",
@@ -1532,11 +1562,15 @@
         placeholder: "Search by address or Eircode..."
       });
 
-      // ── Zoom buttons ──────────────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Zoom buttons
+      // ---------------------------------------------------------------------------
       document.getElementById("zoomInBtn").addEventListener("click",  () => { view.zoom += 1; });
       document.getElementById("zoomOutBtn").addEventListener("click", () => { view.zoom -= 1; });
 
-      // ── Map widgets (rendered in HTML containers — not view.ui.add) ─────────
+      // ---------------------------------------------------------------------------
+      // Map widgets (rendered in HTML containers — not view.ui.add)
+      // ---------------------------------------------------------------------------
       const basemapGallery = new BasemapGallery({
         view,
         container: "basemapPanel",
@@ -1559,7 +1593,9 @@
       const crownLoadingBadge = document.getElementById("crownLoadingBadge");
       view.watch("zoom", z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; });
 
-      // ── Security: escape SQL string values ───────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Security: escape SQL string values
+      // ---------------------------------------------------------------------------
       function escapeSql(value) {
         return value.replace(/'/g, "''");
       }
@@ -1591,7 +1627,9 @@
         updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
       }
 
-      // ── Activate a county ────────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Activate a county
+      // ---------------------------------------------------------------------------
       function activateCounty(name, countyFeature, listItem, zoomToCounty = true) {
         clearActiveCounty();
         if (listItem) {
@@ -1795,7 +1833,9 @@
         }
       }
 
-      // ── Home ─────────────────────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Home
+      // ---------------------------------------------------------------------------
       function goHome() {
         view.goTo({ center: [-8, 53], zoom: 7 });
         vectorTileLayers.forEach(l => l.visible = true);
@@ -1805,7 +1845,9 @@
         clearActiveCounty();
       }
 
-      // ── Eircode / address search ─────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Eircode / address search
+      // ---------------------------------------------------------------------------
       search.on("select-result", async (event) => {
         const geometry = event.result?.feature?.geometry;
         if (!geometry) return;
@@ -1856,7 +1898,9 @@
         } catch (_) {}
       });
 
-      // ── Build county list ────────────────────────────────────────────────
+      // ---------------------------------------------------------------------------
+      // Build county list
+      // ---------------------------------------------------------------------------
       countyLayer.queryFeatures({
         where: "1=1",
         outFields: ["COUNTY", "ENGLISH"],
@@ -1929,7 +1973,9 @@
 
     });
 
-    // ── Crown polygon popup ───────────────────────────────────────────────────
+    // ---------------------------------------------------------------------------
+    // Crown polygon popup
+    // ---------------------------------------------------------------------------
     const crownPopup       = document.getElementById("crownPopup");
     const crownPopupHeader = document.getElementById("crownPopupHeader");
     const crownPopupTitle  = document.getElementById("crownPopupTitle");
@@ -2187,7 +2233,9 @@
       buaChartPanel.style.display = "none";
     });
 
-    // ── Layer tabs (BUA / Municipal Districts / Local Authorities) ────────
+    // ---------------------------------------------------------------------------
+    // Layer tabs (BUA / Municipal Districts / Local Authorities)
+    // ---------------------------------------------------------------------------
     const CHART_TABS = {
       bua: { label: "Built-up Areas",       color: "#f03b20", text: "#fff" },
       md:  { label: "Municipal Districts",  color: "#ffeda0", text: "#333" },
@@ -2196,7 +2244,9 @@
     let _activeChartTab   = "bua";
     let _activeCountyName = null;
 
-    // ── Shareable URLs: keep ?county=&tab= in sync with current view ───────
+    // ---------------------------------------------------------------------------
+    // Shareable URLs: keep ?county=&tab= in sync with current view
+    // ---------------------------------------------------------------------------
     function updateUrlState() {
       const params = new URLSearchParams();
       if (_activeCountyName) {
@@ -2510,7 +2560,9 @@
 
     view.on("click", async (event) => {
       try {
-        // ── Crown polygons — custom popup ───────────────────────────────────
+        // ---------------------------------------------------------------------------
+        // Crown polygons — custom popup
+        // ---------------------------------------------------------------------------
         if (activeCrownLayers.length) {
           const { results } = await view.hitTest(event, { include: activeCrownLayers });
           if (results.length) {
@@ -2550,7 +2602,9 @@
           }
         }
 
-        // ── Built-up areas — custom popup ──────────────────────────────────
+        // ---------------------------------------------------------------------------
+        // Built-up areas — custom popup
+        // ---------------------------------------------------------------------------
         clearCrownSelection();
         if (activeBuaLayer) {
           const { results: buaResults } = await view.hitTest(event, { include: [activeBuaLayer] });
@@ -2560,7 +2614,9 @@
           }
         }
 
-        // ── Municipal districts / Local authorities — custom popup ─────────
+        // ---------------------------------------------------------------------------
+        // Municipal districts / Local authorities — custom popup
+        // ---------------------------------------------------------------------------
         if (activeMdLayer || activeLaLayer) {
           const { results: filteredResults } = await view.hitTest(event, {
             include: [activeMdLayer, activeLaLayer].filter(Boolean)
