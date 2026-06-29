@@ -681,8 +681,8 @@
         background: #fff;
         border-radius: 6px;
         box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-        min-width: 150px;
-        max-width: 220px;
+        min-width: 170px;
+        max-width: 260px;
         font-family: 'Inter', Arial, sans-serif;
         pointer-events: auto;
       }
@@ -2044,12 +2044,6 @@
 
       addRow("Population",   population);
       addRow("Canopy Cover", canopyCoverPct, true);
-      if (maxHeightM != null) {
-        addRow("Tallest Tree", `${maxHeightM.toFixed(1)} m${classLabel(tallestClass)}${pctSuffix(heightPctRank, "taller")}`);
-      }
-      if (maxCrownAreaM2 != null) {
-        addRow("Largest Crown", `${maxCrownAreaM2.toFixed(0)} m²${classLabel(largestClass)}${pctSuffix(areaPctRank, "larger")}`);
-      }
 
       if (population && canopyAreaKm2 != null) {
         addSeparator();
@@ -2078,6 +2072,15 @@
 
       addRow("Canopy area (km²)", canopyAreaKm2, false, 2);
       addRow("Land area (km²)",   landAreaKm2,   false, 2);
+
+      // Placed after Land area, away from the canopy-per-capita tree icon above —
+      // otherwise that icon reads as if it's illustrating "the largest tree."
+      if (maxHeightM != null) {
+        addRow("Tallest Tree", `${maxHeightM.toFixed(1)} m${classLabel(tallestClass)}${pctSuffix(heightPctRank, "taller")}`);
+      }
+      if (maxCrownAreaM2 != null) {
+        addRow("Largest Crown", `${maxCrownAreaM2.toFixed(0)} m²${classLabel(largestClass)}${pctSuffix(areaPctRank, "larger")}`);
+      }
 
       return table;
     }
