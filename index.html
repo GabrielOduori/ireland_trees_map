@@ -2023,9 +2023,33 @@
       const canopyCoverPct = getVal(["canopy_cover_pct", "Canopy_cover_pct"]);
       const canopyAreaKm2  = getVal(["total_canopy_area_km2", "Total_canopy_area_km2"]);
       const landAreaKm2    = getVal(["land_area_km2", "Land_area_km2", "land_area"]);
+      const maxHeightM     = getVal(["max_height_m", "Max_height_m"]);
+      const heightPctRank  = getVal(["height_pct_rank", "Height_pct_rank"]);
+      const tallestClass   = (getVal(["tallest_tree_class", "Tallest_tree_class"]) || "").toLowerCase();
+      const maxCrownAreaM2 = getVal(["max_canopy_area_m2", "Max_canopy_area_m2"]);
+      const areaPctRank    = getVal(["area_pct_rank", "Area_pct_rank"]);
+      const largestClass   = (getVal(["largest_tree_class", "Largest_tree_class"]) || "").toLowerCase();
+
+      function classLabel(cls) {
+        return cls === "ft"  ? " (Forest Tree)"
+             : cls === "tof" ? " (Outside Forest)"
+             : "";
+      }
+      function pctSuffix(pct, word) {
+        // height_pct_rank/area_pct_rank are relative standing among all BUAs
+        // nationally, not a fixed anomaly threshold (none exists yet — see
+        // area_stats.sql Section A comments) — shown as context, not a flag.
+        return pct != null ? `, ${word} than ${pct.toFixed(0)}% of BUAs` : "";
+      }
 
       addRow("Population",   population);
       addRow("Canopy Cover", canopyCoverPct, true);
+      if (maxHeightM != null) {
+        addRow("Tallest Tree", `${maxHeightM.toFixed(1)} m${classLabel(tallestClass)}${pctSuffix(heightPctRank, "taller")}`);
+      }
+      if (maxCrownAreaM2 != null) {
+        addRow("Largest Crown", `${maxCrownAreaM2.toFixed(0)} m²${classLabel(largestClass)}${pctSuffix(areaPctRank, "larger")}`);
+      }
 
       if (population && canopyAreaKm2 != null) {
         addSeparator();
