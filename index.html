@@ -824,21 +824,39 @@
         </div>
         <div id="infoModalBody">
           <h3>About this map</h3>
-          <p>This map shows tree canopy cover across Ireland, broken down by county, built-up area, municipal district, and local authority.</p>
+          <p>
+            This interactive map represents tree canopy across Ireland. Each circle signifies the crown of one of Ireland's 100+ million trees growing either in forests (green) or outside forests (pink). Canopy cover (or crown area) is calculated nationally, by county, municipal district, local authority &ndash; and settlement.
+          </p>
 
           <h3>Data sources &amp; methodology</h3>
-          <p>Tree crown data is derived from remote sensing analysis, classified into Forest Trees (FT) and Trees Outside Forests (TOF). Boundary layers (counties, built-up areas, municipal districts, local authorities) are sourced from Ordnance Survey Ireland administrative boundaries. Canopy statistics are computed via spatial joins against tree crown polygons.</p>
+          <p>
+            Data is derived from the first National Tree Map (NTM<sup>TM</sup>) a commercial database, produced in 2020 by Bluesky International, now part of the Woolpert company (see <a href="http://www.bluesky-world.ie" target="_blank" rel="noopener noreferrer">www.bluesky-world.ie</a>).
+          </p>
+          <p>We cross-referenced the NTM<sup>TM</sup> with</p>
+          <ul>
+            <li>forest parcel boundary data (produced by DAFM (Department of Agriculture, Food and Marine), and Coillte, published under the Creative Commons (CC by 4.0) license, via <a href="http://www.data.gov.ie" target="_blank" rel="noopener noreferrer">www.data.gov.ie</a>) which allowed us to classify trees as Forest Trees (FT) or Trees Outside Forests (TOF) depending on whether they grew on land catalogued as forest, or on land outside forest</li>
+            <li>administrative boundaries concerning counties, built-up areas, municipal districts and local authorities (provided by the Central Statistics Office (CSO) and Tailte Éireann, available from Tailte Éireann Surveying Open data portal) which allowed us to compute canopy cover at a national, county and local scale, including settlement by settlement.</li>
+          </ul>
+          <p>
+            The NTM, produced between 2017&ndash;2020, is overlain on current Esri basemaps within the Esri online environment, this allows us to visualise change, but the Esri basemaps do differ from the Bluesky high resolution aerial imagery used to produce the NTM.
+          </p>
 
           <h3>How to use the map</h3>
           <ul>
-            <li>Click a county in the list (or search for one) to zoom in and see its canopy breakdown.</li>
-            <li>Switch between the Built-up Areas / Municipal Districts / Local Authorities tabs to explore each boundary type within the active county.</li>
-            <li>Click a tree crown on the map for details on that individual crown.</li>
-            <li>Use the layer toggles to show/hide each boundary layer.</li>
+            <li>The map starts with a national overview as an aerial image. Toggle between basemaps to change the underlying map.</li>
+            <li>The bar on the right of the screen displays relative tree canopy per county. Select a county from the list (or type an address into the search bar) to zoom in for detail.</li>
+            <li>Switch between Built-up Areas / Municipal District / Local Authority tabs to explore canopy at various administrative levels. Use the toggles to show/hide layers.</li>
+            <li>Zoom in to a neighbourhood. Click any tree crown on the map for details of that individual crown.</li>
+            <li>Click the Home button to return to the starting page (the national overview).</li>
           </ul>
 
+          <h3>Disclaimers</h3>
+          <p>
+            This map was produced using commercial data provided by Bluesky International, as well as government owned data that is freely available under the Creative Commons 4.0 International license. The Bluesky/Woolpert NTM<sup>TM</sup> is the most detailed and accurate database that exists of Ireland's trees, this and all other datasets used to compile this map are the most up to date available. However, all such datasets contain anomalies which we explain in more detail elsewhere. Anomalies concern (some of) the administrative boundary areas provided by the government, as well as (some) tree heights, crown areas and numbers, and the occasional misidentification of non-tree objects. See <a href="http://www.treelabIreland.ie" target="_blank" rel="noopener noreferrer">www.treelabIreland.ie</a>.
+          </p>
+
           <h3>Contact &amp; attribution</h3>
-          <p>For questions or feedback, contact Sophia Meeres at <a href="mailto:sophia.meeres@ucd.ie">sophia.meeres@ucd.ie</a>.</p>
+          <p>For questions and/or feedback, contact Sophia Meeres at <a href="mailto:sophia.meeres@ucd.ie">sophia.meeres@ucd.ie</a>.</p>
         </div>
       </div>
     </div>
