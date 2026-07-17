@@ -1935,11 +1935,11 @@
           return na.localeCompare(nb);
         });
 
-        // Largest county canopy area — all bars are scaled relative to it.
+        // Largest county canopy cover — all bars are scaled relative to it.
         const maxTotal = sorted.reduce((mx, f) => {
           const n = f.attributes.COUNTY || f.attributes.ENGLISH || "";
           const s = countyStatsMap[n.toUpperCase()] || {};
-          return Math.max(mx, s.canopy_ha || 0);
+          return Math.max(mx, s.canopy_pct || 0);
         }, 0);
 
         sorted.forEach(feature => {
@@ -1954,7 +1954,7 @@
           item.appendChild(nameSpan);
 
           const stats   = countyStatsMap[name.toUpperCase()] || {};
-          const total   = stats.canopy_ha || 0;
+          const total   = stats.canopy_pct || 0;
           const ftCanopyPct  = stats.ft_canopy_pct  || 0;
           const tofCanopyPct = stats.tof_canopy_pct || 0;
           const canopySplitTotal = ftCanopyPct + tofCanopyPct;
