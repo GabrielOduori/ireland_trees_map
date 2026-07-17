@@ -866,9 +866,79 @@
          can overlap on phone-width screens. Cap their widths relative to
          the viewport instead of a fixed px value. Desktop is unaffected. */
       @media (max-width: 700px) {
-        #countyPanel      { min-width: 150px; max-width: 55vw; }
-        #buaChartPanel    { width: min(220px, 42vw); }
+        #sidePanelWrapper {
+          top: auto;
+          left: 8px;
+          right: 8px;
+          bottom: 8px;
+          transform: none;
+          z-index: 18;
+        }
+        #sidePanelWrapper.collapsed {
+          transform: translateY(calc(100% - 44px));
+        }
+        #countyPanel {
+          width: auto;
+          min-width: 0;
+          max-width: none;
+          max-height: 42vh;
+          border-radius: 8px;
+          box-shadow: 0 -3px 18px rgba(0,0,0,0.22);
+        }
+        #collapseBtn {
+          top: auto;
+          right: 14px !important;
+          bottom: 8px;
+          transform: none;
+          width: 44px;
+          height: 34px;
+          border-radius: 8px 8px 0 0;
+          z-index: 21;
+        }
+        #collapseBtn:hover,
+        #collapseBtn:active {
+          transform: none;
+        }
+        #buaChartPanel {
+          position: fixed;
+          left: 8px;
+          right: 8px;
+          bottom: 8px;
+          top: auto;
+          width: auto;
+          max-height: 42vh;
+          border-radius: 8px;
+          box-shadow: 0 -3px 18px rgba(0,0,0,0.22);
+          z-index: 19;
+        }
+        #countyBarLegend,
+        #countySortMetricHint {
+          display: none;
+        }
+        #countyList li {
+          min-height: 32px;
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
         #canopyStatsPanel { min-width: 150px; max-width: 55vw; }
+        #crownPopup,
+        #buaPopup {
+          left: 8px !important;
+          right: 8px !important;
+          bottom: 8px !important;
+          top: auto !important;
+          width: auto;
+          min-width: 0;
+          max-width: none;
+          max-height: 45vh;
+          overflow: auto;
+          border-radius: 8px;
+        }
+        #crownPopupHeader,
+        #buaPopupHeader {
+          cursor: default;
+          touch-action: auto;
+        }
       }
 
     </style>
@@ -1534,6 +1604,8 @@
     }
     view.watch("stationary", (stationary) => { if (stationary) flashNewlyVisibleBuas(); });
 
+    let collapseCountySheetForMobile = () => {};
+
     view.when(() => {
       const countyList      = document.getElementById("countyList");
       const countyPanel     = document.getElementById("countyPanel");
@@ -1546,6 +1618,15 @@
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
       let panelCollapsed       = false;
       const _countyLookup      = {};    // lowercase county name -> { item, feature, name }, built as the list loads
+
+      collapseCountySheetForMobile = () => {
+        if (!usesBottomPopupLayout() || panelCollapsed) return;
+        panelCollapsed = true;
+        sidePanelWrapper.classList.add("collapsed");
+        collapseBtn.innerHTML = "&#8249;";
+        collapseBtn.style.right = "0";
+        updateViewPadding();
+      };
 
       // ---------------------------------------------------------------------------
       // Shareable URLs: restore ?county=&tab= on initial page load
@@ -1657,10 +1738,15 @@
       // UI widgets are placed in the visible map area
       // ---------------------------------------------------------------------------
       function updateViewPadding() {
-        view.padding = { right: panelCollapsed ? 0 : countyPanel.offsetWidth };
+        if (usesBottomPopupLayout()) {
+          view.padding = { right: 0, bottom: panelCollapsed ? 0 : Math.min(countyPanel.offsetHeight, window.innerHeight * 0.42) };
+        } else {
+          view.padding = { right: panelCollapsed ? 0 : countyPanel.offsetWidth, bottom: 0 };
+        }
       }
       updateViewPadding();
       new ResizeObserver(updateViewPadding).observe(countyPanel);
+      window.addEventListener("resize", updateViewPadding);
 
       // ---------------------------------------------------------------------------
       // Panel collapse toggle
@@ -2226,6 +2312,16 @@
     makeDraggable(crownPopup, crownPopupHeader);
     makeDraggable(buaPopup,   buaPopupHeader);
 
+    function usesBottomPopupLayout() {
+      return window.matchMedia("(max-width: 700px)").matches;
+    }
+
+    function collapseMapPanelsForMobile() {
+      if (!usesBottomPopupLayout()) return;
+      collapseCountySheetForMobile();
+      buaChartPanel.style.display = "none";
+    }
+
     function clearCrownSelection() {
       crownPopup.style.display = "none";
       if (crownHighlight) { crownHighlight.remove(); crownHighlight = null; }
@@ -2373,6 +2469,12 @@
       let left = vr.left + pt.x + 14;
       let top  = vr.top  + pt.y - 40;
       buaPopup.style.display = "block";
+      if (usesBottomPopupLayout()) {
+        collapseMapPanelsForMobile();
+        buaPopup.style.left = "";
+        buaPopup.style.top = "";
+        return;
+      }
       const pw = buaPopup.offsetWidth, ph = buaPopup.offsetHeight;
 
       // The right side panel sits on top of the map (fixed, right:0) but below the
@@ -2835,6 +2937,12 @@
             let left = vr.left + pt.x + 14;
             let top  = vr.top  + pt.y - 40;
             crownPopup.style.display = "block";
+            if (usesBottomPopupLayout()) {
+              collapseMapPanelsForMobile();
+              crownPopup.style.left = "";
+              crownPopup.style.top = "";
+              return;
+            }
             const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
             const sidePanel = document.getElementById("sidePanelWrapper");
             let rightBound = window.innerWidth - 8;
