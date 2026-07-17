@@ -2349,7 +2349,7 @@
 
     function openBuaPopup(attrs, mapPoint) {
       const title = pickDisplayName(attrs);
-      showPopupAt(title === "—" ? "Built-up Area" : title, buildBuaPopupContent(attrs), mapPoint);
+      showPopupAt(`Built-up Area: ${title === "—" ? "—" : title}`, buildBuaPopupContent(attrs), mapPoint);
     }
 
     function buildFilteredPopupContent(attrs) {
@@ -2397,7 +2397,8 @@
     }
 
     function openFilteredPopup(attrs, mapPoint) {
-      showPopupAt(pickDisplayName(attrs), buildFilteredPopupContent(attrs), mapPoint);
+      const label = _activeChartTab === "md" ? "Municipal District" : "Local Authority";
+      showPopupAt(`${label}: ${pickDisplayName(attrs)}`, buildFilteredPopupContent(attrs), mapPoint);
     }
 
     const buaChartPanel  = document.getElementById("buaChartPanel");
