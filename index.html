@@ -983,7 +983,7 @@
           <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
         </div>
         <div id="countyBarControls">
-          <div id="countyBarNote">Bars show canopy cover as % of county land area.</div>
+          <div id="countyBarNote">Bars show canopy cover<br>as % of county land area.</div>
           <label id="countySortRow" for="countySortSelect">
             <span>Sort</span>
             <select id="countySortSelect">
@@ -1086,6 +1086,39 @@
 
     const COUNTY_LAYER_ITEM_ID = "259ee297ee034edaa3d22b082ab03732";
 
+    // Client-side field allowlists reduce attribute transfer for rendering and popups.
+    // Download/export prevention is enforced by ArcGIS Online item/layer settings.
+    const COUNTY_STATS_FIELDS = [
+      "county_name", "forest_trees", "trees_outside_forests",
+      "canopy_cover_pct", "ft_canopy_cover_pct", "tof_canopy_cover_pct",
+      "total_canopy_area_km2", "max_height_m", "max_canopy_area_m2"
+    ];
+    const BOUNDARY_STATS_FIELDS = [
+      "OBJECTID", "objectid", "id",
+      "settlement", "Settlement", "county", "County",
+      "district_name", "local_authority", "name", "Name", "NAME", "title", "Title",
+      "LA_Name", "MD_Name", "ED_ENGLISH",
+      "population", "Population",
+      "canopy_cover_pct", "Canopy_cover_pct", "canopy_pct", "Canopy_pct",
+      "total_canopy_area_km2", "Total_canopy_area_km2", "canopy_area_km2", "Canopy_area_km2",
+      "land_area_km2", "Land_area_km2", "land_area",
+      "avg_height_m", "Avg_height_m", "max_height_m", "Max_height_m",
+      "height_pct_rank", "Height_pct_rank", "tallest_tree_class", "Tallest_tree_class",
+      "max_canopy_area_m2", "Max_canopy_area_m2", "area_pct_rank", "Area_pct_rank",
+      "largest_tree_class", "Largest_tree_class"
+    ];
+    const CROWN_POPUP_FIELDS = [
+      "tree_class", "class", "Class", "height_m", "mean", "Mean",
+      "max_height_m", "max", "Max_", "crown_area_m2", "area", "Area",
+      "ntm_id", "NTM_ID", "perimeter", "Perimeter", "county", "County"
+    ];
+
+    function existingOutFields(layer, desiredFields) {
+      const available = new Set((layer.fields || []).map(field => field.name.toLowerCase()));
+      const fields = desiredFields.filter(field => available.has(field.toLowerCase()));
+      return fields.length ? fields : [layer.objectIdField || "OBJECTID"];
+    }
+
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
     try {
@@ -1101,7 +1134,7 @@
         await countyStatsLayer.load();
         const csq = countyStatsLayer.createQuery();
         csq.where          = "1=1";
-        csq.outFields      = ["*"];
+        csq.outFields      = existingOutFields(countyStatsLayer, COUNTY_STATS_FIELDS);
         csq.returnGeometry = false;
         const { features: countyFeatures } = await countyStatsLayer.queryFeatures(csq);
         countyFeatures.forEach(f => {
@@ -1735,7 +1768,7 @@
         activeBuaLayer = new FeatureLayer({
           portalItem:          buaPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:           ["*"],
+          outFields:           BOUNDARY_STATS_FIELDS,
           opacity: 0.4,
           popupEnabled:        false,
           renderer: new SimpleRenderer({
@@ -1783,7 +1816,7 @@
         activeLaLayer = new FeatureLayer({
           portalItem:           laPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:            ["*"],
+          outFields:            BOUNDARY_STATS_FIELDS,
           opacity:              0.8,
           popupEnabled:         false,
           minScale:             0,
@@ -1807,7 +1840,7 @@
             await _nationalBuaLayer.load();
             const nq = _nationalBuaLayer.createQuery();
             nq.returnGeometry = false;
-            nq.outFields      = ["*"];
+            nq.outFields      = existingOutFields(_nationalBuaLayer, BOUNDARY_STATS_FIELDS);
             const { features } = await _nationalBuaLayer.queryFeatures(nq);
             return features
               .sort((a, b) =>
@@ -1826,7 +1859,7 @@
             const featurePortalRef = _portal ? { id: itemId, portal: _portal } : { id: itemId };
             const fl = new FeatureLayer({
               portalItem: featurePortalRef,
-              outFields: ["*"],
+              outFields: CROWN_POPUP_FIELDS,
               renderer: crownRenderer,
               popupEnabled: false,
               minScale: 25000,
@@ -2466,7 +2499,7 @@
       try {
         await layer.load();
         const q = layer.createQuery();
-        q.outFields            = ["*"];
+        q.outFields            = existingOutFields(layer, BOUNDARY_STATS_FIELDS);
         q.returnGeometry       = true;
         q.outSpatialReference  = view.spatialReference;
         const { features } = await layer.queryFeatures(q);
@@ -2566,7 +2599,7 @@
         gq.where          = whereClause;
         gq.returnGeometry = true;
         gq.outSpatialReference = view.spatialReference;
-        gq.outFields      = ["*"];
+        gq.outFields      = existingOutFields(_nationalBuaLayer, BOUNDARY_STATS_FIELDS);
         const { features } = await _nationalBuaLayer.queryFeatures(gq);
         if (features.length) {
           const g = features[0];
