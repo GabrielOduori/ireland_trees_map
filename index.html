@@ -651,6 +651,7 @@
         border-radius: 2px;
         overflow: hidden;
         display: flex;
+        position: relative;
       }
 
       .county-canopy-pct {
@@ -668,6 +669,16 @@
         height: 100%;
         border-radius: 2px;
         overflow: hidden;
+      }
+
+      .county-average-marker {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(0, 0, 0, 0.45);
+        transform: translateX(-1px);
+        pointer-events: none;
       }
 
       .county-bar-ft {
@@ -984,7 +995,7 @@
           <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
         </div>
         <div id="countyBarControls">
-          <div id="countyBarNote">Bars show canopy cover<br>as % of county land area.</div>
+          <div id="countyBarNote">Bars show canopy cover<br>as % of county land area.<br>Line = national average.</div>
           <label id="countySortRow" for="countySortSelect">
             <span>Sort</span>
             <select id="countySortSelect">
@@ -2024,6 +2035,18 @@
           return countyStatsMap[countyName(feature).toUpperCase()] || {};
         }
 
+        const nationalCanopyPct = (() => {
+          const stats = Object.values(countyStatsMap);
+          const canopyHa = stats.reduce((sum, county) => sum + (county.canopy_ha || 0), 0);
+          return canopyHa > 0 ? canopyHa / 7027300 * 100 : null;  // 7,027,300 ha = ROI land area (70,273 km²)
+        })();
+
+        function activeMetricValue(stats) {
+          if (countySortSelect.value === "forest") return stats.ft_canopy_pct || 0;
+          if (countySortSelect.value === "outside") return stats.tof_canopy_pct || 0;
+          return stats.canopy_pct || 0;
+        }
+
         function sortCountyFeatures(features) {
           const sorted = features.slice();
           const sortMode = countySortSelect.value;
@@ -2064,6 +2087,7 @@
             const total   = stats.canopy_pct || 0;
             const ftCanopyPct  = stats.ft_canopy_pct  || 0;
             const tofCanopyPct = stats.tof_canopy_pct || 0;
+            const activeMetric = activeMetricValue(stats);
             const canopySplitTotal = ftCanopyPct + tofCanopyPct;
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
@@ -2072,10 +2096,11 @@
               const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
+              const metricLabel = `${activeMetric.toFixed(1)}%`;
 
               const barContainer = document.createElement("div");
               barContainer.className = "county-bar-container";
-              barContainer.title = `Canopy cover ${totalLabel}; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
+              barContainer.title = `Canopy cover ${totalLabel}; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}${nationalCanopyPct != null ? `; national average ${nationalCanopyPct.toFixed(1)}%` : ""}`;
 
               const barWrap = document.createElement("div");
               barWrap.className = "county-bar-wrap";
@@ -2091,11 +2116,18 @@
               barWrap.appendChild(ftBar);
               barWrap.appendChild(tofBar);
               barContainer.appendChild(barWrap);
+              if (nationalCanopyPct != null) {
+                const averageMarker = document.createElement("span");
+                averageMarker.className = "county-average-marker";
+                averageMarker.style.left = `${Math.max(0, Math.min(nationalCanopyPct, 100)).toFixed(1)}%`;
+                averageMarker.title = `National average canopy cover ${nationalCanopyPct.toFixed(1)}%`;
+                barContainer.appendChild(averageMarker);
+              }
               item.appendChild(barContainer);
 
               const pctSpan = document.createElement("span");
               pctSpan.className = "county-canopy-pct";
-              pctSpan.textContent = totalLabel;
+              pctSpan.textContent = metricLabel;
               pctSpan.title = barContainer.title;
               item.appendChild(pctSpan);
             }
