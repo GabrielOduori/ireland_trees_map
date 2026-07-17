@@ -1271,7 +1271,7 @@
           <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
         </div>
         <div id="countyBarControls">
-          <div id="countyBarNote">Bars = % county canopy cover</div>
+          <div id="countyBarNote">Bars = canopy cover %, visually scaled 10×</div>
           <div id="countyBarLegend" aria-label="County bar colour legend">
             <span class="county-legend-item"><span class="county-legend-chip" style="background:rgba(0,255,0,0.6)"></span>Forest</span>
             <span class="county-legend-item"><span class="county-legend-chip" style="background:rgba(255,0,255,0.6)"></span>Outside forest</span>
@@ -2497,6 +2497,7 @@
         }
 
         function renderCountyList() {
+          const canopyBarScale = 10;
           updateCountyMetricHint();
           const sorted = sortCountyFeatures(countyFeatures);
           countyList.innerHTML = "";
@@ -2522,7 +2523,7 @@
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
               const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              const barPct = total.toFixed(1);
+              const barPct = Math.min(total * canopyBarScale, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
