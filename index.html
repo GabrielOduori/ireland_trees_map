@@ -1945,12 +1945,8 @@
           return na.localeCompare(nb);
         });
 
-        // Largest county canopy cover — all bars are scaled relative to it.
-        const maxTotal = sorted.reduce((mx, f) => {
-          const n = f.attributes.COUNTY || f.attributes.ENGLISH || "";
-          const s = countyStatsMap[n.toUpperCase()] || {};
-          return Math.max(mx, s.canopy_pct || 0);
-        }, 0);
+        // Full bar width represents 100% county land area.
+        const maxTotal = 100;
 
         sorted.forEach(feature => {
           const name = feature.attributes.COUNTY || feature.attributes.ENGLISH;
