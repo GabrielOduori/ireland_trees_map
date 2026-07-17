@@ -594,6 +594,33 @@
       #countyList .county-name mark { background: #cdeccd; color: inherit; border-radius: 2px; padding: 0 1px; }
 
       #countySearchWrap { padding: 6px 16px; border-bottom: 1px solid #eee; }
+      #countyBarControls {
+        padding: 6px 16px 8px;
+        border-bottom: 1px solid #eee;
+      }
+      #countyBarNote {
+        color: #666;
+        font-size: 11px;
+        line-height: 1.3;
+        margin-bottom: 6px;
+      }
+      #countySortRow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #555;
+        font-size: 11px;
+      }
+      #countySortSelect {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        color: #333;
+        background: white;
+        font-size: 11px;
+        padding: 4px 6px;
+      }
       #countySearchInput {
         width: 100%;
         box-sizing: border-box;
@@ -954,6 +981,18 @@
         </div>
         <div id="countySearchWrap">
           <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
+        </div>
+        <div id="countyBarControls">
+          <div id="countyBarNote">Bars show canopy cover as % of county land area.</div>
+          <label id="countySortRow" for="countySortSelect">
+            <span>Sort</span>
+            <select id="countySortSelect">
+              <option value="az">A-Z</option>
+              <option value="canopy">Highest canopy cover</option>
+              <option value="forest">Highest Forest Canopy</option>
+              <option value="outside">Highest Canopy Outside Forest</option>
+            </select>
+          </label>
         </div>
         <ul id="countyList"></ul>
       </div>
@@ -1426,6 +1465,7 @@
     view.when(() => {
       const countyList      = document.getElementById("countyList");
       const countyPanel     = document.getElementById("countyPanel");
+      const countySortSelect = document.getElementById("countySortSelect");
       const layerToggleRow    = document.getElementById("layerToggleRow");
       const crownLayerToggle  = document.getElementById("crownLayerToggle");
       let activeItem           = null;
@@ -1497,6 +1537,7 @@
         }
 
         input.addEventListener("input", applyFilter);
+        countyList.applyFilter = applyFilter;
 
         input.addEventListener("keydown", (e) => {
           const visible = visibleItems();
@@ -1939,70 +1980,107 @@
         returnGeometry: true,
         outSpatialReference: { wkid: 4326 }
       }).then(result => {
-        const sorted = result.features.slice().sort((a, b) => {
-          const na = (a.attributes.COUNTY || a.attributes.ENGLISH || "").toLowerCase();
-          const nb = (b.attributes.COUNTY || b.attributes.ENGLISH || "").toLowerCase();
-          return na.localeCompare(nb);
-        });
+        const countyFeatures = result.features.slice();
 
-        // Full bar width represents 100% county land area.
-        const maxTotal = 100;
+        function countyName(feature) {
+          return feature.attributes.COUNTY || feature.attributes.ENGLISH || "";
+        }
 
-        sorted.forEach(feature => {
-          const name = feature.attributes.COUNTY || feature.attributes.ENGLISH;
-          if (!name) return;
-          const item = document.createElement("li");
+        function countyStats(feature) {
+          return countyStatsMap[countyName(feature).toUpperCase()] || {};
+        }
 
-          const nameSpan = document.createElement("span");
-          nameSpan.className = "county-name";
-          nameSpan.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-          item.dataset.name = nameSpan.textContent;
-          item.appendChild(nameSpan);
+        function sortCountyFeatures(features) {
+          const sorted = features.slice();
+          const sortMode = countySortSelect.value;
+          sorted.sort((a, b) => {
+            if (sortMode === "canopy") {
+              return (countyStats(b).canopy_pct || 0) - (countyStats(a).canopy_pct || 0);
+            }
+            if (sortMode === "forest") {
+              return (countyStats(b).ft_canopy_pct || 0) - (countyStats(a).ft_canopy_pct || 0);
+            }
+            if (sortMode === "outside") {
+              return (countyStats(b).tof_canopy_pct || 0) - (countyStats(a).tof_canopy_pct || 0);
+            }
+            const na = countyName(a).toLowerCase();
+            const nb = countyName(b).toLowerCase();
+            return na.localeCompare(nb);
+          });
+          return sorted;
+        }
 
-          const stats   = countyStatsMap[name.toUpperCase()] || {};
-          const total   = stats.canopy_pct || 0;
-          const ftCanopyPct  = stats.ft_canopy_pct  || 0;
-          const tofCanopyPct = stats.tof_canopy_pct || 0;
-          const canopySplitTotal = ftCanopyPct + tofCanopyPct;
-          if (total > 0 && maxTotal > 0) {
-            const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
-            const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-            const barPct = (total / maxTotal * 100).toFixed(1);
-            const totalLabel = `${total.toFixed(1)}%`;
-            const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
-            const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
+        function renderCountyList() {
+          const sorted = sortCountyFeatures(countyFeatures);
+          countyList.innerHTML = "";
+          Object.keys(_countyLookup).forEach(key => delete _countyLookup[key]);
 
-            const barContainer = document.createElement("div");
-            barContainer.className = "county-bar-container";
-            barContainer.title = `Canopy cover ${totalLabel}; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
+          sorted.forEach(feature => {
+            const name = countyName(feature);
+            if (!name) return;
+            const item = document.createElement("li");
 
-            const barWrap = document.createElement("div");
-            barWrap.className = "county-bar-wrap";
-            barWrap.style.width = `${barPct}%`;
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "county-name";
+            nameSpan.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            item.dataset.name = nameSpan.textContent;
+            item.appendChild(nameSpan);
 
-            const ftBar = document.createElement("div");
-            ftBar.className = "county-bar-ft";
-            ftBar.style.width = `${ftPct}%`;
-            const tofBar = document.createElement("div");
-            tofBar.className = "county-bar-tof";
-            tofBar.style.width = `${tofPct}%`;
+            const stats   = countyStats(feature);
+            const total   = stats.canopy_pct || 0;
+            const ftCanopyPct  = stats.ft_canopy_pct  || 0;
+            const tofCanopyPct = stats.tof_canopy_pct || 0;
+            const canopySplitTotal = ftCanopyPct + tofCanopyPct;
+            if (total > 0) {
+              const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
+              const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
+              const barPct = total.toFixed(1);
+              const totalLabel = `${total.toFixed(1)}%`;
+              const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
+              const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
 
-            barWrap.appendChild(ftBar);
-            barWrap.appendChild(tofBar);
-            barContainer.appendChild(barWrap);
-            item.appendChild(barContainer);
+              const barContainer = document.createElement("div");
+              barContainer.className = "county-bar-container";
+              barContainer.title = `Canopy cover ${totalLabel}; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
 
-            const pctSpan = document.createElement("span");
-            pctSpan.className = "county-canopy-pct";
-            pctSpan.textContent = totalLabel;
-            pctSpan.title = barContainer.title;
-            item.appendChild(pctSpan);
-          }
+              const barWrap = document.createElement("div");
+              barWrap.className = "county-bar-wrap";
+              barWrap.style.width = `${barPct}%`;
 
-          item.addEventListener("click", () => activateCounty(name, feature, item));
-          countyList.appendChild(item);
-          _countyLookup[name.toLowerCase()] = { item, feature, name };
-        });
+              const ftBar = document.createElement("div");
+              ftBar.className = "county-bar-ft";
+              ftBar.style.width = `${ftPct}%`;
+              const tofBar = document.createElement("div");
+              tofBar.className = "county-bar-tof";
+              tofBar.style.width = `${tofPct}%`;
+
+              barWrap.appendChild(ftBar);
+              barWrap.appendChild(tofBar);
+              barContainer.appendChild(barWrap);
+              item.appendChild(barContainer);
+
+              const pctSpan = document.createElement("span");
+              pctSpan.className = "county-canopy-pct";
+              pctSpan.textContent = totalLabel;
+              pctSpan.title = barContainer.title;
+              item.appendChild(pctSpan);
+            }
+
+            item.addEventListener("click", () => activateCounty(name, feature, item));
+            countyList.appendChild(item);
+            _countyLookup[name.toLowerCase()] = { item, feature, name };
+
+            if (_activeCountyName && _activeCountyName.toLowerCase() === name.toLowerCase()) {
+              item.classList.add("active");
+              activeItem = item;
+            }
+          });
+
+          if (countyList.applyFilter) countyList.applyFilter();
+        }
+
+        renderCountyList();
+        countySortSelect.addEventListener("change", renderCountyList);
 
         updateViewPadding();
         setUpCountySearch();
