@@ -18,40 +18,56 @@
 
       /* #appHeader removed — home button and search are now floating overlays */
 
+      #homeBtn,
+      #infoBtn,
+      #basemapBtn,
+      #mobileToolsBtn,
+      .zoom-btn {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+        border: 1px solid #bbb;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #2e7d32;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        user-select: none;
+      }
+
+      #homeBtn:hover,
+      #infoBtn:hover,
+      #basemapBtn:hover,
+      #mobileToolsBtn:hover,
+      .zoom-btn:hover {
+        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+        transform: translateY(-1px);
+      }
+
+      #homeBtn:active,
+      #infoBtn:active,
+      #basemapBtn:active,
+      #mobileToolsBtn:active,
+      .zoom-btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+      }
+
       #basemapBtn {
         position: absolute;
         top: 136px;
         left: 10px;
         z-index: 20;
-        padding: 7px 14px;
-        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
-        border: 1px solid #bbb;
-        border-radius: 6px;
-        cursor: pointer;
+        padding: 8px 14px;
         font-size: 13px;
         font-weight: 600;
-        color: #2e7d32;
+        font-family: 'Inter', Arial, sans-serif;
         white-space: nowrap;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.8) inset;
-        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-        user-select: none;
       }
 
-      #basemapBtn:hover {
-        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.9) inset;
-        transform: translateY(-1px);
-      }
-
-      #basemapBtn:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
-        background: #f0f0f0;
-      }
+      #mobileToolsBtn { display: none; }
+      #mapTools { display: contents; }
 
       /* Map overlay containers */
-      #basemapPanel ul, #basemapPanel li { list-style: none; padding: 0; margin: 0; }
-
       #basemapPanel {
         position: absolute;
         top: 178px;
@@ -59,12 +75,73 @@
         z-index: 15;
         display: none;
         background: white;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        width: 210px;
+        border-radius: 12px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+        width: 220px;
         max-width: calc(100vw - 20px);
         max-height: calc(100vh - 72px);
-        overflow-y: auto;
+        overflow: hidden;
+        padding: 8px;
+      }
+      .basemap-panel-title {
+        color: #333;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 4px 6px 8px;
+      }
+
+      .basemap-option {
+        width: 100%;
+        border: none;
+        background: transparent;
+        border-radius: 5px;
+        color: #333;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px;
+        text-align: left;
+      }
+      .basemap-option:hover { background: #f0faf0; }
+      .basemap-option.active { background: #e8f4e8; color: #1b5e20; }
+      .basemap-option-label { flex: 1; }
+      .basemap-check {
+        color: #2e7d32;
+        font-size: 13px;
+        font-weight: 700;
+        opacity: 0;
+      }
+      .basemap-option.active .basemap-check { opacity: 1; }
+      .basemap-swatch {
+        width: 28px;
+        height: 20px;
+        border-radius: 3px;
+        border: 1px solid rgba(0,0,0,0.18);
+        flex-shrink: 0;
+      }
+      .basemap-swatch.hybrid {
+        background: linear-gradient(135deg, #233622 0%, #54774a 45%, #2c3f32 100%);
+      }
+      .basemap-swatch.satellite {
+        background: linear-gradient(135deg, #203022 0%, #596b46 55%, #1e2b24 100%);
+      }
+      .basemap-swatch.streets {
+        background:
+          linear-gradient(90deg, transparent 45%, #d7d7d7 45%, #d7d7d7 55%, transparent 55%),
+          linear-gradient(0deg, transparent 45%, #cfcfcf 45%, #cfcfcf 55%, transparent 55%),
+          #f8f7f2;
+      }
+      .basemap-swatch.topo {
+        background: repeating-linear-gradient(135deg, #d9c89d 0 2px, #edf1d8 2px 7px);
+      }
+      .basemap-swatch.dark {
+        background: linear-gradient(135deg, #23272b 0%, #454b50 100%);
       }
 
       #scaleBarPanel {
@@ -298,6 +375,11 @@
         gap: 8px;
       }
       #crownLoadingBadge.visible { display: flex; }
+      #crownLoadingBadge.error {
+        color: #b42318;
+        border: 1px solid rgba(180,35,24,0.22);
+      }
+      #crownLoadingBadge.error .chart-spinner { display: none; }
       #crownLoadingBadge .chart-spinner { width: 12px; height: 12px; }
 
       /* --------------------------------------------------------------------------- */
@@ -429,6 +511,19 @@
         width: 280px;
         max-width: calc(100vw - 120px);
       }
+      #floatingSearch .esri-search,
+      #floatingSearch .esri-search__container {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      }
+      #floatingSearch .esri-input,
+      #floatingSearch .esri-widget--button {
+        font-family: 'Inter', Arial, sans-serif;
+      }
+      #floatingSearch .esri-search__submit-button,
+      #floatingSearch .esri-search__clear-button {
+        color: #2e7d32;
+      }
 
       /* --------------------------------------------------------------------------- */
       /* Zoom buttons */
@@ -445,27 +540,13 @@
       .zoom-btn {
         width: 36px;
         height: 36px;
-        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
-        border: 1px solid #bbb;
-        border-radius: 6px;
-        cursor: pointer;
         font-size: 20px;
         font-weight: 300;
-        color: #2e7d32;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-        user-select: none;
         line-height: 1;
       }
-      .zoom-btn:hover {
-        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.22);
-        transform: translateY(-1px);
-      }
-      .zoom-btn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
 
       #sidePanelWrapper {
         position: fixed;
@@ -663,6 +744,41 @@
 
       .bua-name { display: block; font-weight: 500; color: #333; font-size: 13px; font-family: 'Inter', Arial, sans-serif; }
       .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
+      .list-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        color: #777;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .list-status.error { color: #b42318; }
+      .list-status button {
+        border: 1px solid currentColor;
+        background: white;
+        color: inherit;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      #countyList li.list-status,
+      #buaChartBody li.list-status {
+        cursor: default;
+        border-left-color: transparent;
+        padding: 12px;
+      }
+      #countyList li.list-status:hover,
+      #buaChartBody li.list-status:hover {
+        background: transparent;
+        padding-left: 12px;
+      }
+      #countyList li.list-status::after,
+      #buaChartBody li.list-status::after {
+        display: none;
+      }
 
       .county-name {
         width: 90px;
@@ -866,6 +982,74 @@
          can overlap on phone-width screens. Cap their widths relative to
          the viewport instead of a fixed px value. Desktop is unaffected. */
       @media (max-width: 700px) {
+        #mobileToolsBtn {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 21;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          padding: 0;
+          font-size: 18px;
+          font-weight: 700;
+          font-family: 'Inter', Arial, sans-serif;
+        }
+        #mapTools {
+          position: absolute;
+          top: 56px;
+          right: 10px;
+          z-index: 21;
+          display: none;
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-end;
+          background: rgba(255,255,255,0.94);
+          border: 1px solid rgba(0,0,0,0.12);
+          border-radius: 10px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.24);
+          padding: 8px;
+        }
+        body.tools-open #mapTools { display: flex; }
+        #mapTools #infoBtn,
+        #mapTools #basemapBtn,
+        #mapTools #zoomBtns {
+          position: static;
+          top: auto;
+          right: auto;
+          left: auto;
+          z-index: auto;
+        }
+        #mapTools #infoBtn {
+          width: 40px;
+          height: 40px;
+        }
+        #mapTools #basemapBtn {
+          width: 132px;
+          text-align: left;
+        }
+        #mapTools #zoomBtns {
+          flex-direction: row;
+          gap: 8px;
+        }
+        #mapTools .zoom-btn {
+          width: 40px;
+          height: 40px;
+        }
+        #floatingSearch {
+          left: 56px;
+          right: 58px;
+          width: auto;
+          max-width: none;
+        }
+        #basemapPanel {
+          top: 192px;
+          right: 10px;
+          left: auto;
+          z-index: 22;
+        }
         #sidePanelWrapper {
           top: auto;
           left: 8px;
@@ -952,7 +1136,15 @@
         <path d="M8 1L1 7v8h5V9h4v6h5V7z"/>
       </svg>
     </button>
-    <button id="infoBtn" title="About this map" aria-label="About this map">i</button>
+    <button id="mobileToolsBtn" title="Map tools" aria-label="Map tools" aria-expanded="false">⋯</button>
+    <div id="mapTools">
+      <button id="infoBtn" title="About this map" aria-label="About this map">i</button>
+      <div id="zoomBtns">
+        <button class="zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">+</button>
+        <button class="zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">−</button>
+      </div>
+      <button id="basemapBtn" title="Change basemap">&#9776; Basemaps</button>
+    </div>
     <div id="infoOverlay">
       <div id="infoModal">
         <div id="infoModalHeader">
@@ -985,6 +1177,7 @@
             <li>Switch between Built-up Areas / Municipal District / Local Authority tabs to explore canopy at various administrative levels. Use the toggles to show/hide layers.</li>
             <li>Zoom in to a neighbourhood. Click any tree crown on the map for details of that individual crown.</li>
             <li>Click the Home button to return to the starting page (the national overview).</li>
+            <li>Press Esc to close open panels, popups, and this information window.</li>
           </ul>
 
           <h3>Disclaimers</h3>
@@ -998,13 +1191,8 @@
       </div>
     </div>
     <div id="floatingSearch"></div>
-    <div id="zoomBtns">
-      <button class="zoom-btn" id="zoomInBtn" title="Zoom in" aria-label="Zoom in">+</button>
-      <button class="zoom-btn" id="zoomOutBtn" title="Zoom out" aria-label="Zoom out">−</button>
-    </div>
 
     <!-- Map overlay widgets -->
-    <button id="basemapBtn" title="Change basemap">&#9776; Basemaps</button>
     <div id="basemapPanel"></div>
     <div id="scaleBarPanel"></div>
 
@@ -1161,7 +1349,6 @@
     const MapView           = await $arcgis.import("@arcgis/core/views/MapView.js");
     const Search            = await $arcgis.import("@arcgis/core/widgets/Search.js");
     const ScaleBar          = await $arcgis.import("@arcgis/core/widgets/ScaleBar.js");
-    const BasemapGallery    = await $arcgis.import("@arcgis/core/widgets/BasemapGallery.js");
     const FeatureLayer      = await $arcgis.import("@arcgis/core/layers/FeatureLayer.js");
     const GraphicsLayer     = await $arcgis.import("@arcgis/core/layers/GraphicsLayer.js");
     const Graphic           = await $arcgis.import("@arcgis/core/Graphic.js");
@@ -1777,17 +1964,17 @@
       // Info modal
       // ---------------------------------------------------------------------------
       const infoOverlay = document.getElementById("infoOverlay");
+      function closeInfoModal() {
+        infoOverlay.classList.remove("visible");
+      }
       document.getElementById("infoBtn").addEventListener("click", () => {
         infoOverlay.classList.add("visible");
       });
       document.getElementById("infoModalClose").addEventListener("click", () => {
-        infoOverlay.classList.remove("visible");
+        closeInfoModal();
       });
       infoOverlay.addEventListener("click", (e) => {
-        if (e.target === infoOverlay) infoOverlay.classList.remove("visible");
-      });
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") infoOverlay.classList.remove("visible");
+        if (e.target === infoOverlay) closeInfoModal();
       });
 
       // ---------------------------------------------------------------------------
@@ -1809,27 +1996,104 @@
       // ---------------------------------------------------------------------------
       // Map widgets (rendered in HTML containers — not view.ui.add)
       // ---------------------------------------------------------------------------
-      const basemapGallery = new BasemapGallery({
-        view,
-        container: "basemapPanel",
-        source: [
-          Basemap.fromId("hybrid"),
-          Basemap.fromId("satellite"),
-          Basemap.fromId("streets-vector"),
-          Basemap.fromId("topo-vector"),
-          Basemap.fromId("dark-gray-vector"),
-        ]
+      const basemapOptions = [
+        { id: "hybrid", label: "Hybrid", swatch: "hybrid" },
+        { id: "satellite", label: "Satellite", swatch: "satellite" },
+        { id: "streets-vector", label: "Streets", swatch: "streets" },
+        { id: "topo-vector", label: "Topographic", swatch: "topo" },
+        { id: "dark-gray-vector", label: "Dark", swatch: "dark" },
+      ];
+      const basemapPanel = document.getElementById("basemapPanel");
+      const basemapBtn = document.getElementById("basemapBtn");
+      const mobileToolsBtn = document.getElementById("mobileToolsBtn");
+      const mapTools = document.getElementById("mapTools");
+
+      function closeMobileTools() {
+        document.body.classList.remove("tools-open");
+        mobileToolsBtn.setAttribute("aria-expanded", "false");
+      }
+
+      function renderBasemapPicker(activeId) {
+        basemapPanel.innerHTML = "";
+        const title = document.createElement("div");
+        title.className = "basemap-panel-title";
+        title.textContent = "Choose basemap";
+        basemapPanel.appendChild(title);
+        basemapOptions.forEach(option => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `basemap-option${option.id === activeId ? " active" : ""}`;
+          btn.setAttribute("aria-pressed", option.id === activeId ? "true" : "false");
+
+          const swatch = document.createElement("span");
+          swatch.className = `basemap-swatch ${option.swatch}`;
+          const label = document.createElement("span");
+          label.className = "basemap-option-label";
+          label.textContent = option.label;
+          const check = document.createElement("span");
+          check.className = "basemap-check";
+          check.textContent = "✓";
+          btn.appendChild(swatch);
+          btn.appendChild(label);
+          btn.appendChild(check);
+
+          btn.addEventListener("click", () => {
+            map.basemap = Basemap.fromId(option.id);
+            renderBasemapPicker(option.id);
+            basemapPanel.style.display = "none";
+          });
+          basemapPanel.appendChild(btn);
+        });
+      }
+
+      renderBasemapPicker("hybrid");
+      basemapBtn.addEventListener("click", () => {
+        basemapPanel.style.display = basemapPanel.style.display === "block" ? "none" : "block";
       });
-      document.getElementById("basemapBtn").addEventListener("click", () => {
-        const p = document.getElementById("basemapPanel");
-        p.style.display = p.style.display === "block" ? "none" : "block";
+      mobileToolsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = document.body.classList.toggle("tools-open");
+        mobileToolsBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        if (!isOpen) basemapPanel.style.display = "none";
+      });
+      document.addEventListener("click", (e) => {
+        if (e.target === basemapBtn || basemapPanel.contains(e.target)) return;
+        basemapPanel.style.display = "none";
+        if (e.target === mobileToolsBtn || mapTools.contains(e.target)) return;
+        closeMobileTools();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        closeInfoModal();
+        basemapPanel.style.display = "none";
+        closeMobileTools();
+        clearCrownSelection();
+        closeBuaPopup();
+        document.getElementById("buaChartPanel").style.display = "none";
       });
 
       const scaleBar = new ScaleBar({ view, unit: "metric", container: "scaleBarPanel" });
 
       const zoomLevelPanel    = document.getElementById("zoomLevelPanel");
       const crownLoadingBadge = document.getElementById("crownLoadingBadge");
+      const crownLoadingText  = crownLoadingBadge.querySelector("span:last-child");
       view.watch("zoom", z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; });
+
+      function setCrownLoading(message = "Loading Canopy Layer…") {
+        crownLoadingText.textContent = message;
+        crownLoadingBadge.classList.remove("error");
+        crownLoadingBadge.classList.add("visible");
+      }
+
+      function setCrownError(message = "Canopy layer could not be loaded.") {
+        crownLoadingText.textContent = message;
+        crownLoadingBadge.classList.add("visible", "error");
+      }
+
+      function clearCrownLoading() {
+        crownLoadingBadge.classList.remove("visible", "error");
+        crownLoadingText.textContent = "Loading Canopy Layer…";
+      }
 
       // ---------------------------------------------------------------------------
       // Security: escape SQL string values
@@ -1880,7 +2144,7 @@
         // Remove previous per-county layers
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
-        crownLoadingBadge.classList.remove("visible");
+        clearCrownLoading();
 
         const crownTileItemId = crownTileLayerMap[name.toUpperCase()];
 
@@ -1888,8 +2152,10 @@
         // feature layer takes over.  maxScale:25000 hides it cleanly at that threshold.
         if (crownTileItemId) {
           activeCrownTileLayer = buildCrownTileLayer(crownTileItemId);
-          activeCrownTileLayer.on("layerview-create-error", e =>
-            console.error(`[tile] failed to render ${name} tile layer:`, e.error));
+          activeCrownTileLayer.on("layerview-create-error", e => {
+            console.error(`[tile] failed to render ${name} tile layer:`, e.error);
+            setCrownError("County canopy overview could not be loaded.");
+          });
           map.add(activeCrownTileLayer);
         }
 
@@ -1997,14 +2263,16 @@
               maxScale: 0
             });
             applyExistingOutFields(fl, CROWN_POPUP_FIELDS);
-            fl.on("layerview-create-error", e =>
-              console.error(`[feature] failed to render ${name} crown layer (item id: ${itemId}):`, e.error));
+            fl.on("layerview-create-error", e => {
+              console.error(`[feature] failed to render ${name} crown layer (item id: ${itemId}):`, e.error);
+              setCrownError("Tree crown layer could not be loaded.");
+            });
             map.add(fl);
             return fl;
           });
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
-          crownLoadingBadge.classList.add("visible");
+          setCrownLoading(`Loading ${name} canopy…`);
 
           // Use pre-computed stats — statistics queries are disabled on the layer
           const stats    = countyStatsMap[name.toUpperCase()] || {};
@@ -2024,7 +2292,7 @@
                 if (!updating) {
                   _readyLayers.add(idx);
                   if (_readyLayers.size >= _featureTotal) {
-                    crownLoadingBadge.classList.remove("visible");
+                    clearCrownLoading();
                     if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                   }
                 }
@@ -2079,7 +2347,7 @@
         vectorTileLayers.forEach(l => l.visible = true);
         activeCrownLayers.forEach(l => map.remove(l));
         activeCrownLayers = [];
-        crownLoadingBadge.classList.remove("visible");
+        clearCrownLoading();
         clearActiveCounty();
       }
 
@@ -2139,12 +2407,36 @@
       // ---------------------------------------------------------------------------
       // Build county list
       // ---------------------------------------------------------------------------
-      countyLayer.queryFeatures({
-        where: "1=1",
-        outFields: ["COUNTY", "ENGLISH"],
-        returnGeometry: true,
-        outSpatialReference: { wkid: 4326 }
-      }).then(result => {
+      function setCountyListStatus(type, message, retryHandler) {
+        countyList.innerHTML = "";
+        const item = document.createElement("li");
+        item.className = `list-status${type === "error" ? " error" : ""}`;
+        if (type === "loading") {
+          const spinner = document.createElement("span");
+          spinner.className = "chart-spinner";
+          item.appendChild(spinner);
+        }
+        const text = document.createElement("span");
+        text.textContent = message;
+        item.appendChild(text);
+        if (retryHandler) {
+          const retryBtn = document.createElement("button");
+          retryBtn.type = "button";
+          retryBtn.textContent = "Try again";
+          retryBtn.addEventListener("click", retryHandler);
+          item.appendChild(retryBtn);
+        }
+        countyList.appendChild(item);
+      }
+
+      function loadCountyListData() {
+        setCountyListStatus("loading", "Loading county canopy stats…");
+        countyLayer.queryFeatures({
+          where: "1=1",
+          outFields: ["COUNTY", "ENGLISH"],
+          returnGeometry: true,
+          outSpatialReference: { wkid: 4326 }
+        }).then(result => {
         const countyFeatures = result.features.slice();
 
         function countyName(feature) {
@@ -2269,8 +2561,13 @@
         updateViewPadding();
         setUpCountySearch();
         restoreFromUrl();
-      }).catch(() => {
+      }).catch((e) => {
+        console.error("[countyList] error:", e?.message || e);
+        setCountyListStatus("error", "County canopy stats could not be loaded.", loadCountyListData);
       });
+      }
+
+      loadCountyListData();
 
     });
 
@@ -2566,17 +2863,33 @@
     let   activeBuaItem  = null;
     let   _buaLayer      = null;
 
-    function showChartLoading() {
+    function showChartLoading(message = "Loading…") {
       buaChartBody.innerHTML = "";
       const li = document.createElement("li");
-      li.className = "chart-loading";
+      li.className = "list-status";
       const spinner = document.createElement("span");
       spinner.className = "chart-spinner";
       const text = document.createElement("span");
-      text.textContent = "Loading…";
+      text.textContent = message;
       li.appendChild(spinner);
       li.appendChild(text);
       buaChartBody.appendChild(li);
+    }
+
+    function showChartError(message, retryHandler) {
+      buaChartBody.innerHTML = "";
+      const errLi = document.createElement("li");
+      errLi.className = "list-status error";
+      const text = document.createElement("span");
+      text.textContent = message;
+      errLi.appendChild(text);
+      const retryBtn = document.createElement("button");
+      retryBtn.type = "button";
+      retryBtn.textContent = "Try again";
+      retryBtn.addEventListener("click", retryHandler);
+      errLi.appendChild(retryBtn);
+      buaChartBody.appendChild(errLi);
+      buaChartPanel.style.display = "flex";
     }
 
     document.getElementById("buaChartClose").addEventListener("click", () => {
@@ -2698,7 +3011,7 @@
         countyName.charAt(0).toUpperCase() + countyName.slice(1).toLowerCase();
 
       if (!layer) return;
-      showChartLoading();
+      showChartLoading(`Loading ${layerLabel || "features"}…`);
       try {
         await layer.load();
         const q = layer.createQuery();
@@ -2737,17 +3050,7 @@
         buaChartPanel.style.display = "flex";
       } catch (e) {
         console.error("[loadFilteredList] error:", e?.message || e);
-        buaChartBody.innerHTML = "";
-        const errLi = document.createElement("li");
-        errLi.style.cssText = "padding:10px 12px;color:#c0392b;font-size:12px;";
-        errLi.textContent = "Failed to load list. ";
-        const retryBtn = document.createElement("button");
-        retryBtn.textContent = "Try again";
-        retryBtn.style.cssText = "margin-left:4px;border:1px solid #c0392b;background:none;color:#c0392b;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;";
-        retryBtn.addEventListener("click", () => loadFilteredList(layer, countyName, layerLabel));
-        errLi.appendChild(retryBtn);
-        buaChartBody.appendChild(errLi);
-        buaChartPanel.style.display = "flex";
+        showChartError(`${layerLabel || "This list"} could not be loaded.`, () => loadFilteredList(layer, countyName, layerLabel));
       }
     }
 
@@ -2829,7 +3132,7 @@
     async function loadBuaList(layer, countyName) {
       _buaLayer = layer;
       buaChartPanel.style.display = "flex";
-      showChartLoading();
+      showChartLoading("Loading built-up areas…");
 
       try {
         // Await the national top-100 (already loading in background)
@@ -2881,16 +3184,7 @@
         }
       } catch (e) {
         console.error("[buaList] error:", e?.message || e?.details || e);
-        buaChartBody.innerHTML = "";
-        const errLi = document.createElement("li");
-        errLi.style.cssText = "padding:10px 12px;color:#c0392b;font-size:12px;";
-        errLi.textContent = "Failed to load list. ";
-        const retryBtn = document.createElement("button");
-        retryBtn.textContent = "Try again";
-        retryBtn.style.cssText = "margin-left:4px;border:1px solid #c0392b;background:none;color:#c0392b;border-radius:3px;padding:2px 8px;font-size:11px;cursor:pointer;";
-        retryBtn.addEventListener("click", () => loadBuaList(layer, countyName));
-        errLi.appendChild(retryBtn);
-        buaChartBody.appendChild(errLi);
+        showChartError("Built-up areas could not be loaded.", () => loadBuaList(layer, countyName));
       }
     }
 
