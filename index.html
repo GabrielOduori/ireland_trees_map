@@ -544,7 +544,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 5px 10px;
+        padding: 5px 22px 5px 10px;
         border-bottom: 1px solid #eee;
         border-left: 4px solid transparent;
         font-size: 13px;
@@ -623,6 +623,16 @@
         border-radius: 2px;
         overflow: hidden;
         display: flex;
+      }
+
+      .county-canopy-pct {
+        width: 38px;
+        flex-shrink: 0;
+        color: #555;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
       }
 
       .county-bar-wrap {
@@ -1962,9 +1972,13 @@
             const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
             const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
             const barPct = (total / maxTotal * 100).toFixed(1);
+            const totalLabel = `${total.toFixed(1)}%`;
+            const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
+            const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
 
             const barContainer = document.createElement("div");
             barContainer.className = "county-bar-container";
+            barContainer.title = `Canopy cover ${totalLabel}; forest canopy ${ftLabel}; outside-forest canopy ${tofLabel}`;
 
             const barWrap = document.createElement("div");
             barWrap.className = "county-bar-wrap";
@@ -1981,6 +1995,12 @@
             barWrap.appendChild(tofBar);
             barContainer.appendChild(barWrap);
             item.appendChild(barContainer);
+
+            const pctSpan = document.createElement("span");
+            pctSpan.className = "county-canopy-pct";
+            pctSpan.textContent = totalLabel;
+            pctSpan.title = barContainer.title;
+            item.appendChild(pctSpan);
           }
 
           item.addEventListener("click", () => activateCounty(name, feature, item));
