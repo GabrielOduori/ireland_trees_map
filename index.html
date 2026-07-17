@@ -605,6 +605,34 @@
         margin-bottom: 5px;
         text-align: center;
       }
+      #countyBarLegend {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        color: #666;
+        font-size: 10px;
+        line-height: 1.2;
+      }
+      .county-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      .county-legend-chip {
+        width: 8px;
+        height: 8px;
+        border-radius: 1px;
+        flex-shrink: 0;
+      }
+      #countySortMetricHint {
+        margin-top: 5px;
+        color: #777;
+        font-size: 10px;
+        line-height: 1.2;
+        text-align: center;
+      }
       #countySortRow {
         display: flex;
         align-items: center;
@@ -986,6 +1014,10 @@
         </div>
         <div id="countyBarControls">
           <div id="countyBarNote">Bars = % county canopy cover</div>
+          <div id="countyBarLegend" aria-label="County bar colour legend">
+            <span class="county-legend-item"><span class="county-legend-chip" style="background:rgba(0,255,0,0.6)"></span>Forest</span>
+            <span class="county-legend-item"><span class="county-legend-chip" style="background:rgba(255,0,255,0.6)"></span>Outside forest</span>
+          </div>
           <label id="countySortRow" for="countySortSelect">
             <span>Sort</span>
             <select id="countySortSelect">
@@ -995,6 +1027,7 @@
               <option value="outside">Highest Canopy Outside Forest</option>
             </select>
           </label>
+          <div id="countySortMetricHint">Value: canopy cover %</div>
         </div>
         <ul id="countyList"></ul>
       </div>
@@ -1505,6 +1538,7 @@
       const countyList      = document.getElementById("countyList");
       const countyPanel     = document.getElementById("countyPanel");
       const countySortSelect = document.getElementById("countySortSelect");
+      const countySortMetricHint = document.getElementById("countySortMetricHint");
       const layerToggleRow    = document.getElementById("layerToggleRow");
       const crownLayerToggle  = document.getElementById("crownLayerToggle");
       let activeItem           = null;
@@ -2035,6 +2069,16 @@
           return stats.canopy_pct || 0;
         }
 
+        function updateCountyMetricHint() {
+          const labels = {
+            az: "Value: canopy cover %",
+            canopy: "Value: canopy cover %",
+            forest: "Value: Forest Canopy %",
+            outside: "Value: Canopy Outside Forest %"
+          };
+          countySortMetricHint.textContent = labels[countySortSelect.value] || labels.az;
+        }
+
         function sortCountyFeatures(features) {
           const sorted = features.slice();
           const sortMode = countySortSelect.value;
@@ -2056,6 +2100,7 @@
         }
 
         function renderCountyList() {
+          updateCountyMetricHint();
           const sorted = sortCountyFeatures(countyFeatures);
           countyList.innerHTML = "";
           Object.keys(_countyLookup).forEach(key => delete _countyLookup[key]);
@@ -2398,7 +2443,11 @@
 
     function openFilteredPopup(attrs, mapPoint) {
       const label = _activeChartTab === "md" ? "Municipal District" : "Local Authority";
-      showPopupAt(`${label}: ${pickDisplayName(attrs)}`, buildFilteredPopupContent(attrs), mapPoint);
+      const name = pickDisplayName(attrs);
+      const title = name.toLowerCase().startsWith(label.toLowerCase())
+        ? name
+        : `${label}: ${name}`;
+      showPopupAt(title, buildFilteredPopupContent(attrs), mapPoint);
     }
 
     const buaChartPanel  = document.getElementById("buaChartPanel");
