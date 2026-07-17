@@ -1228,6 +1228,12 @@
       return fields.length ? fields : [layer.objectIdField || "OBJECTID"];
     }
 
+    function applyExistingOutFields(layer, desiredFields) {
+      layer.load()
+        .then(() => { layer.outFields = existingOutFields(layer, desiredFields); })
+        .catch(() => {});
+    }
+
     let _portal = null;   // authenticated portal instance reused when loading tile layers
 
     try {
@@ -1894,7 +1900,6 @@
         activeBuaLayer = new FeatureLayer({
           portalItem:          buaPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:           BOUNDARY_STATS_FIELDS,
           opacity: 0.4,
           popupEnabled:        false,
           renderer: new SimpleRenderer({
@@ -1905,6 +1910,7 @@
           }),
           minScale: 0, maxScale: 0
         });
+        applyExistingOutFields(activeBuaLayer, BOUNDARY_STATS_FIELDS);
         activeBuaLayer.on("layerview-create-error", e =>
           console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
         buaLayerToggle.checked  = true;
@@ -1919,7 +1925,6 @@
         activeMdLayer = new FeatureLayer({
           portalItem:           mdPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:            ["district_name", "canopy_cover_pct", "total_canopy_area_km2", "land_area_km2"],
           opacity:              0.8,
           popupEnabled:         false,
           minScale:             0,
@@ -1931,6 +1936,7 @@
             })
           }),
         });
+        applyExistingOutFields(activeMdLayer, BOUNDARY_STATS_FIELDS);
         activeMdLayer.on("layerview-create-error", e =>
           console.error(`[md] layer error:`, e.error));
         map.add(activeMdLayer, 1);  // just above BUA layer
@@ -1942,7 +1948,6 @@
         activeLaLayer = new FeatureLayer({
           portalItem:           laPortalRef,
           definitionExpression: `County = '${escapeSql(name)}'`,
-          outFields:            BOUNDARY_STATS_FIELDS,
           opacity:              0.8,
           popupEnabled:         false,
           minScale:             0,
@@ -1954,6 +1959,7 @@
             })
           }),
         });
+        applyExistingOutFields(activeLaLayer, BOUNDARY_STATS_FIELDS);
         activeLaLayer.on("layerview-create-error", e =>
           console.error(`[la] layer error:`, e.error));
         laLayerToggle.checked = true;
@@ -1985,12 +1991,12 @@
             const featurePortalRef = _portal ? { id: itemId, portal: _portal } : { id: itemId };
             const fl = new FeatureLayer({
               portalItem: featurePortalRef,
-              outFields: CROWN_POPUP_FIELDS,
               renderer: crownRenderer,
               popupEnabled: false,
               minScale: 25000,
               maxScale: 0
             });
+            applyExistingOutFields(fl, CROWN_POPUP_FIELDS);
             fl.on("layerview-create-error", e =>
               console.error(`[feature] failed to render ${name} crown layer (item id: ${itemId}):`, e.error));
             map.add(fl);
