@@ -1063,6 +1063,8 @@
             ft:                 a.forest_trees,
             tof:                a.trees_outside_forests,
             canopy_pct:         a.canopy_cover_pct,
+            ft_canopy_pct:      a.ft_canopy_cover_pct,
+            tof_canopy_pct:     a.tof_canopy_cover_pct,
             // mv_county_stats stores km² — countyStatsMap/updateCanopyStats expect ha.
             canopy_ha:          a.total_canopy_area_km2 != null ? a.total_canopy_area_km2 * 100 : null,
             max_height_m:       a.max_height_m,
@@ -1933,11 +1935,11 @@
           return na.localeCompare(nb);
         });
 
-        // Largest county total — all bars are scaled relative to it.
+        // Largest county canopy area — all bars are scaled relative to it.
         const maxTotal = sorted.reduce((mx, f) => {
           const n = f.attributes.COUNTY || f.attributes.ENGLISH || "";
           const s = countyStatsMap[n.toUpperCase()] || {};
-          return Math.max(mx, (s.ft || 0) + (s.tof || 0));
+          return Math.max(mx, s.canopy_ha || 0);
         }, 0);
 
         sorted.forEach(feature => {
@@ -1952,12 +1954,13 @@
           item.appendChild(nameSpan);
 
           const stats   = countyStatsMap[name.toUpperCase()] || {};
-          const ft      = stats.ft  || 0;
-          const tof     = stats.tof || 0;
-          const total   = ft + tof;
+          const total   = stats.canopy_ha || 0;
+          const ftCanopyPct  = stats.ft_canopy_pct  || 0;
+          const tofCanopyPct = stats.tof_canopy_pct || 0;
+          const canopySplitTotal = ftCanopyPct + tofCanopyPct;
           if (total > 0 && maxTotal > 0) {
-            const ftPct  = (ft  / total * 100).toFixed(1);
-            const tofPct = (tof / total * 100).toFixed(1);
+            const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
+            const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
             const barPct = (total / maxTotal * 100).toFixed(1);
 
             const barContainer = document.createElement("div");
