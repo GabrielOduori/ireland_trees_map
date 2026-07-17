@@ -1097,9 +1097,11 @@
     ];
     const BOUNDARY_STATS_FIELDS = [
       "OBJECTID", "objectid", "id",
-      "settlement", "Settlement", "county", "County",
-      "district_name", "local_authority", "name", "Name", "NAME", "title", "Title",
-      "LA_Name", "MD_Name", "ED_ENGLISH",
+      "settlement", "Settlement", "settlement_name", "Settlement_Name", "county", "County", "COUNTY",
+      "district_name", "District_Name", "municipal_district", "Municipal_District", "municipal_district_name", "Municipal_District_Name",
+      "authority_name", "Authority_Name", "local_authority", "Local_Authority", "local_authority_name", "Local_Authority_Name",
+      "eng_name_value", "Eng_Name_Value", "name", "Name", "NAME", "title", "Title",
+      "LA_Name", "LA_NAME", "MD_Name", "MD_NAME", "ED_ENGLISH",
       "population", "Population",
       "canopy_cover_pct", "Canopy_cover_pct", "canopy_pct", "Canopy_pct",
       "ft_canopy_cover_pct", "Ft_canopy_cover_pct", "FT_canopy_cover_pct",
@@ -2191,6 +2193,26 @@
       if (activeFilteredItem) { activeFilteredItem.classList.remove("active"); activeFilteredItem = null; }
     }
 
+    function buildCanopyStatCard(canopyCoverPct, table) {
+      const wrap = document.createElement("div");
+      const numericCanopyCoverPct = canopyCoverPct != null ? Number(canopyCoverPct) : null;
+      if (Number.isFinite(numericCanopyCoverPct)) {
+        const hero = document.createElement("div");
+        hero.style.cssText = "padding:2px 0 8px;margin-bottom:4px;border-bottom:1px solid #eee;text-align:center;";
+        const label = document.createElement("div");
+        label.style.cssText = "color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;";
+        label.textContent = "Canopy Cover";
+        const value = document.createElement("div");
+        value.style.cssText = "font-size:28px;font-weight:700;line-height:1.1;color:#222;";
+        value.textContent = `${numericCanopyCoverPct.toFixed(1)} %`;
+        hero.appendChild(label);
+        hero.appendChild(value);
+        wrap.appendChild(hero);
+      }
+      wrap.appendChild(table);
+      return wrap;
+    }
+
     function buildBuaPopupContent(attrs) {
       function getVal(keys) {
         for (const k of keys) { if (attrs[k] != null) return attrs[k]; }
@@ -2254,7 +2276,6 @@
       }
 
       addRow("Population",   population);
-      addRow("Canopy Cover", canopyCoverPct, true);
       addRow("Forest Canopy", ftCanopyPct, true);
       addRow("Canopy Outside Forest", tofCanopyPct, true);
 
@@ -2295,7 +2316,7 @@
         addRow("Largest Crown", `${maxCrownAreaM2.toFixed(0)} m²${classLabel(largestClass)}${pctSuffix(areaPctRank, "larger")}`);
       }
 
-      return table;
+      return buildCanopyStatCard(canopyCoverPct, table);
     }
 
     function showPopupAt(title, contentEl, mapPoint) {
@@ -2327,7 +2348,8 @@
     }
 
     function openBuaPopup(attrs, mapPoint) {
-      showPopupAt(attrs.Settlement || attrs.settlement || "Built-up Area", buildBuaPopupContent(attrs), mapPoint);
+      const title = pickDisplayName(attrs);
+      showPopupAt(title === "—" ? "Built-up Area" : title, buildBuaPopupContent(attrs), mapPoint);
     }
 
     function buildFilteredPopupContent(attrs) {
@@ -2366,13 +2388,12 @@
         canopyPct = (canopyAreaKm2 / landAreaKm2) * 100;
       }
 
-      addRow("Canopy Cover",      canopyPct, true);
       addRow("Forest Canopy", ftCanopyPct, true);
       addRow("Canopy Outside Forest", tofCanopyPct, true);
       addRow("Canopy area (km²)", canopyAreaKm2, false, 2);
       addRow("Land area (km²)",   landAreaKm2,   false, 2);
 
-      return table;
+      return buildCanopyStatCard(canopyPct, table);
     }
 
     function openFilteredPopup(attrs, mapPoint) {
@@ -2471,9 +2492,13 @@
 
     // Generic name-field guesser for layers whose schema isn't fully known
     function pickDisplayName(attrs) {
-      const preferred = ["name", "Name", "NAME", "title", "Title",
-        "district_name", "District_Name", "local_authority", "Local_Authority",
-        "LA_Name", "MD_Name", "ED_ENGLISH"];
+      const preferred = ["settlement", "Settlement", "settlement_name", "Settlement_Name",
+        "name", "Name", "NAME", "title", "Title",
+        "district_name", "District_Name", "municipal_district", "Municipal_District",
+        "municipal_district_name", "Municipal_District_Name",
+        "authority_name", "Authority_Name", "local_authority", "Local_Authority",
+        "local_authority_name", "Local_Authority_Name", "LA_Name", "LA_NAME",
+        "MD_Name", "MD_NAME", "eng_name_value", "Eng_Name_Value", "ED_ENGLISH"];
       for (const k of preferred) if (attrs[k]) return maybeTitleCase(String(attrs[k]));
       for (const [k, v] of Object.entries(attrs)) {
         if (typeof v === "string" && v.trim() && !/^(objectid|fid|id|county|shape)/i.test(k)) return maybeTitleCase(v);
@@ -2721,9 +2746,12 @@
     view.on("pointer-move", (event) => {
       if (_hoverHitTestPending) return;
       _hoverHitTestPending = true;
-      const layers = [activeBuaLayer, activeMdLayer, activeLaLayer].filter(Boolean);
-      if (!layers.length) { _hoverHitTestPending = false; return; }
-      view.hitTest(event, { include: layers }).then(({ results }) => {
+      const activeBoundaryLayer =
+        _activeChartTab === "bua" ? activeBuaLayer :
+        _activeChartTab === "md"  ? activeMdLayer :
+                                    activeLaLayer;
+      if (!activeBoundaryLayer || !activeBoundaryLayer.visible) { _hoverHitTestPending = false; return; }
+      view.hitTest(event, { include: [activeBoundaryLayer] }).then(({ results }) => {
         view.container.style.cursor = results.length ? "pointer" : "";
         _hoverHitTestPending = false;
       }).catch(() => { _hoverHitTestPending = false; });
@@ -2774,26 +2802,22 @@
         }
 
         // ---------------------------------------------------------------------------
-        // Built-up areas — custom popup
+        // Active BUA / Municipal District / Local Authority layer — custom popup
         // ---------------------------------------------------------------------------
         clearCrownSelection();
-        if (activeBuaLayer) {
-          const { results: buaResults } = await view.hitTest(event, { include: [activeBuaLayer] });
-          if (buaResults.length) {
-            openBuaPopup(buaResults[0].graphic.attributes || {}, event.mapPoint);
-            return;
-          }
-        }
-
-        // ---------------------------------------------------------------------------
-        // Municipal districts / Local authorities — custom popup
-        // ---------------------------------------------------------------------------
-        if (activeMdLayer || activeLaLayer) {
-          const { results: filteredResults } = await view.hitTest(event, {
-            include: [activeMdLayer, activeLaLayer].filter(Boolean)
-          });
-          if (filteredResults.length) {
-            openFilteredPopup(filteredResults[0].graphic.attributes || {}, event.mapPoint);
+        const activeBoundaryLayer =
+          _activeChartTab === "bua" ? activeBuaLayer :
+          _activeChartTab === "md"  ? activeMdLayer :
+                                      activeLaLayer;
+        if (activeBoundaryLayer) {
+          const { results: boundaryResults } = await view.hitTest(event, { include: [activeBoundaryLayer] });
+          if (boundaryResults.length) {
+            const attrs = boundaryResults[0].graphic.attributes || {};
+            if (_activeChartTab === "bua") {
+              openBuaPopup(attrs, event.mapPoint);
+            } else {
+              openFilteredPopup(attrs, event.mapPoint);
+            }
             return;
           }
         }
