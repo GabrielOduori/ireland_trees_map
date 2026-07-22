@@ -1399,7 +1399,7 @@
       "tof_canopy_cover_pct", "Tof_canopy_cover_pct", "TOF_canopy_cover_pct",
       "total_canopy_area_km2", "Total_canopy_area_km2", "canopy_area_km2", "Canopy_area_km2",
       "land_area_km2", "Land_area_km2", "land_area",
-      "avg_height_m", "Avg_height_m", "max_height_m", "Max_height_m",
+      "max_avg_height_m", "Max_avg_height_m", "avg_height_m", "Avg_height_m", "max_height_m", "Max_height_m",
       "height_pct_rank", "Height_pct_rank", "tallest_tree_class", "Tallest_tree_class",
       "max_canopy_area_m2", "Max_canopy_area_m2", "area_pct_rank", "Area_pct_rank",
       "largest_tree_class", "Largest_tree_class"
@@ -2712,7 +2712,7 @@
       const tofCanopyPct   = getVal(["tof_canopy_cover_pct", "Tof_canopy_cover_pct", "TOF_canopy_cover_pct"]);
       const canopyAreaKm2  = getVal(["total_canopy_area_km2", "Total_canopy_area_km2"]);
       const landAreaKm2    = getVal(["land_area_km2", "Land_area_km2", "land_area"]);
-      const avgHeightM     = getVal(["avg_height_m", "Avg_height_m"]);
+      const avgHeightM     = getVal(["max_avg_height_m", "Max_avg_height_m", "avg_height_m", "Avg_height_m"]);
 
       addRow("Population",   population);
       addRow("Forest Canopy", ftCanopyPct, true);
