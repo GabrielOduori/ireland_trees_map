@@ -1,0 +1,1116 @@
+      html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        font-family: 'Inter', Arial, sans-serif;
+      }
+
+      /* #appHeader removed — home button and search are now floating overlays */
+
+      #homeBtn,
+      #infoBtn,
+      #basemapBtn,
+      #mobileToolsBtn,
+      .zoom-btn {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+        border: 1px solid #bbb;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #2e7d32;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        user-select: none;
+      }
+
+      #homeBtn:hover,
+      #infoBtn:hover,
+      #basemapBtn:hover,
+      #mobileToolsBtn:hover,
+      .zoom-btn:hover {
+        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+        transform: translateY(-1px);
+      }
+
+      #homeBtn:active,
+      #infoBtn:active,
+      #basemapBtn:active,
+      #mobileToolsBtn:active,
+      .zoom-btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+      }
+
+      #basemapBtn {
+        position: absolute;
+        top: 136px;
+        left: 10px;
+        z-index: 20;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Inter', Arial, sans-serif;
+        white-space: nowrap;
+      }
+
+      #mobileToolsBtn { display: none; }
+      #mapTools { display: contents; }
+
+      /* Map overlay containers */
+      #basemapPanel {
+        position: absolute;
+        top: 178px;
+        left: 10px;
+        z-index: 15;
+        display: none;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+        width: 220px;
+        max-width: calc(100vw - 20px);
+        max-height: calc(100vh - 72px);
+        overflow: hidden;
+        padding: 8px;
+      }
+      .basemap-panel-title {
+        color: #333;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 4px 6px 8px;
+      }
+
+      .basemap-option {
+        width: 100%;
+        border: none;
+        background: transparent;
+        border-radius: 5px;
+        color: #333;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px;
+        text-align: left;
+      }
+      .basemap-option:hover { background: #f0faf0; }
+      .basemap-option.active { background: #e8f4e8; color: #1b5e20; }
+      .basemap-option-label { flex: 1; }
+      .basemap-check {
+        color: #2e7d32;
+        font-size: 13px;
+        font-weight: 700;
+        opacity: 0;
+      }
+      .basemap-option.active .basemap-check { opacity: 1; }
+      .basemap-swatch {
+        width: 28px;
+        height: 20px;
+        border-radius: 3px;
+        border: 1px solid rgba(0,0,0,0.18);
+        flex-shrink: 0;
+      }
+      .basemap-swatch.hybrid {
+        background: linear-gradient(135deg, #233622 0%, #54774a 45%, #2c3f32 100%);
+      }
+      .basemap-swatch.satellite {
+        background: linear-gradient(135deg, #203022 0%, #596b46 55%, #1e2b24 100%);
+      }
+      .basemap-swatch.streets {
+        background:
+          linear-gradient(90deg, transparent 45%, #d7d7d7 45%, #d7d7d7 55%, transparent 55%),
+          linear-gradient(0deg, transparent 45%, #cfcfcf 45%, #cfcfcf 55%, transparent 55%),
+          #f8f7f2;
+      }
+      .basemap-swatch.topo {
+        background: repeating-linear-gradient(135deg, #d9c89d 0 2px, #edf1d8 2px 7px);
+      }
+      .basemap-swatch.dark {
+        background: linear-gradient(135deg, #23272b 0%, #454b50 100%);
+      }
+
+      #scaleBarPanel {
+        position: absolute;
+        bottom: 24px;
+        left: 10px;
+        z-index: 15;
+      }
+
+      #canopyStatsPanel {
+        position: fixed;
+        bottom: 56px;
+        left: 10px;
+        z-index: 15;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        padding: 10px 12px 10px 10px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 220px;
+      }
+
+      @keyframes statsUpdatePulse {
+        0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(46,125,50,0.5); }
+        30%  { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(46,125,50,0.25); }
+        100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(46,125,50,0); }
+      }
+      #canopyStatsPanel.pulse { animation: statsUpdatePulse 0.5s ease-out; }
+
+      #canopyStatsTitle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+        gap: 8px;
+      }
+
+      #canopyStatsClose {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        color: #aaa;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        transition: color 0.15s;
+      }
+      #canopyStatsClose:hover { color: #555; }
+
+      #canopyStatsContent {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+
+      #canopyPieRow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+      }
+
+      .canopy-legend {
+        flex: 1;
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.25;
+        text-align: center;
+        overflow-wrap: break-word;
+      }
+
+      #canopyStatsGrid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3px;
+        width: 100%;
+      }
+
+      .canopy-stat {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        gap: 8px;
+      }
+
+      .canopy-stat-label { color: #666; }
+      .canopy-stat-value { font-weight: 700; color: #222; }
+
+      #buaChartPanel {
+        position: absolute;
+        top: 178px;
+        left: 10px;
+        width: 220px;
+        max-height: calc(100vh - 200px);
+        z-index: 12;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #buaChartHeader {
+        background: #f03b20;
+        color: white;
+        padding: 6px 10px 6px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      #chartTabs {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        flex-shrink: 0;
+      }
+      .chart-tab {
+        flex: 1;
+        border: none;
+        background: #f5f5f5;
+        padding: 6px 4px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        color: #777;
+      }
+      .chart-tab.active { background: white; color: #222; }
+      .chart-tab[data-tab="bua"].active { box-shadow: inset 0 -3px 0 #f03b20; }
+      .chart-tab[data-tab="md"].active  { box-shadow: inset 0 -3px 0 #ffeda0; }
+      .chart-tab[data-tab="la"].active  { box-shadow: inset 0 -3px 0 #feb24c; }
+
+      .chart-loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 12px;
+        color: #888;
+        font-size: 12px;
+      }
+      .chart-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #ddd;
+        border-top-color: #888;
+        border-radius: 50%;
+        flex-shrink: 0;
+        animation: chartSpin 0.7s linear infinite;
+      }
+      @keyframes chartSpin { to { transform: rotate(360deg); } }
+
+      #buaChartTitle {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      #buaChartTitleMain {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.85;
+      }
+
+      #buaChartTitleCounty {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      #buaChartClose, #buaChartCollapse {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+        opacity: 0.8;
+      }
+      #buaChartClose:hover, #buaChartCollapse:hover { opacity: 1; }
+      #buaChartBody {
+        overflow-y: auto;
+        flex: 1;
+        padding: 6px 10px 10px;
+      }
+
+
+
+      #zoomLevelPanel {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 15;
+        background: white;
+        border-radius: 4px;
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      }
+
+      #crownLoadingBadge {
+        display: none;
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 16;
+        background: white;
+        border-radius: 14px;
+        padding: 6px 14px 6px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #444;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+        align-items: center;
+        gap: 8px;
+      }
+      #crownLoadingBadge.visible { display: flex; }
+      #crownLoadingBadge.error {
+        color: #b42318;
+        border: 1px solid rgba(180,35,24,0.22);
+      }
+      #crownLoadingBadge.error .chart-spinner { display: none; }
+      #crownLoadingBadge .chart-spinner { width: 12px; height: 12px; }
+
+      /* --------------------------------------------------------------------------- */
+      /* Floating home button */
+      /* --------------------------------------------------------------------------- */
+      #homeBtn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 0;
+        color: #2e7d32;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      }
+      #homeBtn:hover {
+        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+        transform: translateY(-1px);
+      }
+      #homeBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+      #homeBtn svg { width: 18px; height: 18px; fill: currentColor; }
+
+      /* --------------------------------------------------------------------------- */
+      /* Floating info button */
+      /* --------------------------------------------------------------------------- */
+      #infoBtn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 100%);
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        cursor: pointer;
+        padding: 0;
+        color: #2e7d32;
+        font-weight: 700;
+        font-size: 16px;
+        font-family: 'Inter', Arial, sans-serif;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      }
+      #infoBtn:hover {
+        background: linear-gradient(180deg, #fff 0%, #eaf4ea 100%);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+        transform: translateY(-1px);
+      }
+      #infoBtn:active { transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+
+      /* --------------------------------------------------------------------------- */
+      /* Info modal */
+      /* --------------------------------------------------------------------------- */
+      #infoOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+      }
+      #infoOverlay.visible { display: flex; }
+      #infoModal {
+        background: white;
+        border-radius: 8px;
+        max-width: 480px;
+        width: calc(100% - 40px);
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+        position: relative;
+      }
+      #infoModalHeader {
+        position: sticky;
+        top: 0;
+        background: white;
+        padding: 16px 40px 12px 20px;
+        border-bottom: 1px solid #eee;
+      }
+      #infoModalHeader h2 { margin: 0; font-size: 17px; }
+      #infoModalClose {
+        position: absolute;
+        top: 12px; right: 12px;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 18px;
+        color: #888;
+        cursor: pointer;
+        line-height: 1;
+        padding: 4px;
+      }
+      #infoModalClose:hover { color: #444; }
+      #infoModalBody { padding: 16px 20px 20px; font-size: 13px; line-height: 1.55; color: #333; }
+      #infoModalBody h3 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #555;
+        margin: 18px 0 6px;
+      }
+      #infoModalBody h3:first-child { margin-top: 0; }
+      #infoModalBody p { margin: 0 0 8px; }
+      #infoModalBody ul { margin: 0 0 8px; padding-left: 20px; }
+
+      /* --------------------------------------------------------------------------- */
+      /* Floating search box */
+      /* --------------------------------------------------------------------------- */
+      #floatingSearch {
+        position: absolute;
+        top: 10px;
+        left: 56px;
+        z-index: 20;
+        width: 280px;
+        max-width: calc(100vw - 120px);
+      }
+      #floatingSearch .esri-search,
+      #floatingSearch .esri-search__container {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      }
+      #floatingSearch .esri-input,
+      #floatingSearch .esri-widget--button {
+        font-family: 'Inter', Arial, sans-serif;
+      }
+      #floatingSearch .esri-search__submit-button,
+      #floatingSearch .esri-search__clear-button {
+        color: #2e7d32;
+      }
+
+      /* --------------------------------------------------------------------------- */
+      /* Zoom buttons */
+      /* --------------------------------------------------------------------------- */
+      #zoomBtns {
+        position: absolute;
+        top: 56px;
+        left: 10px;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .zoom-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+        font-weight: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+
+      #sidePanelWrapper {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        z-index: 10;
+        transition: transform 0.3s ease;
+      }
+
+      #sidePanelWrapper.collapsed {
+        transform: translateX(100%) translateY(-50%);
+      }
+
+      #countyPanel {
+        width: fit-content;
+        min-width: 220px;
+        max-width: 400px;
+        height: auto;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: white;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
+        border-radius: 8px 0 0 8px;
+      }
+
+      #collapseBtn {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 28px;
+        height: 52px;
+        background: #455a64;
+        border: none;
+        border-radius: 4px 0 0 4px;
+        cursor: pointer;
+        color: white;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: -2px 2px 6px rgba(0,0,0,0.25);
+        z-index: 20;
+        transition: right 0.3s ease, background 0.15s, transform 0.15s ease;
+      }
+
+      #collapseBtn:hover { background: #546e7a; transform: translateY(-50%) scaleX(1.15); }
+      #collapseBtn:active { background: #37474f; transform: translateY(-50%) scaleX(0.95); }
+
+      #panelHeader {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      #countyPanel h2 {
+        margin: 0;
+        padding: 12px 16px 8px;
+        font-size: 14px;
+      }
+
+
+
+
+      #countyList {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      #countyList li {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 22px 5px 10px;
+        border-bottom: 1px solid #eee;
+        border-left: 4px solid transparent;
+        font-size: 13px;
+        font-weight: normal;
+        transition: background 0.15s, border-left-color 0.15s, padding-left 0.15s;
+        position: relative;
+      }
+
+      #countyList li:hover {
+        background: #f0faf0;
+        border-left-color: rgba(46,125,50,0.4);
+        padding-left: 13px;
+      }
+
+      #countyList li::after {
+        content: "›";
+        position: absolute;
+        right: 8px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #2e7d32;
+        opacity: 0;
+        transform: translateX(-4px);
+        transition: opacity 0.15s, transform 0.15s;
+      }
+
+      #countyList li:hover::after {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      #countyList li:active { background: #ddf0dd; }
+
+      #countyList li.active {
+        background: #e8f4e8;
+        border-left-color: #2e7d32;
+      }
+
+      #countyList li.active::after {
+        opacity: 1;
+        transform: translateX(0);
+        color: #1b5e20;
+      }
+
+      #countyList li.kbd-focus { background: #f0faf0; outline: 2px solid #2e7d32; outline-offset: -2px; }
+      #countyList li.no-match  { display: none; }
+      #countyList .county-name mark { background: #cdeccd; color: inherit; border-radius: 2px; padding: 0 1px; }
+
+      #countySearchWrap { padding: 6px 16px; border-bottom: 1px solid #eee; }
+      #countyBarControls {
+        padding: 6px 16px 8px;
+        border-bottom: 1px solid #eee;
+      }
+      #countyBarNote {
+        color: #666;
+        font-size: 10px;
+        line-height: 1.2;
+        margin-bottom: 5px;
+        text-align: center;
+      }
+      #countyBarLegend {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        color: #666;
+        font-size: 10px;
+        line-height: 1.2;
+      }
+      .county-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      .county-legend-chip {
+        width: 8px;
+        height: 8px;
+        border-radius: 1px;
+        flex-shrink: 0;
+      }
+      #countySortMetricHint {
+        margin-top: 5px;
+        color: #777;
+        font-size: 10px;
+        line-height: 1.2;
+        text-align: center;
+      }
+      #countySortRow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #555;
+        font-size: 11px;
+      }
+      #countySortSelect {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        color: #333;
+        background: white;
+        font-size: 11px;
+        padding: 4px 6px;
+      }
+      #countySearchInput {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        outline: none;
+      }
+      #countySearchInput:focus { border-color: #2e7d32; box-shadow: 0 0 0 2px rgba(46,125,50,0.15); }
+
+      .bua-name { display: block; font-weight: 500; color: #333; font-size: 13px; font-family: 'Inter', Arial, sans-serif; }
+      .bua-meta { font-size: 10px; color: #888; margin-top: 1px; }
+      .list-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        color: #777;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .list-status.error { color: #b42318; }
+      .list-status button {
+        border: 1px solid currentColor;
+        background: white;
+        color: inherit;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      #countyList li.list-status,
+      #buaChartBody li.list-status {
+        cursor: default;
+        border-left-color: transparent;
+        padding: 12px;
+      }
+      #countyList li.list-status:hover,
+      #buaChartBody li.list-status:hover {
+        background: transparent;
+        padding-left: 12px;
+      }
+      #countyList li.list-status::after,
+      #buaChartBody li.list-status::after {
+        display: none;
+      }
+
+      .county-name {
+        width: 90px;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .county-bar-container {
+        flex: 1;
+        height: 20px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        display: flex;
+        position: relative;
+      }
+
+      .county-canopy-pct {
+        width: 38px;
+        flex-shrink: 0;
+        color: #555;
+        font-size: 11px;
+        font-weight: 400;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .county-bar-wrap {
+        display: flex;
+        height: 100%;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .county-bar-ft {
+        background: rgba(0, 255, 0, 0.6);
+        overflow: hidden;
+      }
+
+      .county-bar-tof {
+        background: rgba(255, 0, 255, 0.6);
+        overflow: hidden;
+      }
+
+      #viewDiv {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+      }
+
+      #crownPopup {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        min-width: 220px;
+        max-width: 300px;
+        font-family: 'Inter', Arial, sans-serif;
+        pointer-events: auto;
+      }
+      #crownPopupHeader {
+        background: rgba(0,255,0,0.6);
+        color: #222;
+        padding: 8px 32px 8px 12px;
+        border-radius: 6px 6px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        position: relative;
+        cursor: grab;
+        touch-action: none;
+      }
+      #crownPopupHeader:active { cursor: grabbing; }
+      #crownPopupClose {
+        position: absolute;
+        top: 4px; right: 8px;
+        background: none;
+        border: none;
+        color: #222;
+        font-size: 18px;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+      }
+      #crownPopupBody { padding: 8px 4px; }
+
+      #buaPopup {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        min-width: 170px;
+        max-width: 260px;
+        font-family: 'Inter', Arial, sans-serif;
+        pointer-events: auto;
+      }
+      #buaPopupHeader {
+        background: #fff;
+        color: #111;
+        padding: 8px 32px 8px 12px;
+        border-radius: 6px 6px 0 0;
+        border-bottom: 1px solid #eee;
+        font-size: 13px;
+        font-weight: 600;
+        position: relative;
+        cursor: grab;
+        touch-action: none;
+      }
+      #buaPopupHeader:active { cursor: grabbing; }
+      #buaPopupClose {
+        position: absolute;
+        top: 4px; right: 8px;
+        background: none;
+        border: none;
+        color: #666;
+        font-size: 18px;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+      }
+      #buaPopupBody { padding: 8px 4px; }
+
+      /* --------------------------------------------------------------------------- */
+      /* Toggle switches */
+      /* --------------------------------------------------------------------------- */
+      #layerToggleRow input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 34px;
+        height: 19px;
+        background: #ccc;
+        border-radius: 10px;
+        position: relative;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background 0.2s ease;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+      }
+      #layerToggleRow input[type="checkbox"]::before {
+        content: "";
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      }
+      #layerToggleRow input[type="checkbox"]:checked {
+        background: #2e7d32;
+      }
+      #layerToggleRow input[type="checkbox"]:checked::before {
+        transform: translateX(15px);
+      }
+      #layerToggleRow input[type="checkbox"]:hover {
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 3px rgba(46,125,50,0.18);
+      }
+      #layerToggleRow input#buaLayerToggle:checked { background: #f03b20; }
+      #layerToggleRow input#mdLayerToggle:checked  { background: #ffeda0; }
+      #layerToggleRow input#laLayerToggle:checked  { background: #feb24c; }
+
+      /* BUA list item hover */
+      #buaChartBody li {
+        transition: background 0.15s, border-left-color 0.15s, padding-left 0.15s !important;
+        position: relative;
+      }
+      #buaChartBody li:hover {
+        padding-left: 16px !important;
+        border-left-color: rgba(179,90,0,0.5) !important;
+      }
+      #buaChartBody li.active {
+        background: #fff3e0 !important;
+        border-left-color: #b35a00 !important;
+      }
+      #buaChartBody li::after {
+        content: "›";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translate(-4px, -50%);
+        font-size: 16px;
+        font-weight: 700;
+        color: #b35a00;
+        opacity: 0;
+        transition: opacity 0.15s, transform 0.15s;
+        pointer-events: none;
+      }
+      #buaChartBody li:hover::after {
+        opacity: 1;
+        transform: translate(0, -50%);
+      }
+
+      /* Narrow-viewport anti-collision: countyPanel (right) and
+         buaChartPanel/canopyStatsPanel (left) were sized for desktop and
+         can overlap on phone-width screens. Cap their widths relative to
+         the viewport instead of a fixed px value. Desktop is unaffected. */
+      @media (max-width: 700px) {
+        #mobileToolsBtn {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 21;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          padding: 0;
+          font-size: 18px;
+          font-weight: 700;
+          font-family: 'Inter', Arial, sans-serif;
+        }
+        #mapTools {
+          position: absolute;
+          top: 56px;
+          right: 10px;
+          z-index: 21;
+          display: none;
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-end;
+          background: rgba(255,255,255,0.94);
+          border: 1px solid rgba(0,0,0,0.12);
+          border-radius: 10px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.24);
+          padding: 8px;
+        }
+        body.tools-open #mapTools { display: flex; }
+        #mapTools #infoBtn,
+        #mapTools #basemapBtn,
+        #mapTools #zoomBtns {
+          position: static;
+          top: auto;
+          right: auto;
+          left: auto;
+          z-index: auto;
+        }
+        #mapTools #infoBtn {
+          width: 40px;
+          height: 40px;
+        }
+        #mapTools #basemapBtn {
+          width: 132px;
+          text-align: left;
+        }
+        #mapTools #zoomBtns {
+          flex-direction: row;
+          gap: 8px;
+        }
+        #mapTools .zoom-btn {
+          width: 40px;
+          height: 40px;
+        }
+        #floatingSearch {
+          left: 56px;
+          right: 58px;
+          width: auto;
+          max-width: none;
+        }
+        #basemapPanel {
+          top: 192px;
+          right: 10px;
+          left: auto;
+          z-index: 22;
+        }
+        #sidePanelWrapper {
+          top: auto;
+          left: 8px;
+          right: 8px;
+          bottom: 8px;
+          transform: none;
+          z-index: 18;
+        }
+        #sidePanelWrapper.collapsed {
+          transform: translateY(calc(100% - 44px));
+        }
+        #countyPanel {
+          width: auto;
+          min-width: 0;
+          max-width: none;
+          max-height: 42vh;
+          border-radius: 8px;
+          box-shadow: 0 -3px 18px rgba(0,0,0,0.22);
+        }
+        #collapseBtn {
+          top: auto;
+          right: 14px !important;
+          bottom: 8px;
+          transform: none;
+          width: 44px;
+          height: 34px;
+          border-radius: 8px 8px 0 0;
+          z-index: 21;
+        }
+        #collapseBtn:hover,
+        #collapseBtn:active {
+          transform: none;
+        }
+        #buaChartPanel {
+          position: fixed;
+          left: 8px;
+          right: 8px;
+          bottom: 8px;
+          top: auto;
+          width: auto;
+          max-height: 42vh;
+          border-radius: 8px;
+          box-shadow: 0 -3px 18px rgba(0,0,0,0.22);
+          z-index: 19;
+        }
+        #countyBarLegend,
+        #countySortMetricHint {
+          display: none;
+        }
+        #countyList li {
+          min-height: 32px;
+          padding-top: 6px;
+          padding-bottom: 6px;
+        }
+        #canopyStatsPanel { min-width: 150px; max-width: 55vw; }
+        #crownPopup,
+        #buaPopup {
+          left: 8px !important;
+          right: 8px !important;
+          bottom: 8px !important;
+          top: auto !important;
+          width: auto;
+          min-width: 0;
+          max-width: none;
+          max-height: 45vh;
+          overflow: auto;
+          border-radius: 8px;
+        }
+        #crownPopupHeader,
+        #buaPopupHeader {
+          cursor: default;
+          touch-action: auto;
+        }
+      }
+

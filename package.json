@@ -1,0 +1,10 @@
+{
+  "name": "ireland-trees-map",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "python -m http.server 8000",
+    "check": "node --check src/config.js && node --check src/state.js && node --check src/utils.js && node --check src/popups.js && node --check src/chart.js && node --check src/crown-layer.js && node --check src/county-list.js && node --check src/app.js"
+  }
+}
