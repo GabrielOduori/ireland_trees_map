@@ -233,7 +233,7 @@
 
     const countyLayer = new FeatureLayer({
       url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
-      outFields: ["COUNTY", "ENGLISH"],
+      outFields: ["ENGLISH"],
       visible: false
     });
 
@@ -852,7 +852,7 @@
           const result = await countyLayer.queryFeatures({
             geometry,
             spatialRelationship: "intersects",
-            outFields: ["COUNTY", "ENGLISH"],
+            outFields: ["ENGLISH"],
             returnGeometry: true,
             outSpatialReference: { wkid: 4326 }
           });
@@ -924,7 +924,7 @@
         setCountyListStatus("loading", "Loading county canopy stats…");
         countyLayer.queryFeatures({
           where: "1=1",
-          outFields: ["COUNTY", "ENGLISH"],
+          outFields: ["ENGLISH"],
           returnGeometry: true,
           outSpatialReference: { wkid: 4326 }
         }).then(result => {
