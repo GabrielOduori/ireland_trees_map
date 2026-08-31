@@ -232,10 +232,16 @@
     }
 
     const countyLayer = new FeatureLayer({
-      url: "https://services6.arcgis.com/MmUrOQU5v1he9gfS/arcgis/rest/services/Counties_OSi_Ireland/FeatureServer/0",
-      outFields: ["ENGLISH"],
+      portalItem: state._portal
+        ? { id: COUNTY_LAYER_ITEM_ID, portal: state._portal }
+        : { id: COUNTY_LAYER_ITEM_ID },
+      outFields: ["*"],
       visible: false
     });
+
+    function getCountyName(attrs = {}) {
+      return attrs.county_name || attrs.COUNTY || attrs.ENGLISH || "";
+    }
 
     const countyOutlineLayer = new GraphicsLayer();
     map.add(countyOutlineLayer);
@@ -852,13 +858,13 @@
           const result = await countyLayer.queryFeatures({
             geometry,
             spatialRelationship: "intersects",
-            outFields: ["ENGLISH"],
+            outFields: ["*"],
             returnGeometry: true,
             outSpatialReference: { wkid: 4326 }
           });
           if (result.features.length === 0) return;
           const feat = result.features[0];
-          const name = feat.attributes.COUNTY || feat.attributes.ENGLISH;
+          const name = getCountyName(feat.attributes);
           if (!name) return;
           let matchItem = null;
           countyList.querySelectorAll("li").forEach(li => {
@@ -924,14 +930,14 @@
         setCountyListStatus("loading", "Loading county canopy stats…");
         countyLayer.queryFeatures({
           where: "1=1",
-          outFields: ["ENGLISH"],
+          outFields: ["*"],
           returnGeometry: true,
           outSpatialReference: { wkid: 4326 }
         }).then(result => {
         const countyFeatures = result.features.slice();
 
         function countyName(feature) {
-          return feature.attributes.COUNTY || feature.attributes.ENGLISH || "";
+          return getCountyName(feature.attributes);
         }
 
         function countyStats(feature) {
