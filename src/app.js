@@ -874,11 +874,8 @@
           activateCounty(name, feat, matchItem, false);
 
           // Searching an address gives no clue that the BUA boundary around it is
-          // clickable — briefly flash it (not a persistent selection/highlight) so
-          // the viewer notices there's something to click on arrival. The Search
-          // widget's own zoom is street-level, which often lands well inside a BUA
-          // with its boundary line off-screen — so re-fit the view to the BUA's
-          // extent first, otherwise the flash would highlight geometry nobody can see.
+          // clickable — briefly flash it (not a persistent selection/highlight)
+          // without changing the search result zoom.
           const landedBuaLayer = state.activeBuaLayer;
           if (landedBuaLayer) {
             try {
@@ -892,7 +889,6 @@
               bq.outFields           = [oidField];
               const { features: hits } = await landedBuaLayer.queryFeatures(bq);
               if (hits.length) {
-                await view.goTo(hits[0].geometry.extent.expand(1.3));
                 const id = hits[0].attributes[oidField];
                 if (id != null) _flashedBuaIds.add(id);
                 blinkHighlight(lv, hits[0]);
