@@ -873,6 +873,15 @@
         clearActiveCounty();
       }
 
+      document.getElementById("countyResetBtn").addEventListener("click", () => {
+        const input = document.getElementById("countySearchInput");
+        input.value = "";
+        countySortSelect.value = "az";
+        countySortSelect.dispatchEvent(new Event("change"));
+        if (countyList.applyFilter) countyList.applyFilter();
+        goHome();
+      });
+
       // ---------------------------------------------------------------------------
       // Eircode / address search
       // ---------------------------------------------------------------------------

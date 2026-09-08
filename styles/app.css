@@ -735,6 +735,22 @@
         font-size: 11px;
         padding: 4px 6px;
       }
+      #countyResetBtn {
+        flex-shrink: 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background: #fff;
+        color: #444;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 11px;
+        padding: 4px 7px;
+      }
+      #countyResetBtn:hover {
+        border-color: #2e7d32;
+        color: #1b5e20;
+        background: #f0faf0;
+      }
       #countySearchInput {
         width: 100%;
         box-sizing: border-box;
