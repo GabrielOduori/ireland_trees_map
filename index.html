@@ -56,7 +56,7 @@
           <h3>How to use the map</h3>
           <ul>
             <li>The map starts with a national overview as an aerial image. Toggle between basemaps to change the underlying map.</li>
-            <li>The bar on the right of the screen displays relative tree canopy per county. Select a county from the list (or type an address into the search bar) to zoom in for detail.</li>
+            <li>The county list shows land-area-scaled canopy bars; the coloured fill is enlarged for visibility, while the percentage value remains the true county canopy cover. Select a county from the list, or type an address into the search bar, to zoom in for detail.</li>
             <li>Switch between Built-up Areas / Municipal District / Local Authority tabs to explore canopy at various administrative levels. Use the toggles to show/hide layers.</li>
             <li>Zoom in to a neighbourhood. Click any tree crown on the map for details of that individual crown.</li>
             <li>Click the Home button to return to the starting page (the national overview).</li>
@@ -155,6 +155,7 @@
           <input type="text" id="countySearchInput" placeholder="Filter counties…" autocomplete="off" aria-label="Filter counties">
         </div>
         <div id="countyBarControls">
+          <div id="countyPanelHint">Search or click a county to zoom.<br>Bars compare county size and canopy cover.</div>
           <div id="countyBarNote">Colour fill shown 10x; value = county cover %</div>
           <div id="countyBarLegend" aria-label="County bar colour legend">
             <span class="county-legend-item"><span class="county-legend-chip" style="background:rgba(0,255,0,0.6)"></span>Forest</span>
@@ -170,7 +171,7 @@
               <option value="outside">Highest Canopy Outside Forest</option>
             </select>
           </label>
-          <div id="countySortMetricHint">Value: canopy cover %</div>
+          <div id="countySortMetricHint">Metric: canopy cover %</div>
         </div>
         <ul id="countyList"></ul>
       </div>

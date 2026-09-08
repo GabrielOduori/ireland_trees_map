@@ -16,6 +16,15 @@
     import { updateCanopyStats, refreshChartPanel } from "./chart.js";
     import { clearBuaList } from "./county-list.js";
 
+    const startupStatusBadge = document.getElementById("crownLoadingBadge");
+    const startupStatusText = startupStatusBadge?.querySelector("span:last-child");
+    function showStartupStatus(message, isError = false) {
+      if (!startupStatusBadge || !startupStatusText) return;
+      startupStatusText.textContent = message;
+      startupStatusBadge.classList.toggle("error", isError);
+      startupStatusBadge.classList.add("visible");
+    }
+
     const esriConfig      = await $arcgis.import("@arcgis/core/config.js");
     const OAuthInfo       = await $arcgis.import("@arcgis/core/identity/OAuthInfo.js");
     const IdentityManager = await $arcgis.import("@arcgis/core/identity/IdentityManager.js");
@@ -31,7 +40,13 @@
     try {
       _cred = await IdentityManager.checkSignInStatus("https://www.arcgis.com/sharing");
     } catch (_) {
-      _cred = await IdentityManager.getCredential("https://www.arcgis.com/sharing");
+      try {
+        _cred = await IdentityManager.getCredential("https://www.arcgis.com/sharing");
+      } catch (e) {
+        console.error("[auth] ArcGIS sign-in failed:", e?.message || e);
+        showStartupStatus("ArcGIS sign-in failed. Check the registered redirect URL.", true);
+        throw e;
+      }
     }
 
     // Explicitly register the portal credential for the tile CDN so VTL requests are authenticated
@@ -108,6 +123,7 @@
         });
       } catch (e) {
         console.warn("County stats layer query failed — canopy stats panel/county list will be empty:", e);
+        showStartupStatus("County canopy statistics could not be loaded.", true);
       }
 
       // Feature layers — tagged IrelandsTREEMAP
@@ -148,6 +164,7 @@
       });
     } catch (e) {
       console.warn("Crown layer discovery failed:", e);
+      showStartupStatus("Canopy layer discovery failed.", true);
     }
 
     // ---------------------------------------------------------------------------
@@ -676,8 +693,10 @@
           minScale: 0, maxScale: 0
         });
         applyExistingOutFields(state.activeBuaLayer, BOUNDARY_STATS_FIELDS);
-        state.activeBuaLayer.on("layerview-create-error", e =>
-          console.error(`[bua] failed to render BUA layer for ${name}:`, e.error));
+        state.activeBuaLayer.on("layerview-create-error", e => {
+          console.error(`[bua] failed to render BUA layer for ${name}:`, e.error);
+          setCrownError("Built-up area boundaries could not be loaded.");
+        });
         buaLayerToggle.checked  = true;
         mdLayerToggle.checked   = true;
         layerToggleRow.style.display = "block";
@@ -702,8 +721,10 @@
           }),
         });
         applyExistingOutFields(state.activeMdLayer, BOUNDARY_STATS_FIELDS);
-        state.activeMdLayer.on("layerview-create-error", e =>
-          console.error(`[md] layer error:`, e.error));
+        state.activeMdLayer.on("layerview-create-error", e => {
+          console.error(`[md] layer error:`, e.error);
+          setCrownError("Municipal district boundaries could not be loaded.");
+        });
         map.add(state.activeMdLayer, 1);  // just above BUA layer
 
         // Local authorities — filtered to active county, sits above Municipal Districts
@@ -725,8 +746,10 @@
           }),
         });
         applyExistingOutFields(state.activeLaLayer, BOUNDARY_STATS_FIELDS);
-        state.activeLaLayer.on("layerview-create-error", e =>
-          console.error(`[la] layer error:`, e.error));
+        state.activeLaLayer.on("layerview-create-error", e => {
+          console.error(`[la] layer error:`, e.error);
+          setCrownError("Local authority boundaries could not be loaded.");
+        });
         laLayerToggle.checked = true;
         map.add(state.activeLaLayer, 2);  // just above Municipal Districts
 
@@ -856,6 +879,7 @@
       search.on("select-result", async (event) => {
         const geometry = event.result?.feature?.geometry;
         if (!geometry) return;
+        setCrownLoading("Finding county for location…");
         try {
           const result = await countyLayer.queryFeatures({
             geometry,
@@ -864,10 +888,16 @@
             returnGeometry: true,
             outSpatialReference: { wkid: 4326 }
           });
-          if (result.features.length === 0) return;
+          if (result.features.length === 0) {
+            setCrownError("Location found, but no county boundary matched it.");
+            return;
+          }
           const feat = result.features[0];
           const name = getCountyName(feat.attributes);
-          if (!name) return;
+          if (!name) {
+            setCrownError("Location found, but the county name could not be read.");
+            return;
+          }
           let matchItem = null;
           countyList.querySelectorAll("li").forEach(li => {
             if (li.querySelector(".county-name")?.textContent === name) matchItem = li;
@@ -894,9 +924,14 @@
                 if (id != null) _flashedBuaIds.add(id);
                 blinkHighlight(lv, hits[0]);
               }
-            } catch (_) {}
+            } catch (e) {
+              console.warn("[search] BUA flash failed:", e?.message || e);
+            }
           }
-        } catch (_) {}
+        } catch (e) {
+          console.error("[search] county lookup failed:", e?.message || e);
+          setCrownError("Location found, but county data could not be loaded.");
+        }
       });
 
       // ---------------------------------------------------------------------------
@@ -962,18 +997,18 @@
 
         function activeMetricLabel(value) {
           if (countySortSelect.value === "canopyArea") {
-            return `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} ha`;
+            return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
           }
           return `${value.toFixed(1)}%`;
         }
 
         function updateCountyMetricHint() {
           const labels = {
-            az: "Value: canopy cover %",
-            canopy: "Value: canopy cover %",
-            canopyArea: "Value: canopy area (ha)",
-            forest: "Value: Forest Canopy %",
-            outside: "Value: Canopy Outside Forest %"
+            az: "Metric: canopy cover %",
+            canopy: "Metric: canopy cover %",
+            canopyArea: "Metric: canopy area (ha)",
+            forest: "Metric: Forest Canopy %",
+            outside: "Metric: Canopy Outside Forest %"
           };
           countySortMetricHint.textContent = labels[countySortSelect.value] || labels.az;
         }
