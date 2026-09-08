@@ -469,6 +469,7 @@
       // Info modal
       // ---------------------------------------------------------------------------
       const infoOverlay = document.getElementById("infoOverlay");
+      document.getElementById("currentYear").textContent = new Date().getFullYear();
       function closeInfoModal() {
         infoOverlay.classList.remove("visible");
       }
