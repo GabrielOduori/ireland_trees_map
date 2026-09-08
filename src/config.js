@@ -17,7 +17,7 @@ export const COUNTY_LAYER_ITEM_ID = "259ee297ee034edaa3d22b082ab03732";
 export const COUNTY_STATS_FIELDS = [
   "county_name", "forest_trees", "trees_outside_forests",
   "canopy_cover_pct", "ft_canopy_cover_pct", "tof_canopy_cover_pct",
-  "total_canopy_area_km2", "max_height_m", "max_canopy_area_m2"
+  "total_canopy_area_km2", "land_area_km2", "max_height_m", "max_canopy_area_m2"
 ];
 export const BOUNDARY_STATS_FIELDS = [
   "OBJECTID", "objectid", "id",

@@ -101,6 +101,7 @@
             tof_canopy_pct:     a.tof_canopy_cover_pct,
             // mv_county_stats stores km² — state.countyStatsMap/updateCanopyStats expect ha.
             canopy_ha:          a.total_canopy_area_km2 != null ? a.total_canopy_area_km2 * 100 : null,
+            land_area_km2:       a.land_area_km2,
             max_height_m:       a.max_height_m,
             max_crown_area_m2:  a.max_canopy_area_m2
           };
@@ -944,6 +945,17 @@
           return state.countyStatsMap[countyName(feature).toUpperCase()] || {};
         }
 
+        function countyLandAreaKm2(feature) {
+          const statsArea = Number(countyStats(feature).land_area_km2);
+          if (Number.isFinite(statsArea) && statsArea > 0) return statsArea;
+          const geometryArea = geometryEngine.geodesicArea(feature.geometry, "square-kilometers");
+          return Number.isFinite(geometryArea) ? Math.abs(geometryArea) : 0;
+        }
+
+        const maxCountyLandAreaKm2 = countyFeatures.reduce((max, feature) => {
+          return Math.max(max, countyLandAreaKm2(feature));
+        }, 0);
+
         function activeMetricValue(stats) {
           if (countySortSelect.value === "canopyArea") return stats.canopy_ha || 0;
           if (countySortSelect.value === "forest") return stats.ft_canopy_pct || 0;
@@ -1018,15 +1030,22 @@
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
               const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              const barPct = total.toFixed(1);
+              const barPct = Math.min(total * 10, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
+              const landAreaKm2 = countyLandAreaKm2(feature);
+              const countySizePct = maxCountyLandAreaKm2 > 0 ? landAreaKm2 / maxCountyLandAreaKm2 * 100 : 100;
+              const landAreaLabel = `${landAreaKm2.toLocaleString(undefined, { maximumFractionDigits: 0 })} km²`;
               const metricLabel = activeMetricLabel(activeMetric);
+
+              const barScale = document.createElement("div");
+              barScale.className = "county-bar-scale";
 
               const barContainer = document.createElement("div");
               barContainer.className = "county-bar-container";
-              barContainer.title = `Canopy cover ${totalLabel}; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
+              barContainer.style.width = `${countySizePct}%`;
+              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; colour fill is shown 10x for visibility; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
 
               const barWrap = document.createElement("div");
               barWrap.className = "county-bar-wrap";
@@ -1042,7 +1061,8 @@
               barWrap.appendChild(ftBar);
               barWrap.appendChild(tofBar);
               barContainer.appendChild(barWrap);
-              item.appendChild(barContainer);
+              barScale.appendChild(barContainer);
+              item.appendChild(barScale);
 
               const pctSpan = document.createElement("span");
               pctSpan.className = "county-canopy-pct";
