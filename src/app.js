@@ -993,14 +993,18 @@
           return Number.isFinite(geometryArea) ? Math.abs(geometryArea) : 0;
         }
 
-        // Reference point for the county-list canopy bars: whatever the highest
-        // county canopy_pct actually is becomes the value that fills the bar to
-        // 100%. This keeps the bar a genuine, unclipped multiple of the real
-        // figure (previously a flat ×10 that clipped anything ≥10% canopy) and
-        // stays correct automatically if the underlying data changes.
-        const maxCountyCanopyPct = countyFeatures.reduce((max, feature) => {
-          return Math.max(max, countyStats(feature).canopy_pct || 0);
-        }, 0);
+        // Shared display name per sort/metric mode — used for both the hint text
+        // above the list and the bar tooltip below, so they always agree.
+        const METRIC_NAMES = {
+          az:         "Canopy cover %",
+          canopy:     "Canopy cover %",
+          canopyArea: "Canopy area (ha)",
+          forest:     "Forest Canopy %",
+          outside:    "Canopy Outside Forest %"
+        };
+        function activeMetricName() {
+          return METRIC_NAMES[countySortSelect.value] || METRIC_NAMES.az;
+        }
 
         function activeMetricValue(stats) {
           if (countySortSelect.value === "canopyArea") return stats.canopy_ha || 0;
@@ -1016,15 +1020,23 @@
           return `${value.toFixed(1)}%`;
         }
 
+        // Reference point for the county-list bars: whatever the highest county
+        // scores on the *currently selected* metric becomes the value that fills
+        // the bar to 100%. Recomputed per render so the bar tracks whichever
+        // metric the number is showing (canopy %, canopy area ha, forest %, or
+        // outside-forest %) instead of always being canopy % regardless of the
+        // metric picked in the dropdown. This also keeps the bar a genuine,
+        // unclipped multiple of the real figure (previously a flat ×10 that
+        // clipped anything ≥10% canopy) and stays correct automatically if the
+        // underlying data changes.
+        function maxActiveMetricValue() {
+          return countyFeatures.reduce((max, feature) => {
+            return Math.max(max, activeMetricValue(countyStats(feature)));
+          }, 0);
+        }
+
         function updateCountyMetricHint() {
-          const labels = {
-            az: "Metric: canopy cover %",
-            canopy: "Metric: canopy cover %",
-            canopyArea: "Metric: canopy area (ha)",
-            forest: "Metric: Forest Canopy %",
-            outside: "Metric: Canopy Outside Forest %"
-          };
-          countySortMetricHint.textContent = labels[countySortSelect.value] || labels.az;
+          countySortMetricHint.textContent = `Metric: ${activeMetricName()}`;
         }
 
         function sortCountyFeatures(features) {
@@ -1053,6 +1065,7 @@
         function renderCountyList() {
           updateCountyMetricHint();
           const sorted = sortCountyFeatures(countyFeatures);
+          const barScaleMax = maxActiveMetricValue();
           countyList.innerHTML = "";
           Object.keys(_countyLookup).forEach(key => delete _countyLookup[key]);
 
@@ -1076,11 +1089,11 @@
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
               const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              // Scale so the highest-canopy county fills the bar to 100% — a real,
-              // unclipped multiple of the true figure rather than a flat ×10 that
-              // truncated anything at or above 10% canopy cover.
-              const barScaleFactor = maxCountyCanopyPct > 0 ? 100 / maxCountyCanopyPct : 1;
-              const barPct = Math.min(total * barScaleFactor, 100).toFixed(1);
+              // Bar length tracks the currently selected metric (same value the
+              // number shows), scaled so the highest county for that metric fills
+              // the bar to 100% — a real, unclipped multiple of the true figure.
+              const barScaleFactor = barScaleMax > 0 ? 100 / barScaleMax : 1;
+              const barPct = Math.min(activeMetric * barScaleFactor, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
@@ -1091,12 +1104,12 @@
               const barScale = document.createElement("div");
               barScale.className = "county-bar-scale";
 
-              // Full-width track: bar length now reflects canopy cover alone —
-              // no longer shrunk further by the county's land area, which was
-              // compounding with the canopy multiplier and hiding small counties.
+              // Full-width track: bar length now reflects the selected metric
+              // alone — no longer shrunk further by the county's land area, which
+              // was compounding with the metric and hiding small counties.
               const barContainer = document.createElement("div");
               barContainer.className = "county-bar-container";
-              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; colour fill scaled ×${barScaleFactor.toFixed(1)} for visibility (highest county = 100%); Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
+              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; ${activeMetricName()} ${metricLabel} (bar scaled relative to the highest county for this metric); Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
 
               const barWrap = document.createElement("div");
               barWrap.className = "county-bar-wrap";
