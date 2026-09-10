@@ -339,7 +339,7 @@
         panelCollapsed = true;
         sidePanelWrapper.classList.add("collapsed");
         collapseBtn.innerHTML = "&#8249;";
-        collapseBtn.style.right = "0";
+        syncCollapseBtnPosition();
         updateViewPadding();
       };
 
@@ -468,14 +468,26 @@
       // ---------------------------------------------------------------------------
       const collapseBtn = document.getElementById("collapseBtn");
       const sidePanelWrapper = document.getElementById("sidePanelWrapper");
-      collapseBtn.style.right = `${countyPanel.offsetWidth}px`;
+
+      // #countyPanel is width: fit-content (220-400px), so its real width
+      // changes with its content — not just on window resize, but also e.g.
+      // when the county sort metric hint's length varies by metric. Keeping
+      // this in its own function, re-run via ResizeObserver below, so the
+      // button stays aligned with the panel's actual edge instead of only
+      // updating on an explicit collapse/expand click (same pattern already
+      // used for updateViewPadding just above).
+      function syncCollapseBtnPosition() {
+        collapseBtn.style.right = panelCollapsed ? "0" : `${countyPanel.offsetWidth}px`;
+      }
+      syncCollapseBtnPosition();
       collapseBtn.addEventListener("click", () => {
         panelCollapsed = !panelCollapsed;
         sidePanelWrapper.classList.toggle("collapsed", panelCollapsed);
         collapseBtn.innerHTML = panelCollapsed ? "&#8249;" : "&#8250;";
-        collapseBtn.style.right = panelCollapsed ? "0" : `${countyPanel.offsetWidth}px`;
+        syncCollapseBtnPosition();
         updateViewPadding();
       });
+      new ResizeObserver(syncCollapseBtnPosition).observe(countyPanel);
 
       // ---------------------------------------------------------------------------
       // Home button (in header — always visible)
