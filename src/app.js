@@ -993,8 +993,13 @@
           return Number.isFinite(geometryArea) ? Math.abs(geometryArea) : 0;
         }
 
-        const maxCountyLandAreaKm2 = countyFeatures.reduce((max, feature) => {
-          return Math.max(max, countyLandAreaKm2(feature));
+        // Reference point for the county-list canopy bars: whatever the highest
+        // county canopy_pct actually is becomes the value that fills the bar to
+        // 100%. This keeps the bar a genuine, unclipped multiple of the real
+        // figure (previously a flat ×10 that clipped anything ≥10% canopy) and
+        // stays correct automatically if the underlying data changes.
+        const maxCountyCanopyPct = countyFeatures.reduce((max, feature) => {
+          return Math.max(max, countyStats(feature).canopy_pct || 0);
         }, 0);
 
         function activeMetricValue(stats) {
@@ -1071,22 +1076,27 @@
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
               const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              const barPct = Math.min(total * 10, 100).toFixed(1);
+              // Scale so the highest-canopy county fills the bar to 100% — a real,
+              // unclipped multiple of the true figure rather than a flat ×10 that
+              // truncated anything at or above 10% canopy cover.
+              const barScaleFactor = maxCountyCanopyPct > 0 ? 100 / maxCountyCanopyPct : 1;
+              const barPct = Math.min(total * barScaleFactor, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
               const landAreaKm2 = countyLandAreaKm2(feature);
-              const countySizePct = maxCountyLandAreaKm2 > 0 ? landAreaKm2 / maxCountyLandAreaKm2 * 100 : 100;
               const landAreaLabel = `${landAreaKm2.toLocaleString(undefined, { maximumFractionDigits: 0 })} km²`;
               const metricLabel = activeMetricLabel(activeMetric);
 
               const barScale = document.createElement("div");
               barScale.className = "county-bar-scale";
 
+              // Full-width track: bar length now reflects canopy cover alone —
+              // no longer shrunk further by the county's land area, which was
+              // compounding with the canopy multiplier and hiding small counties.
               const barContainer = document.createElement("div");
               barContainer.className = "county-bar-container";
-              barContainer.style.width = `${countySizePct}%`;
-              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; colour fill is shown 10x for visibility; Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
+              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; colour fill scaled ×${barScaleFactor.toFixed(1)} for visibility (highest county = 100%); Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
 
               const barWrap = document.createElement("div");
               barWrap.className = "county-bar-wrap";
