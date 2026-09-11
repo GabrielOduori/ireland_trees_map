@@ -1111,6 +1111,37 @@
             item.dataset.name = nameSpan.textContent;
             item.appendChild(nameSpan);
 
+            // --- How the percentages below are calculated ------------------------
+            // stats.* are server-computed fields from the live county-stats layer
+            // (queried once into state.countyStatsMap — see loadCountyListData
+            // above); nothing here is derived from raw crown geometry client-side.
+            // Two independent things get turned into a "percentage" per row:
+            //
+            //   1. Forest vs. Outside-Forest SPLIT (ftPct/tofPct below) — what
+            //      portion of THIS county's own canopy is FT vs TOF, shown as the
+            //      green/pink colour split inside the bar. Divided by their own
+            //      sum (canopySplitTotal), not by `total` (stats.canopy_pct) —
+            //      the two are independent server-side figures and aren't
+            //      guaranteed to match exactly (rounding), so dividing by their
+            //      own sum keeps ftPct+tofPct at a clean 100% regardless of any
+            //      small discrepancy against the headline canopy_pct.
+            //
+            //   2. Bar LENGTH (barPct below) — how far the bar fills the track,
+            //      relative to the highest county for whichever metric is
+            //      currently selected in the sort dropdown (activeMetric; see
+            //      activeMetricValue() above). barScaleFactor = 100 / (highest
+            //      county's value for this metric), computed once per render in
+            //      maxActiveMetricValue() — so the highest county always fills to
+            //      exactly 100% and every other county is a genuine, unclipped
+            //      proportion of it, not the flat ×10 guess this used before
+            //      (which clipped anything ≥10% canopy to a maxed-out bar).
+            //
+            // `total` is deliberately kept separate from `activeMetric`: it's
+            // always the overall canopy-cover %, used only to decide whether to
+            // draw a bar at all. A county could have activeMetric > 0 for a
+            // non-canopy metric (e.g. land area) while genuinely having zero
+            // canopy — gating on `total` here, not `activeMetric`, keeps that
+            // behaviour the same no matter which metric is selected.
             const stats   = countyStats(feature);
             const total   = stats.canopy_pct || 0;
             const ftCanopyPct  = stats.ft_canopy_pct  || 0;
@@ -1120,9 +1151,6 @@
             if (total > 0) {
               const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
               const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              // Bar length tracks the currently selected metric (same value the
-              // number shows), scaled so the highest county for that metric fills
-              // the bar to 100% — a real, unclipped multiple of the true figure.
               const barScaleFactor = barScaleMax > 0 ? 100 / barScaleMax : 1;
               const barPct = Math.min(activeMetric * barScaleFactor, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
