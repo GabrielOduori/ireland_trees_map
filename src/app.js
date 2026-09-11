@@ -1126,6 +1126,22 @@
             //      own sum keeps ftPct+tofPct at a clean 100% regardless of any
             //      small discrepancy against the headline canopy_pct.
             //
+            //      NOT a bug (confirmed 2026-09-11, checked against real data):
+            //      because ftPct/tofPct is each county's OWN ft:tof ratio, while
+            //      the bar's overall length is scaled by whichever single metric
+            //      is selected, the green segment's absolute pixel length is not
+            //      purely a function of the sort key — it also depends on that
+            //      county's ft value. Sorting by "Outside Forest" (tof) can
+            //      legitimately show a county with a longer green segment sitting
+            //      below one with a shorter green segment, if the lower county's
+            //      canopy happens to be more forest-heavy overall. The printed
+            //      number and the bar's total length stay correctly ordered by
+            //      tof either way — only the green sub-segment can look locally
+            //      inconsistent, which is an accurate reflection of the
+            //      underlying ft/tof composition, not a rendering error. Decided
+            //      to leave this as-is rather than drop the unrelated colour per
+            //      row for single-metric sort views.
+            //
             //   2. Bar LENGTH (barPct below) — how far the bar fills the track,
             //      relative to the highest county for whichever metric is
             //      currently selected in the sort dropdown (activeMetric; see
