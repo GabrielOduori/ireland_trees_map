@@ -10,7 +10,7 @@
     } from "./utils.js";
     import {
       usesBottomPopupLayout, collapseMapPanelsForMobile, clearCrownSelection, closeBuaPopup,
-      buildPopupContent, showPopupAt, openBuaPopup, openFilteredPopup,
+      buildPopupContent, showPopupAt, openBuaPopup, openFilteredPopup, buildCanopyStatCard,
     } from "./popups.js";
     import { buildCrownTileLayer, blinkHighlight } from "./crown-layer.js";
     import { updateCanopyStats, refreshChartPanel } from "./chart.js";
@@ -326,6 +326,7 @@
       const countyPanel     = document.getElementById("countyPanel");
       const countySortSelect = document.getElementById("countySortSelect");
       const countySortMetricHint = document.getElementById("countySortMetricHint");
+      const countyBarTooltip = document.getElementById("countyBarTooltip");
       const layerToggleRow    = document.getElementById("layerToggleRow");
       const crownLayerToggle  = document.getElementById("crownLayerToggle");
       let activeItem           = null;
@@ -1093,6 +1094,76 @@
           return sorted;
         }
 
+        // Custom hover tooltip for county-list bars (decided 2026-09-13) —
+        // replaces the native title="" attribute, which rendered as a single
+        // slow-to-appear, unstyled, semicolon-joined sentence with no way to
+        // colour-code Forest/Outside-Forest to match the bar itself. Reuses
+        // buildCanopyStatCard from popups.js — the same "big % + table" shell
+        // already used for the BUA/filtered map popups — so this looks like
+        // part of the same app instead of a second, differently-styled
+        // tooltip system.
+        function buildCountyBarTooltipContent(total, landAreaLabel, ftLabel, tofLabel, canopyHa) {
+          const table = document.createElement("table");
+          table.style.cssText = "width:100%;border-collapse:collapse;font-size:12px";
+
+          function addRow(label, value, chipColor) {
+            const tr  = document.createElement("tr");
+            const td1 = document.createElement("td");
+            td1.style.cssText = "padding:2px 8px 2px 0;color:#666;white-space:nowrap";
+            if (chipColor) {
+              const chip = document.createElement("span");
+              chip.style.cssText = "display:inline-block;width:8px;height:8px;border-radius:1px;" +
+                                    `background:${chipColor};margin-right:5px;vertical-align:middle;`;
+              td1.appendChild(chip);
+              td1.appendChild(document.createTextNode(label));
+            } else {
+              td1.textContent = label;
+            }
+            const td2 = document.createElement("td");
+            td2.style.cssText = "padding:2px 0;font-weight:600;text-align:right";
+            td2.textContent = value;
+            tr.appendChild(td1); tr.appendChild(td2);
+            table.appendChild(tr);
+          }
+
+          addRow("County area", landAreaLabel);
+          if (canopyHa != null) {
+            addRow("Canopy area", `${canopyHa.toLocaleString(undefined, { maximumFractionDigits: 0 })} ha`);
+          }
+          // Same colours as .county-bar-ft/.county-bar-tof and the legend chips
+          // above the list, so the tooltip visually ties back to the bar it's
+          // describing rather than introducing a third, uncoordinated palette.
+          addRow("Forest Canopy", ftLabel, "rgba(0,255,0,0.6)");
+          addRow("Canopy Outside Forest", tofLabel, "rgba(255,0,255,0.6)");
+
+          return buildCanopyStatCard(total, table);
+        }
+
+        function showCountyBarTooltip(anchorEl, total, landAreaLabel, ftLabel, tofLabel, canopyHa) {
+          countyBarTooltip.innerHTML = "";
+          countyBarTooltip.appendChild(
+            buildCountyBarTooltipContent(total, landAreaLabel, ftLabel, tofLabel, canopyHa)
+          );
+          countyBarTooltip.style.display = "block";
+          const rect = anchorEl.getBoundingClientRect();
+          const tw = countyBarTooltip.offsetWidth, th = countyBarTooltip.offsetHeight;
+          // #countyPanel sits flush against the right edge of the screen (see
+          // its border-radius), so the tooltip's natural direction is LEFT,
+          // into the map area — falling back to the right only if there's
+          // somehow not enough room on the left (e.g. a very narrow window).
+          let left = rect.left - tw - 10;
+          if (left < 8) left = rect.right + 10;
+          left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+          let top = rect.top + rect.height / 2 - th / 2;
+          top = Math.max(8, Math.min(top, window.innerHeight - th - 8));
+          countyBarTooltip.style.left = `${left}px`;
+          countyBarTooltip.style.top  = `${top}px`;
+        }
+
+        function hideCountyBarTooltip() {
+          countyBarTooltip.style.display = "none";
+        }
+
         function renderCountyList() {
           updateCountyMetricHint();
           const sorted = sortCountyFeatures(countyFeatures);
@@ -1184,7 +1255,6 @@
               }
               const barScaleFactor = barScaleMax > 0 ? 100 / barScaleMax : 1;
               const barPct = Math.min(activeMetric * barScaleFactor, 100).toFixed(1);
-              const totalLabel = `${total.toFixed(1)}%`;
               const ftLabel = `${ftCanopyPct.toFixed(2)}%`;
               const tofLabel = `${tofCanopyPct.toFixed(2)}%`;
               const landAreaKm2 = countyLandAreaKm2(feature);
@@ -1199,7 +1269,6 @@
               // was compounding with the metric and hiding small counties.
               const barContainer = document.createElement("div");
               barContainer.className = "county-bar-container";
-              barContainer.title = `County area ${landAreaLabel}; Canopy cover ${totalLabel} of county area; ${activeMetricName()} ${metricLabel} (bar scaled relative to the highest county for this metric); Forest Canopy ${ftLabel}; Canopy Outside Forest ${tofLabel}`;
 
               const barWrap = document.createElement("div");
               barWrap.className = "county-bar-wrap";
@@ -1221,8 +1290,14 @@
               const pctSpan = document.createElement("span");
               pctSpan.className = "county-canopy-pct";
               pctSpan.textContent = metricLabel;
-              pctSpan.title = barContainer.title;
               item.appendChild(pctSpan);
+
+              // Hover anywhere on the row (not just the thin bar itself) to
+              // show the custom tooltip — a bigger, more forgiving target
+              // than requiring the cursor stay on the bar/number specifically.
+              item.addEventListener("mouseenter", () =>
+                showCountyBarTooltip(item, total, landAreaLabel, ftLabel, tofLabel, stats.canopy_ha));
+              item.addEventListener("mouseleave", hideCountyBarTooltip);
             }
 
             item.addEventListener("click", () => activateCounty(name, feature, item));
