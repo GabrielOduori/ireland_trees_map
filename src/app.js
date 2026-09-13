@@ -1111,6 +1111,54 @@
             item.dataset.name = nameSpan.textContent;
             item.appendChild(nameSpan);
 
+            // --- How the percentages below are calculated ------------------------
+            // stats.* are server-computed fields from the live county-stats layer
+            // (queried once into state.countyStatsMap — see loadCountyListData
+            // above); nothing here is derived from raw crown geometry client-side.
+            // Two independent things get turned into a "percentage" per row:
+            //
+            //   1. Forest vs. Outside-Forest SPLIT (ftPct/tofPct below) — what
+            //      colour(s) fill the bar, computed differently depending on the
+            //      selected metric (see the branch right below this comment):
+            //
+            //      - "canopy"/"canopyArea"/"az" (combined views): both colours
+            //        show, proportioned to THIS county's own ft:tof ratio —
+            //        divided by their own sum (canopySplitTotal), not by `total`
+            //        (stats.canopy_pct), since the two are independent
+            //        server-side figures not guaranteed to match exactly
+            //        (rounding); dividing by their own sum keeps ftPct+tofPct at
+            //        a clean 100% regardless of any small discrepancy against
+            //        the headline canopy_pct.
+            //
+            //      - "forest"/"outside" (single-metric views): the bar is ONE
+            //        colour only (ftPct/tofPct forced to 100/0 or 0/100) — no
+            //        compounding with the other component. Decided 2026-09-13:
+            //        showing both colours here made it hard to judge highest-
+            //        to-lowest at a glance, since a lower-ranked county's
+            //        combined-composition bar could show a longer segment than
+            //        a higher-ranked one purely from its OTHER component being
+            //        larger (confirmed as real, not a rendering bug, before
+            //        this decision was made). Single-colour view makes the bar
+            //        length a direct, monotonic function of the sort key again.
+            //        The real ft/tof breakdown numbers are still in the tooltip
+            //        regardless of which view is showing.
+            //
+            //   2. Bar LENGTH (barPct below) — how far the bar fills the track,
+            //      relative to the highest county for whichever metric is
+            //      currently selected in the sort dropdown (activeMetric; see
+            //      activeMetricValue() above). barScaleFactor = 100 / (highest
+            //      county's value for this metric), computed once per render in
+            //      maxActiveMetricValue() — so the highest county always fills to
+            //      exactly 100% and every other county is a genuine, unclipped
+            //      proportion of it, not the flat ×10 guess this used before
+            //      (which clipped anything ≥10% canopy to a maxed-out bar).
+            //
+            // `total` is deliberately kept separate from `activeMetric`: it's
+            // always the overall canopy-cover %, used only to decide whether to
+            // draw a bar at all. A county could have activeMetric > 0 for a
+            // non-canopy metric (e.g. land area) while genuinely having zero
+            // canopy — gating on `total` here, not `activeMetric`, keeps that
+            // behaviour the same no matter which metric is selected.
             const stats   = countyStats(feature);
             const total   = stats.canopy_pct || 0;
             const ftCanopyPct  = stats.ft_canopy_pct  || 0;
@@ -1118,11 +1166,22 @@
             const activeMetric = activeMetricValue(stats);
             const canopySplitTotal = ftCanopyPct + tofCanopyPct;
             if (total > 0) {
-              const ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
-              const tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
-              // Bar length tracks the currently selected metric (same value the
-              // number shows), scaled so the highest county for that metric fills
-              // the bar to 100% — a real, unclipped multiple of the true figure.
+              // When sorting by Forest Canopy or Outside Forest specifically, the
+              // bar shows ONLY that metric's colour, filling the whole bar —
+              // otherwise the other component's compounded-in composition made it
+              // hard to judge highest-to-lowest at a glance for the one you
+              // actually selected (decided 2026-09-13, see the note above this
+              // block for why the compounded view stays for "canopy cover").
+              // The real ft/tof breakdown is still shown in the tooltip either way.
+              let ftPct, tofPct;
+              if (countySortSelect.value === "forest") {
+                ftPct = "100"; tofPct = "0";
+              } else if (countySortSelect.value === "outside") {
+                ftPct = "0"; tofPct = "100";
+              } else {
+                ftPct  = canopySplitTotal > 0 ? (ftCanopyPct  / canopySplitTotal * 100).toFixed(1) : "0";
+                tofPct = canopySplitTotal > 0 ? (tofCanopyPct / canopySplitTotal * 100).toFixed(1) : "0";
+              }
               const barScaleFactor = barScaleMax > 0 ? 100 / barScaleMax : 1;
               const barPct = Math.min(activeMetric * barScaleFactor, 100).toFixed(1);
               const totalLabel = `${total.toFixed(1)}%`;
