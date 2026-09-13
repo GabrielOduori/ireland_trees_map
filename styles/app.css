@@ -898,6 +898,25 @@
         font-family: 'Inter', Arial, sans-serif;
         pointer-events: auto;
       }
+
+      /* Replaces the native title="" tooltip on county-list bars (couldn't be
+         styled or colour-coded to match the bar). pointer-events: none so it
+         never intercepts the hover it's reacting to. No header/close button —
+         it's shown/hidden purely by mouseenter/mouseleave, not a persistent
+         popup like #crownPopup/#buaPopup above. */
+      #countyBarTooltip {
+        display: none;
+        position: fixed;
+        z-index: 110;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        min-width: 170px;
+        max-width: 260px;
+        padding: 8px 10px;
+        font-family: 'Inter', Arial, sans-serif;
+        pointer-events: none;
+      }
       #buaPopupHeader {
         background: #fff;
         color: #111;
