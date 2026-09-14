@@ -332,6 +332,7 @@
       let activeItem           = null;
       let activeCrownTileLayer = null;
       let _vtlHandoffHandle   = null;   // scale watcher cleaned up on county change
+      let _crownLoadTimeout   = null;   // fallback badge message, cleared on county change
       let panelCollapsed       = false;
       const _countyLookup      = {};    // lowercase county name -> { item, feature, name }, built as the list loads
 
@@ -637,6 +638,7 @@
           activeItem = null;
         }
         if (_vtlHandoffHandle) { _vtlHandoffHandle.remove(); _vtlHandoffHandle = null; }
+        if (_crownLoadTimeout) { clearTimeout(_crownLoadTimeout); _crownLoadTimeout = null; }
         if (state.activeBuaLayer) { map.remove(state.activeBuaLayer); state.activeBuaLayer = null; }
         if (state.activeMdLayer)  { map.remove(state.activeMdLayer);  state.activeMdLayer  = null; }
         if (state.activeLaLayer)  { map.remove(state.activeLaLayer);  state.activeLaLayer  = null; }
@@ -821,24 +823,65 @@
           // loading badge regardless of whether this county has a VTL fallback.
           const _readyLayers  = new Set();
           const _featureTotal = state.activeCrownLayers.length;
+          let   _loadIssueFlagged = false;   // true once any error path below has fired
+
+          function flagLoadIssue(message) {
+            if (_loadIssueFlagged) return;   // first problem wins — don't spam the badge
+            _loadIssueFlagged = true;
+            if (_crownLoadTimeout) { clearTimeout(_crownLoadTimeout); _crownLoadTimeout = null; }
+            setCrownError(message);
+          }
+
+          // Fallback for a layer that never settles either way — neither resolving
+          // nor rejecting (e.g. a request that just hangs). None of the checks below
+          // catch that, since they all depend on a promise eventually finishing one
+          // way or the other. Without this, the badge would say "Loading..." forever
+          // instead of ever telling the user something's actually wrong.
+          _crownLoadTimeout = setTimeout(() => {
+            _crownLoadTimeout = null;
+            if (_readyLayers.size < _featureTotal) {
+              console.error(`[feature] ${name}: canopy layer(s) still not ready after 20s`);
+              flagLoadIssue("Some parts of this layer didn't load.");
+            }
+          }, 20000);
+
+          // Data-completeness check, generic across every county: a split part
+          // whose AGOL publish job died after the service was created but before
+          // data was uploaded loads without any error and settles immediately —
+          // it's just empty. That's invisible per-part (a genuinely thin/urban
+          // band of a county can legitimately have few trees), so instead sum the
+          // real feature counts actually loaded across all of this county's parts
+          // and compare against its known total from countyStatsMap — a separate,
+          // unsplit source unaffected by any one part's publish failure. Missing
+          // parts entirely (never published at all, so no FeatureLayer object
+          // exists for them here) show up the same way: the sum simply falls short.
+          let _loadedTotal    = 0;
+          let _countsReported = 0;
+          function checkTotalCoverage() {
+            if (_countsReported < _featureTotal || total <= 0) return;
+            // Small gaps are normal (stats snapshot vs. live data can drift
+            // slightly) — only flag a shortfall big enough to mean real data
+            // is actually missing. We can't tell which part(s) are short from
+            // here, only that the county's total came up short overall.
+            if (_loadedTotal < total * 0.95) {
+              console.error(
+                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing`
+              );
+              flagLoadIssue("Some parts of this layer didn't load.");
+            }
+          }
+
           state.activeCrownLayers.forEach((fl, idx) => {
             const itemId = crownItemIds[idx];
 
-            // Data-completeness check: runs the moment the layer finishes *loading*
-            // (fl.load(), not the layer view), independent of the ready/badge tracking
-            // below. A split part whose publish job died after the service was
-            // created but before data was uploaded loads without any error and its
-            // layer view settles immediately — it just has zero features. Checking
-            // this separately (rather than nested inside the "updating" handling)
-            // means it still runs even if "updating" itself never settles correctly.
             fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
-              if (count === 0) {
-                console.error(`[feature] ${name} crown layer (item id: ${itemId}) loaded with zero features — likely an incomplete AGOL publish`);
-                setCrownError(`Some canopy data for ${name} could not be loaded.`);
-              }
+              _loadedTotal += count;
+              _countsReported++;
+              checkTotalCoverage();
             }).catch(err => {
               console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
-              setCrownError(`Some canopy data for ${name} could not be loaded.`);
+              _countsReported++;
+              checkTotalCoverage();
             });
 
             view.whenLayerView(fl).then(lv => {
@@ -851,7 +894,8 @@
                 if (lv.updating) return;
                 _readyLayers.add(idx);
                 if (_readyLayers.size >= _featureTotal) {
-                  clearCrownLoading();
+                  if (!_loadIssueFlagged) clearCrownLoading();
+                  if (_crownLoadTimeout) { clearTimeout(_crownLoadTimeout); _crownLoadTimeout = null; }
                   if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                 }
               };
@@ -863,7 +907,7 @@
               // without this, the loading badge would wait forever for a layer view
               // that's never coming.
               console.error(`[feature] layer view failed for ${name} crown layer (item id: ${itemId}):`, err);
-              setCrownError(`Some canopy data for ${name} could not be loaded.`);
+              flagLoadIssue(`Some canopy data for ${name} could not be loaded.`);
             });
           });
 
