@@ -1049,24 +1049,21 @@
         }
 
         function updateCountyMetricHint() {
-          // Surfaces exactly how much the bars are stretched, rather than just
-          // telling users they're "scaled." Recomputed here since it depends on
-          // the currently selected metric, same as the metric name itself —
-          // omitted when there's no data yet to scale against.
+          // Surfaces the reference value the bars are scaled against, for the
+          // one metric where that isn't obvious. Recomputed here since it
+          // depends on the currently selected metric, same as the metric name
+          // itself — omitted when there's no data yet to scale against.
           //
-          // The percentage metrics (canopy/forest/outside, all 0-100) get a
-          // "×N" multiplier — a small, intuitive number since the highest county
-          // is rarely far below 100. Canopy area (ha) runs into the tens of
-          // thousands, so the equivalent multiplier (100 / ~45,000) rounds to
-          // "×0.0" — technically correct but meaningless to read. For that
-          // metric, state the actual reference value instead: the number that
-          // fills the bar, in the same units already named just before it.
+          // The percentage metrics (canopy/forest/outside, all 0-100) don't
+          // need this: the highest county is rarely far below 100, so the
+          // scale is intuitive without stating it. Canopy area (ha) runs into
+          // the tens of thousands, so its scale isn't obvious — state the
+          // actual reference value instead: the number that fills the bar, in
+          // the same units already named just before it.
           const max = maxActiveMetricValue();
           let scaleSuffix = "";
-          if (max > 0) {
-            scaleSuffix = countySortSelect.value === "canopyArea"
-              ? ` · highest county = ${activeMetricLabel(max)} (fills the bar)`
-              : ` · bars scaled ×${(100 / max).toFixed(1)} to the highest county`;
+          if (max > 0 && countySortSelect.value === "canopyArea") {
+            scaleSuffix = ` · highest county = ${activeMetricLabel(max)} (fills the bar)`;
           }
           countySortMetricHint.textContent = `Metric: ${activeMetricName()}${scaleSuffix}`;
         }
