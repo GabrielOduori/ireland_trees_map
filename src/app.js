@@ -1049,23 +1049,9 @@
         }
 
         function updateCountyMetricHint() {
-          // Surfaces the reference value the bars are scaled against, for the
-          // one metric where that isn't obvious. Recomputed here since it
-          // depends on the currently selected metric, same as the metric name
-          // itself — omitted when there's no data yet to scale against.
-          //
-          // The percentage metrics (canopy/forest/outside, all 0-100) don't
-          // need this: the highest county is rarely far below 100, so the
-          // scale is intuitive without stating it. Canopy area (ha) runs into
-          // the tens of thousands, so its scale isn't obvious — state the
-          // actual reference value instead: the number that fills the bar, in
-          // the same units already named just before it.
-          const max = maxActiveMetricValue();
-          let scaleSuffix = "";
-          if (max > 0 && countySortSelect.value === "canopyArea") {
-            scaleSuffix = ` · highest county = ${activeMetricLabel(max)} (fills the bar)`;
-          }
-          countySortMetricHint.textContent = `Metric: ${activeMetricName()}${scaleSuffix}`;
+          // Just the metric name — the reference-value / scale-multiplier
+          // suffix that used to appear here was removed as unnecessary detail.
+          countySortMetricHint.textContent = `Metric: ${activeMetricName()}`;
         }
 
         function sortCountyFeatures(features) {
