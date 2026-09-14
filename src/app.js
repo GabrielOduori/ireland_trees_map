@@ -823,15 +823,28 @@
           const _featureTotal = state.activeCrownLayers.length;
           state.activeCrownLayers.forEach((fl, idx) => {
             view.whenLayerView(fl).then(lv => {
-              lv.watch("updating", updating => {
-                if (!updating) {
-                  _readyLayers.add(idx);
-                  if (_readyLayers.size >= _featureTotal) {
-                    clearCrownLoading();
-                    if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
-                  }
+              // .watch() only fires on a *change* to "updating" — if the layer view
+              // is already settled (false) by the time we attach it, e.g. it loaded
+              // from cache before this promise resolved, that initial state is never
+              // reported and the badge would hang forever. Check it once up front,
+              // then keep watching for later transitions (loading -> loaded).
+              const markReadyIfSettled = () => {
+                if (lv.updating) return;
+                _readyLayers.add(idx);
+                if (_readyLayers.size >= _featureTotal) {
+                  clearCrownLoading();
+                  if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                 }
-              });
+              };
+              lv.watch("updating", updating => { if (!updating) markReadyIfSettled(); });
+              markReadyIfSettled();
+            }).catch(err => {
+              // A broken/incomplete portal item (e.g. a split part whose publish job
+              // never finished) rejects here instead of ever calling the .then() above —
+              // without this, the loading badge would wait forever for a layer view
+              // that's never coming.
+              console.error(`[feature] layer view failed for ${name} crown layer (item id: ${crownItemIds[idx]}):`, err);
+              setCrownError(`Some canopy data for ${name} could not be loaded.`);
             });
           });
 
