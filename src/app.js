@@ -821,24 +821,43 @@
           // loading badge regardless of whether this county has a VTL fallback.
           const _readyLayers  = new Set();
           const _featureTotal = state.activeCrownLayers.length;
+
+          // Data-completeness check, generic across every county: a split part
+          // whose AGOL publish job died after the service was created but before
+          // data was uploaded loads without any error and settles immediately —
+          // it's just empty. That's invisible per-part (a genuinely thin/urban
+          // band of a county can legitimately have few trees), so instead sum the
+          // real feature counts actually loaded across all of this county's parts
+          // and compare against its known total from countyStatsMap — a separate,
+          // unsplit source unaffected by any one part's publish failure. Missing
+          // parts entirely (never published at all, so no FeatureLayer object
+          // exists for them here) show up the same way: the sum simply falls short.
+          let _loadedTotal    = 0;
+          let _countsReported = 0;
+          function checkTotalCoverage() {
+            if (_countsReported < _featureTotal || total <= 0) return;
+            // Small gaps are normal (stats snapshot vs. live data can drift
+            // slightly) — only flag a shortfall big enough to mean real data
+            // is actually missing.
+            if (_loadedTotal < total * 0.95) {
+              console.error(
+                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing`
+              );
+              setCrownError(`Some canopy data for ${name} could not be loaded.`);
+            }
+          }
+
           state.activeCrownLayers.forEach((fl, idx) => {
             const itemId = crownItemIds[idx];
 
-            // Data-completeness check: runs the moment the layer finishes *loading*
-            // (fl.load(), not the layer view), independent of the ready/badge tracking
-            // below. A split part whose publish job died after the service was
-            // created but before data was uploaded loads without any error and its
-            // layer view settles immediately — it just has zero features. Checking
-            // this separately (rather than nested inside the "updating" handling)
-            // means it still runs even if "updating" itself never settles correctly.
             fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
-              if (count === 0) {
-                console.error(`[feature] ${name} crown layer (item id: ${itemId}) loaded with zero features — likely an incomplete AGOL publish`);
-                setCrownError(`Some canopy data for ${name} could not be loaded.`);
-              }
+              _loadedTotal += count;
+              _countsReported++;
+              checkTotalCoverage();
             }).catch(err => {
               console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
-              setCrownError(`Some canopy data for ${name} could not be loaded.`);
+              _countsReported++;
+              checkTotalCoverage();
             });
 
             view.whenLayerView(fl).then(lv => {
