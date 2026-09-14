@@ -835,6 +835,19 @@
                   clearCrownLoading();
                   if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                 }
+                // A split part whose publish job died after creating the service but
+                // before uploading data loads without error and settles immediately —
+                // it just has zero features. That's invisible to both the .then/.catch
+                // above and to "updating", so check for it explicitly here, once.
+                if (!fl._emptyCheckDone) {
+                  fl._emptyCheckDone = true;
+                  fl.queryFeatureCount().then(count => {
+                    if (count === 0) {
+                      console.error(`[feature] ${name} crown layer (item id: ${crownItemIds[idx]}) loaded with zero features`);
+                      setCrownError(`Some canopy data for ${name} could not be loaded.`);
+                    }
+                  }).catch(() => {});
+                }
               };
               lv.watch("updating", updating => { if (!updating) markReadyIfSettled(); });
               markReadyIfSettled();
