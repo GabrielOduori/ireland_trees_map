@@ -822,6 +822,25 @@
           const _readyLayers  = new Set();
           const _featureTotal = state.activeCrownLayers.length;
           state.activeCrownLayers.forEach((fl, idx) => {
+            const itemId = crownItemIds[idx];
+
+            // Data-completeness check: runs the moment the layer finishes *loading*
+            // (fl.load(), not the layer view), independent of the ready/badge tracking
+            // below. A split part whose publish job died after the service was
+            // created but before data was uploaded loads without any error and its
+            // layer view settles immediately — it just has zero features. Checking
+            // this separately (rather than nested inside the "updating" handling)
+            // means it still runs even if "updating" itself never settles correctly.
+            fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
+              if (count === 0) {
+                console.error(`[feature] ${name} crown layer (item id: ${itemId}) loaded with zero features — likely an incomplete AGOL publish`);
+                setCrownError(`Some canopy data for ${name} could not be loaded.`);
+              }
+            }).catch(err => {
+              console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
+              setCrownError(`Some canopy data for ${name} could not be loaded.`);
+            });
+
             view.whenLayerView(fl).then(lv => {
               // .watch() only fires on a *change* to "updating" — if the layer view
               // is already settled (false) by the time we attach it, e.g. it loaded
@@ -835,19 +854,6 @@
                   clearCrownLoading();
                   if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                 }
-                // A split part whose publish job died after creating the service but
-                // before uploading data loads without error and settles immediately —
-                // it just has zero features. That's invisible to both the .then/.catch
-                // above and to "updating", so check for it explicitly here, once.
-                if (!fl._emptyCheckDone) {
-                  fl._emptyCheckDone = true;
-                  fl.queryFeatureCount().then(count => {
-                    if (count === 0) {
-                      console.error(`[feature] ${name} crown layer (item id: ${crownItemIds[idx]}) loaded with zero features`);
-                      setCrownError(`Some canopy data for ${name} could not be loaded.`);
-                    }
-                  }).catch(() => {});
-                }
               };
               lv.watch("updating", updating => { if (!updating) markReadyIfSettled(); });
               markReadyIfSettled();
@@ -856,7 +862,7 @@
               // never finished) rejects here instead of ever calling the .then() above —
               // without this, the loading badge would wait forever for a layer view
               // that's never coming.
-              console.error(`[feature] layer view failed for ${name} crown layer (item id: ${crownItemIds[idx]}):`, err);
+              console.error(`[feature] layer view failed for ${name} crown layer (item id: ${itemId}):`, err);
               setCrownError(`Some canopy data for ${name} could not be loaded.`);
             });
           });
