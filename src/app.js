@@ -25,43 +25,6 @@
       startupStatusBadge.classList.add("visible");
     }
 
-    const esriConfig      = await $arcgis.import("@arcgis/core/config.js");
-    const OAuthInfo       = await $arcgis.import("@arcgis/core/identity/OAuthInfo.js");
-    const IdentityManager = await $arcgis.import("@arcgis/core/identity/IdentityManager.js");
-
-    const oauthInfo = new OAuthInfo({
-      appId: "C8Y5qInEMyUQtRm6",
-      popup: false
-    });
-    IdentityManager.registerOAuthInfos([oauthInfo]);
-
-    // Reuse existing session silently; redirect to sign-in only if needed
-    let _cred;
-    try {
-      _cred = await IdentityManager.checkSignInStatus("https://www.arcgis.com/sharing");
-    } catch (_) {
-      try {
-        _cred = await IdentityManager.getCredential("https://www.arcgis.com/sharing");
-      } catch (e) {
-        console.error("[auth] ArcGIS sign-in failed:", e?.message || e);
-        showStartupStatus("ArcGIS sign-in failed. Check the registered redirect URL.", true);
-        throw e;
-      }
-    }
-
-    // Explicitly register the portal credential for the tile CDN so VTL requests are authenticated
-    if (_cred) {
-      try {
-        IdentityManager.registerToken({
-          server:  "https://tiles-eu1.arcgis.com",
-          token:   _cred.token,
-          expires: _cred.expires,
-          ssl:     true,
-          userId:  _cred.userId
-        });
-      } catch (_) {}
-    }
-
     const SimpleFillSymbol   = await $arcgis.import("@arcgis/core/symbols/SimpleFillSymbol.js");
     const SimpleRenderer     = await $arcgis.import("@arcgis/core/renderers/SimpleRenderer.js");
     const UniqueValueRenderer = await $arcgis.import("@arcgis/core/renderers/UniqueValueRenderer.js");
@@ -74,9 +37,6 @@
     const FeatureLayer      = await $arcgis.import("@arcgis/core/layers/FeatureLayer.js");
     const GraphicsLayer     = await $arcgis.import("@arcgis/core/layers/GraphicsLayer.js");
     const Graphic           = await $arcgis.import("@arcgis/core/Graphic.js");
-    const VectorTileLayer   = await $arcgis.import("@arcgis/core/layers/VectorTileLayer.js");
-    const TileLayer         = await $arcgis.import("@arcgis/core/layers/TileLayer.js");
-    const MapImageLayer     = await $arcgis.import("@arcgis/core/layers/MapImageLayer.js");
     const Portal            = await $arcgis.import("@arcgis/core/portal/Portal.js");
     const PortalQueryParams = await $arcgis.import("@arcgis/core/portal/PortalQueryParams.js");
     const Basemap           = await $arcgis.import("@arcgis/core/Basemap.js");
@@ -89,7 +49,7 @@
 
 
     try {
-      const portal = new Portal({ url: "https://www.arcgis.com", authMode: "immediate" });
+      const portal = new Portal({ url: "https://www.arcgis.com", authMode: "anonymous" });
       await portal.load();
       state._portal = portal;
 

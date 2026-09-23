@@ -20,7 +20,7 @@ export const state = {
   countyLayer: null,
   countyOutlineLayer: null,
 
-  _portal: null, // authenticated portal instance, reused when loading tile layers
+  _portal: null, // anonymous public ArcGIS Online portal, reused when loading layers
 
   crownLayerMap: {},      // county -> Feature Layer item id (interactive, minScale 25k)
   crownTileLayerMap: {},  // county -> Tile layer item info { id, type } (overview, all scales)
