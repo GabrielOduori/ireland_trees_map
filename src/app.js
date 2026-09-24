@@ -1,6 +1,7 @@
     import {
       MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, LOCAL_AUTHORITY_LAYER_ITEM_ID,
       COUNTY_LAYER_ITEM_ID, COUNTY_STATS_FIELDS, BOUNDARY_STATS_FIELDS, CROWN_POPUP_FIELDS,
+      ALEW_LAYER_ITEM_ID, NSNW_LAYER_ITEM_ID, ALEW_POPUP_FIELDS, NSNW_POPUP_FIELDS,
       BUA_FLASH_SCALE, CHART_TABS,
     } from "./config.js";
     import { state } from "./state.js";
@@ -195,6 +196,129 @@
 
     const map = new Map({ basemap: "hybrid" });
 
+    const WOODLAND_FIELD_LABELS = {
+      SITE_NAME: "Site name",
+      STATUS: "Status",
+      NSNW_DESC: "Description",
+      SAC: "SAC",
+      AREA: "Total area"
+    };
+
+    const WOODLAND_NOT_AVAILABLE_FIELDS = new Set(["SAC", "STATUS"]);
+    const WOODLAND_MISSING_VALUES = new Set(["", "n/a", "na", "none", "null", "unknown", "-", "--"]);
+    const isMissingWoodlandValue = value => {
+      const normalizedValue = typeof value === "string" ? value.trim() : value;
+      return normalizedValue == null ||
+        (typeof normalizedValue === "string" && WOODLAND_MISSING_VALUES.has(normalizedValue.toLowerCase()));
+    };
+
+    function formatWoodlandPopupValue(field, value) {
+      const normalizedValue = typeof value === "string" ? value.trim() : value;
+      if (isMissingWoodlandValue(normalizedValue)) {
+        return WOODLAND_NOT_AVAILABLE_FIELDS.has(field) ? "Not available" : "—";
+      }
+      if (field === "AREA" && typeof value === "number") {
+        const squareMeters = value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        const hectares = (value / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        return `${squareMeters} m² (${hectares} ha)`;
+      }
+      return typeof value === "number"
+        ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+        : normalizedValue;
+    }
+
+    function buildWoodlandPopupContent(attrs, fields) {
+      const table = document.createElement("table");
+      table.className = "woodland-popup-table";
+
+      fields.forEach(field => {
+        const value = attrs[field];
+
+        const row = document.createElement("tr");
+        const label = document.createElement("th");
+        const cell = document.createElement("td");
+
+        label.textContent = WOODLAND_FIELD_LABELS[field] || field;
+        cell.textContent = formatWoodlandPopupValue(field, value);
+
+        row.appendChild(label);
+        row.appendChild(cell);
+        table.appendChild(row);
+      });
+
+      return table;
+    }
+
+    function uniqueFields(fields) {
+      return Array.from(new Set(fields.filter(Boolean)));
+    }
+
+    function buildWoodlandLayer({ id, title, fields, queryFields = [], areaGroupFields = [], color, outlineColor, popupHeader }) {
+      const portalItem = state._portal ? { id, portal: state._portal } : { id };
+      const layer = new FeatureLayer({
+        portalItem,
+        visible: false,
+        outFields: uniqueFields([...fields, ...queryFields, ...areaGroupFields]),
+        popupEnabled: true,
+        labelsVisible: false,
+        labelingInfo: null,
+        popupTemplate: {
+          title,
+          content: ({ graphic }) => buildWoodlandPopupContent(graphic?.attributes || {}, fields)
+        },
+        renderer: new SimpleRenderer({
+          symbol: new SimpleFillSymbol({
+            color,
+            outline: { color: outlineColor, width: 0, style: "none" }
+          })
+        })
+      });
+      layer.on("layerview-create-error", e => {
+        console.error(`[woodland] failed to render ${title}:`, e.error);
+      });
+      layer._treemapDisplayTitle = title;
+      layer._treemapPopupFields = fields;
+      layer._treemapAreaGroupFields = areaGroupFields;
+      layer._treemapPopupHeader = popupHeader;
+      return layer;
+    }
+
+    function woodlandWhereForFields(fields, attrs) {
+      const predicates = [];
+      fields.forEach(field => {
+        const value = attrs[field];
+        if (isMissingWoodlandValue(value)) return;
+        if (typeof value === "number") {
+          if (Number.isFinite(value)) predicates.push(`${field} = ${value}`);
+          return;
+        }
+        predicates.push(`${field} = '${escapeSql(String(value).trim())}'`);
+      });
+      return predicates.length ? predicates.join(" AND ") : null;
+    }
+
+    async function woodlandAttrsWithTotalArea(layer, attrs) {
+      const fields = layer._treemapAreaGroupFields || [];
+      const where = woodlandWhereForFields(fields, attrs);
+      if (!where) return attrs;
+      try {
+        const query = layer.createQuery();
+        query.where = where;
+        query.returnGeometry = false;
+        query.outStatistics = [{
+          statisticType: "sum",
+          onStatisticField: "AREA",
+          outStatisticFieldName: "total_area"
+        }];
+        const { features } = await layer.queryFeatures(query);
+        const totalArea = features?.[0]?.attributes?.total_area;
+        return Number.isFinite(totalArea) ? { ...attrs, AREA: totalArea } : attrs;
+      } catch (e) {
+        console.warn("[woodland] total area query failed:", e);
+        return attrs;
+      }
+    }
+
     // National overview — one VTL per county (Ireland_Trees_Crowns_VTL_<COUNTY>,
     // discovered above into state.crownTileLayerMap) shown together, replacing the old
     // 28-service groupServiceNames split.
@@ -223,6 +347,28 @@
 
     const countyOutlineLayer = new GraphicsLayer();
     map.add(countyOutlineLayer);
+
+    state.alewLayer = buildWoodlandLayer({
+      id: ALEW_LAYER_ITEM_ID,
+      title: "Ancient and Long Established Woodlands",
+      fields: ALEW_POPUP_FIELDS,
+      queryFields: ["COUNTY"],
+      areaGroupFields: ["SITE_NAME", "STATUS", "COUNTY"],
+      color: [255, 255, 0, 0.25],
+      outlineColor: [255, 255, 0, 0],
+      popupHeader: "rgba(255, 255, 0, 0.25)"
+    });
+    state.nsnwLayer = buildWoodlandLayer({
+      id: NSNW_LAYER_ITEM_ID,
+      title: "National Survey Native Woodlands",
+      fields: NSNW_POPUP_FIELDS,
+      queryFields: ["SITE_CODE", "NSNW_CODE"],
+      areaGroupFields: ["SITE_CODE", "NSNW_CODE"],
+      color: [255, 85, 0, 0.5],
+      outlineColor: [255, 85, 0, 0],
+      popupHeader: "rgba(255, 85, 0, 0.5)"
+    });
+    map.addMany([state.alewLayer, state.nsnwLayer]);
 
     const view = new MapView({
       container: "viewDiv",
@@ -395,6 +541,8 @@
       const buaLayerToggle   = document.getElementById("buaLayerToggle");
       const mdLayerToggle    = document.getElementById("mdLayerToggle");
       const laLayerToggle    = document.getElementById("laLayerToggle");
+      const alewLayerToggle  = document.getElementById("alewLayerToggle");
+      const nsnwLayerToggle  = document.getElementById("nsnwLayerToggle");
 
       crownLayerToggle.addEventListener("change", () => {
         state.activeCrownLayers.forEach(l => l.visible = crownLayerToggle.checked);
@@ -408,6 +556,12 @@
       });
       laLayerToggle.addEventListener("change", () => {
         if (state.activeLaLayer) state.activeLaLayer.visible = laLayerToggle.checked;
+      });
+      alewLayerToggle.addEventListener("change", () => {
+        if (state.alewLayer) state.alewLayer.visible = alewLayerToggle.checked;
+      });
+      nsnwLayerToggle.addEventListener("change", () => {
+        if (state.nsnwLayer) state.nsnwLayer.visible = nsnwLayerToggle.checked;
       });
 
       // ---------------------------------------------------------------------------
@@ -1395,8 +1549,13 @@
         state._activeChartTab === "bua" ? state.activeBuaLayer :
         state._activeChartTab === "md"  ? state.activeMdLayer :
                                     state.activeLaLayer;
-      if (!activeBoundaryLayer || !activeBoundaryLayer.visible) { _hoverHitTestPending = false; return; }
-      view.hitTest(event, { include: [activeBoundaryLayer] }).then(({ results }) => {
+      const hoverLayers = [
+        activeBoundaryLayer,
+        state.alewLayer,
+        state.nsnwLayer
+      ].filter(layer => layer?.visible);
+      if (!hoverLayers.length) { _hoverHitTestPending = false; return; }
+      view.hitTest(event, { include: hoverLayers }).then(({ results }) => {
         view.container.style.cursor = results.length ? "pointer" : "";
         _hoverHitTestPending = false;
       }).catch(() => { _hoverHitTestPending = false; });
@@ -1404,6 +1563,29 @@
 
     view.on("click", async (event) => {
       try {
+        const visibleWoodlandLayers = [state.alewLayer, state.nsnwLayer].filter(layer => layer?.visible);
+        if (visibleWoodlandLayers.length) {
+          const { results: woodlandResults } = await view.hitTest(event, { include: visibleWoodlandLayers });
+          if (woodlandResults.length) {
+            const woodlandHit = woodlandResults[0];
+            const attrs = await woodlandAttrsWithTotalArea(woodlandHit.layer, woodlandHit.graphic.attributes || {});
+            clearCrownSelection();
+            closeBuaPopup();
+            const layerView = await view.whenLayerView(woodlandHit.layer);
+            state.woodlandHighlight = layerView.highlight(woodlandHit.graphic);
+            showPopupAt(
+              woodlandHit.layer._treemapDisplayTitle || woodlandHit.layer.title || "Woodland Inventory",
+              buildWoodlandPopupContent(attrs, woodlandHit.layer._treemapPopupFields || []),
+              event.mapPoint,
+              {
+                headerBackground: woodlandHit.layer._treemapPopupHeader,
+                headerBorderColor: "rgba(0, 0, 0, 0.12)"
+              }
+            );
+            return;
+          }
+        }
+
         // ---------------------------------------------------------------------------
         // Crown polygons — custom popup
         // ---------------------------------------------------------------------------

@@ -943,10 +943,52 @@
       }
       #buaPopupBody { padding: 8px 4px; }
 
+      .woodland-popup-table {
+        border-collapse: collapse;
+        min-width: 220px;
+        font-size: 13px;
+      }
+      .woodland-popup-table th {
+        color: #444;
+        font-weight: 700;
+        padding: 4px 10px 4px 0;
+        text-align: left;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+      .woodland-popup-table td {
+        color: #222;
+        padding: 4px 0;
+        vertical-align: top;
+      }
+
       /* --------------------------------------------------------------------------- */
       /* Toggle switches */
       /* --------------------------------------------------------------------------- */
-      #layerToggleRow input[type="checkbox"] {
+      .layer-toggle-list {
+        padding: 4px 16px 8px;
+        border-top: 1px solid #eee;
+      }
+      .layer-toggle-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #555;
+        cursor: pointer;
+        user-select: none;
+        margin-top: 4px;
+      }
+      .layer-toggle-heading {
+        margin: 3px 0 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      #layerToggleRow input[type="checkbox"],
+      #woodlandLayerToggleRow input[type="checkbox"] {
         appearance: none;
         -webkit-appearance: none;
         width: 34px;
@@ -959,7 +1001,8 @@
         transition: background 0.2s ease;
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
       }
-      #layerToggleRow input[type="checkbox"]::before {
+      #layerToggleRow input[type="checkbox"]::before,
+      #woodlandLayerToggleRow input[type="checkbox"]::before {
         content: "";
         position: absolute;
         width: 15px;
@@ -971,18 +1014,23 @@
         transition: transform 0.2s ease;
         box-shadow: 0 1px 4px rgba(0,0,0,0.3);
       }
-      #layerToggleRow input[type="checkbox"]:checked {
+      #layerToggleRow input[type="checkbox"]:checked,
+      #woodlandLayerToggleRow input[type="checkbox"]:checked {
         background: #2e7d32;
       }
-      #layerToggleRow input[type="checkbox"]:checked::before {
+      #layerToggleRow input[type="checkbox"]:checked::before,
+      #woodlandLayerToggleRow input[type="checkbox"]:checked::before {
         transform: translateX(15px);
       }
-      #layerToggleRow input[type="checkbox"]:hover {
+      #layerToggleRow input[type="checkbox"]:hover,
+      #woodlandLayerToggleRow input[type="checkbox"]:hover {
         box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 3px rgba(46,125,50,0.18);
       }
       #layerToggleRow input#buaLayerToggle:checked { background: #f03b20; }
       #layerToggleRow input#mdLayerToggle:checked  { background: #ffeda0; }
       #layerToggleRow input#laLayerToggle:checked  { background: #feb24c; }
+      #woodlandLayerToggleRow input#alewLayerToggle:checked { background: #ffff00; }
+      #woodlandLayerToggleRow input#nsnwLayerToggle:checked { background: #ff5500; }
 
       /* BUA list item hover */
       #buaChartBody li {

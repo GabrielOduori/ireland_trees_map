@@ -66,6 +66,7 @@ export function clearCrownSelection() {
 export function closeBuaPopup() {
   buaPopup.style.display = "none";
   if (state.buaHighlight)       { state.buaHighlight.remove(); state.buaHighlight = null; }
+  if (state.woodlandHighlight)  { state.woodlandHighlight.remove(); state.woodlandHighlight = null; }
   if (state.activeBuaItem)      { state.activeBuaItem.classList.remove("active"); state.activeBuaItem = null; }
   if (state.filteredHighlight)  { state.filteredHighlight.remove(); state.filteredHighlight = null; }
   if (state.activeFilteredItem) { state.activeFilteredItem.classList.remove("active"); state.activeFilteredItem = null; }
@@ -215,8 +216,11 @@ export function buildBuaPopupContent(attrs) {
   return buildCanopyStatCard(canopyCoverPct, table);
 }
 
-export function showPopupAt(title, contentEl, mapPoint) {
+export function showPopupAt(title, contentEl, mapPoint, options = {}) {
   buaPopupTitle.textContent = title;
+  buaPopupHeader.style.background = options.headerBackground || "";
+  buaPopupHeader.style.color = options.headerColor || "";
+  buaPopupHeader.style.borderBottomColor = options.headerBorderColor || "";
   buaPopupBody.innerHTML = "";
   buaPopupBody.appendChild(contentEl);
   const pt = state.view.toScreen(mapPoint);
