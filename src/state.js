@@ -30,11 +30,14 @@ export const state = {
   activeBuaLayer: null,
   activeMdLayer: null,
   activeLaLayer: null,
+  alewLayer: null,
+  nsnwLayer: null,
   _nationalBuaLayer: null,  // unfiltered layer used for geometry queries in selectBua
   _buaTop100Promise: null,  // resolves to national top-100 BUAs by area, loaded once
 
   crownHighlight: null,
   buaHighlight: null,
+  woodlandHighlight: null,
   activeBuaItem: null,
   _buaLayer: null,
 

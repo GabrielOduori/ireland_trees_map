@@ -12,6 +12,10 @@ export const LOCAL_AUTHORITY_LAYER_ITEM_ID = "59581215294543f5a5edd2e2a110c191";
 
 export const COUNTY_LAYER_ITEM_ID = "259ee297ee034edaa3d22b082ab03732";
 
+export const ALEW_LAYER_ITEM_ID = "c92e1b63ad884d96b8b3f4fb035933bd";
+
+export const NSNW_LAYER_ITEM_ID = "786160b8ada2498aa84b5483bb02a0ce";
+
 // Client-side field allowlists reduce attribute transfer for rendering and popups.
 // Download/export prevention is enforced by ArcGIS Online item/layer settings.
 export const COUNTY_STATS_FIELDS = [
@@ -42,6 +46,8 @@ export const CROWN_POPUP_FIELDS = [
   "max_height_m", "max", "Max_", "crown_area_m2", "area", "Area",
   "ntm_id", "NTM_ID", "perimeter", "Perimeter", "county", "County"
 ];
+export const ALEW_POPUP_FIELDS = ["SITE_NAME", "STATUS", "AREA"];
+export const NSNW_POPUP_FIELDS = ["NSNW_DESC", "SAC", "AREA"];
 
 // Zoomed-in enough that individual BUA boundaries are the relevant thing to
 // notice (matches the crown tile/feature-layer switch threshold elsewhere).
