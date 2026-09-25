@@ -215,7 +215,7 @@
     function formatWoodlandPopupValue(field, value) {
       const normalizedValue = typeof value === "string" ? value.trim() : value;
       if (isMissingWoodlandValue(normalizedValue)) {
-        return WOODLAND_NOT_AVAILABLE_FIELDS.has(field) ? "Not Proteted" : "—";
+        return WOODLAND_NOT_AVAILABLE_FIELDS.has(field) ? "Not Protected" : "—";
       }
       if (field === "AREA" && typeof value === "number") {
         const squareMeters = value.toLocaleString(undefined, { maximumFractionDigits: 0 });
