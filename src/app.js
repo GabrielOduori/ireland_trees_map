@@ -2,7 +2,7 @@
       MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, LOCAL_AUTHORITY_LAYER_ITEM_ID,
       COUNTY_LAYER_ITEM_ID, COUNTY_STATS_FIELDS, BOUNDARY_STATS_FIELDS, CROWN_POPUP_FIELDS,
       ALEW_LAYER_ITEM_ID, NSNW_LAYER_ITEM_ID, ALEW_POPUP_FIELDS, NSNW_POPUP_FIELDS,
-      BUA_FLASH_SCALE, CHART_TABS,
+      SAC_SITE_BASE_URL, BUA_FLASH_SCALE, CHART_TABS,
     } from "./config.js";
     import { state } from "./state.js";
     import {
@@ -196,14 +196,32 @@
 
     const map = new Map({ basemap: "hybrid" });
 
+    // Woodland popups can come from two separate layers with slightly different
+    // schemas. Keep the labels stable and the fallback values consistent here so
+    // the same UI logic works across both inventories.
     const WOODLAND_FIELD_LABELS = {
       SITE_NAME: "Site name",
       STATUS: "Status",
-      NSNW_DESC: "Description",
+      WOOD_TYPE: "Woodland type",
+      NSNW_DESC: "Fossitt habitat",
+      H_FOSSDESC: "Fossitt habitat",
       SAC: "SAC",
       AREA: "Total area"
     };
 
+    // The source data stores short codes for woodland types, but the popup should
+    // read naturally for site users rather than exposing the raw shorthand.
+    const WOODLAND_TYPE_LABELS = {
+      SNB: "Semi-natural broadleaf",
+      MW: "Mixed woodland",
+      CP: "Conifer plantation",
+      NNB: "Non-native broadleaf",
+      RC: "Recent clearfell"
+    };
+
+    // Some woodland records are missing information entirely; ensure the popup
+    // falls back to a readable "Not Protected" / "—" value instead of a blank or
+    // raw null-ish string from the service.
     const WOODLAND_NOT_AVAILABLE_FIELDS = new Set(["SAC", "STATUS"]);
     const WOODLAND_MISSING_VALUES = new Set(["", "n/a", "na", "none", "null", "unknown", "-", "--"]);
     const isMissingWoodlandValue = value => {
@@ -212,34 +230,75 @@
         (typeof normalizedValue === "string" && WOODLAND_MISSING_VALUES.has(normalizedValue.toLowerCase()));
     };
 
+    // Build an NPWS SAC URL only when the service gives us a valid code. This
+    // avoids dead links when the value is missing, blank, or already in a URL form.
+    function buildWoodlandSiteUrl(sacCode) {
+      const code = String(sacCode ?? "").trim();
+      if (!code || code.toLowerCase() === "n/a" || code === "—") return null;
+      const cleanCode = code.replace(/^https?:\/\/[^/]+\/sac\//i, "").replace(/^\/+/, "").replace(/[^0-9A-Za-z]/g, "");
+      if (!cleanCode) return null;
+      return `${SAC_SITE_BASE_URL}/${cleanCode}`;
+    }
+
     function formatWoodlandPopupValue(field, value) {
+      const fieldKey = String(field || "").toUpperCase();
       const normalizedValue = typeof value === "string" ? value.trim() : value;
       if (isMissingWoodlandValue(normalizedValue)) {
-        return WOODLAND_NOT_AVAILABLE_FIELDS.has(field) ? "Not Protected" : "—";
+        return WOODLAND_NOT_AVAILABLE_FIELDS.has(fieldKey) ? "Not Protected" : "—";
       }
-      if (field === "AREA" && typeof value === "number") {
+      if (fieldKey === "WOOD_TYPE") {
+        const code = String(normalizedValue).trim().toUpperCase();
+        return WOODLAND_TYPE_LABELS[code] || normalizedValue;
+      }
+      if (fieldKey === "AREA" && typeof value === "number") {
         const squareMeters = value.toLocaleString(undefined, { maximumFractionDigits: 0 });
         const hectares = (value / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 });
         return `${squareMeters} m² (${hectares} ha)`;
       }
       return typeof value === "number"
         ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-        : normalizedValue;
+        : String(normalizedValue);
     }
 
+    // Build the popup table row-by-row so the labels and values stay aligned with
+    // the layer schema, while still presenting the user-facing text the app expects.
     function buildWoodlandPopupContent(attrs, fields) {
       const table = document.createElement("table");
       table.className = "woodland-popup-table";
 
       fields.forEach(field => {
+        const fieldKey = String(field || "").toUpperCase();
         const value = attrs[field];
 
         const row = document.createElement("tr");
         const label = document.createElement("th");
         const cell = document.createElement("td");
 
-        label.textContent = WOODLAND_FIELD_LABELS[field] || field;
-        cell.textContent = formatWoodlandPopupValue(field, value);
+        if (fieldKey === "WOOD_TYPE") {
+          label.innerHTML = "Woodland<br>type";
+        } else if (fieldKey === "H_FOSSDESC" || fieldKey === "NSNW_DESC") {
+          label.innerHTML = "Fossitt<br>habitat";
+        } else {
+          label.textContent = WOODLAND_FIELD_LABELS[fieldKey] || field;
+        }
+
+        if (fieldKey === "SAC") {
+          const sacValue = typeof value === "string" ? value.trim() : value;
+          if (isMissingWoodlandValue(sacValue)) {
+            cell.textContent = "Not Protected";
+          } else {
+            const link = document.createElement("a");
+            const sacUrl = buildWoodlandSiteUrl(sacValue);
+            link.href = sacUrl || "#";
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = String(sacValue);
+            if (!sacUrl) link.removeAttribute("href");
+            cell.appendChild(link);
+          }
+        } else {
+          cell.textContent = formatWoodlandPopupValue(fieldKey, value);
+        }
 
         row.appendChild(label);
         row.appendChild(cell);
@@ -255,10 +314,14 @@
 
     function buildWoodlandLayer({ id, title, fields, queryFields = [], areaGroupFields = [], color, outlineColor, popupHeader }) {
       const portalItem = state._portal ? { id, portal: state._portal } : { id };
+      const requestedFields = uniqueFields([...fields, ...queryFields, ...areaGroupFields]);
       const layer = new FeatureLayer({
         portalItem,
         visible: false,
-        outFields: uniqueFields([...fields, ...queryFields, ...areaGroupFields]),
+        // Some woodland services expose a slightly different schema than the app
+        // configuration assumes. Do not send unsupported fields up front; the
+        // actual layer metadata is only known after the service loads.
+        outFields: ["OBJECTID"],
         popupEnabled: true,
         labelsVisible: false,
         labelingInfo: null,
@@ -273,6 +336,15 @@
           })
         })
       });
+
+      layer.load()
+        .then(() => {
+          layer.outFields = existingOutFields(layer, requestedFields);
+        })
+        .catch(() => {
+          layer.outFields = requestedFields.length ? requestedFields : [layer.objectIdField || "OBJECTID"];
+        });
+
       layer.on("layerview-create-error", e => {
         console.error(`[woodland] failed to render ${title}:`, e.error);
       });
