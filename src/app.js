@@ -230,14 +230,28 @@
         (typeof normalizedValue === "string" && WOODLAND_MISSING_VALUES.has(normalizedValue.toLowerCase()));
     };
 
-    // Build an NPWS SAC URL only when the service gives us a valid code. This
-    // avoids dead links when the value is missing, blank, or already in a URL form.
+    // Build an NPWS SAC URL only when the published data includes a usable code.
+    // The service sometimes hands us an already-encoded URL or a null-like value,
+    // so we strip any URL prefix and keep only the identifier itself before
+    // constructing a safe link.
     function buildWoodlandSiteUrl(sacCode) {
       const code = String(sacCode ?? "").trim();
       if (!code || code.toLowerCase() === "n/a" || code === "—") return null;
       const cleanCode = code.replace(/^https?:\/\/[^/]+\/sac\//i, "").replace(/^\/+/, "").replace(/[^0-9A-Za-z]/g, "");
       if (!cleanCode) return null;
       return `${SAC_SITE_BASE_URL}/${cleanCode}`;
+    }
+
+    // Keep the SAC link predictable and stable for static client-side rendering.
+    // We validate the code as a plain identifier (not a remote-page check) because
+    // a browser popup should not depend on CORS-enabled HEAD requests or slow live
+    // network checks for every feature rendered on the map.
+    function isValidWoodlandSACCode(sacCode) {
+      const code = String(sacCode ?? "").trim();
+      if (!code || code.toLowerCase() === "n/a" || code === "—") return false;
+      const withoutUrlPrefix = code.replace(/^https?:\/\/[^/]+\/sac\//i, "").replace(/^\/+/, "");
+      const cleaned = withoutUrlPrefix.replace(/[^0-9A-Za-z]/g, "");
+      return cleaned.length > 0 && cleaned === withoutUrlPrefix;
     }
 
     function formatWoodlandPopupValue(field, value) {
@@ -284,7 +298,9 @@
 
         if (fieldKey === "SAC") {
           const sacValue = typeof value === "string" ? value.trim() : value;
-          if (isMissingWoodlandValue(sacValue)) {
+          // Guard against blank/null values and malformed identifiers before
+          // exposing the user to a dead or misleading NPWS link.
+          if (isMissingWoodlandValue(sacValue) || !isValidWoodlandSACCode(sacValue)) {
             cell.textContent = "Not Protected";
           } else {
             const link = document.createElement("a");
@@ -292,8 +308,7 @@
             link.href = sacUrl || "#";
             link.target = "_blank";
             link.rel = "noopener noreferrer";
-            link.textContent = String(sacValue);
-            if (!sacUrl) link.removeAttribute("href");
+            link.textContent = "Visit site";
             cell.appendChild(link);
           }
         } else {
@@ -318,9 +333,10 @@
       const layer = new FeatureLayer({
         portalItem,
         visible: false,
-        // Some woodland services expose a slightly different schema than the app
-        // configuration assumes. Do not send unsupported fields up front; the
-        // actual layer metadata is only known after the service loads.
+        // Woodland layers are published independently and do not always expose
+        // the same schema. Start with OBJECTID so the layer loads cleanly, then
+        // replace outFields with the intersection of the requested fields and the
+        // actual service metadata once the layer is available.
         outFields: ["OBJECTID"],
         popupEnabled: true,
         labelsVisible: false,
@@ -1043,15 +1059,24 @@
           // exists for them here) show up the same way: the sum simply falls short.
           let _loadedTotal    = 0;
           let _countsReported = 0;
+          const _layerCounts = new Map();
+
           function checkTotalCoverage() {
             if (_countsReported < _featureTotal || total <= 0) return;
-            // Small gaps are normal (stats snapshot vs. live data can drift
-            // slightly) — only flag a shortfall big enough to mean real data
-            // is actually missing. We can't tell which part(s) are short from
-            // here, only that the county's total came up short overall.
+            // This check is intentionally strict: if a county has part of its
+            // canopy published layer missing, we want the app to surface it and
+            // make the specific layer ID discoverable rather than hiding it.
+            const suspectItemIds = crownItemIds
+              .filter((itemId, idx) => {
+                const count = _layerCounts.get(itemId ?? idx);
+                return count == null || count <= 0;
+              })
+              .filter(Boolean);
+
             if (_loadedTotal < total * 0.95) {
+              const layerDetails = suspectItemIds.length ? ` suspected missing layer(s): ${suspectItemIds.join(", ")}` : "";
               console.error(
-                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing`
+                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing${layerDetails}`
               );
               flagLoadIssue("Some parts of this layer didn't load.");
             }
@@ -1062,9 +1087,11 @@
 
             fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
               _loadedTotal += count;
+              _layerCounts.set(itemId, count);
               _countsReported++;
               checkTotalCoverage();
             }).catch(err => {
+              _layerCounts.set(itemId, 0);
               console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
               _countsReported++;
               checkTotalCoverage();
