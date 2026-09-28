@@ -25,6 +25,8 @@ export const state = {
   crownLayerMap: {},      // county -> Feature Layer item id (interactive, minScale 25k)
   crownTileLayerMap: {},  // county -> Tile layer item info { id, type } (overview, all scales)
   countyStatsMap: {},     // county name -> stats row, populated live from the county stats layer
+  buaCountyStatsMap: {},  // county -> TOF total inside built-up areas, from the BUA stats layer
+  nationalUrbanTof: 0,
 
   activeCrownLayers: [],
   activeBuaLayer: null,
