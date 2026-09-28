@@ -87,22 +87,45 @@
         showStartupStatus("County canopy statistics could not be loaded.", true);
       }
 
-      // Feature layers — tagged IrelandsTREEMAP
-      const crownItems = await portal.queryItems(new PortalQueryParams({
-        query: 'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"',
-        num: 50, sortField: "title", sortOrder: "asc"
-      }));
+      async function fetchAllPortalItems(query, extraParams = {}) {
+        const results = [];
+        let start = 0;
+        const pageSize = 50;
+
+        while (true) {
+          const page = await portal.queryItems(new PortalQueryParams({
+            query,
+            num: pageSize,
+            start,
+            sortField: "title",
+            sortOrder: "asc",
+            ...extraParams
+          }));
+
+          if (!page?.results?.length) break;
+          results.push(...page.results);
+
+          if (page.nextStart == null || page.nextStart <= start) break;
+          start = page.nextStart;
+        }
+
+        return results;
+      }
+
+      // Feature layers — tagged IrelandsTREEMAP. Fetch every page so split counties
+      // like Wicklow_G are included instead of getting silently dropped by the default
+      // 50-result page limit.
+      const crownItems = await fetchAllPortalItems(
+        'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"'
+      );
 
       // Tile layers — search by owner to bypass type ambiguity and index lag.
       // UploadServiceDefinition_server can produce "Tile Layer", "Map Service", or
       // "Hosted Tile Layer" depending on ArcGIS Pro version — owner: avoids all that.
       const tileQuery = `tags:"IrelandsTREEMAP" AND title:"Ireland_Trees_Crowns_VTL"`;
-      const tileItems = await portal.queryItems(new PortalQueryParams({
-        query: tileQuery, num: 50, sortField: "title", sortOrder: "asc"
-      }));
+      const tileItems = await fetchAllPortalItems(tileQuery);
 
-
-      crownItems.results.forEach(item => {
+      crownItems.forEach(item => {
         const raw    = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
         // Strip alphabetic split suffix (_A, _B, _C …) so all parts map to the same county key
         const county = raw.replace(/_[A-Z]$/, "");
@@ -115,7 +138,7 @@
       // Unknown types (e.g. Feature Service, Service Definition) get Infinity so they never win.
       const tilePriority = t => { const i = TILE_TYPES.indexOf(t); return i === -1 ? Infinity : i; };
 
-      tileItems.results.forEach(item => {
+      tileItems.forEach(item => {
         if (tilePriority(item.type) === Infinity) return;   // skip non-tile types
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
         const existing = state.crownTileLayerMap[county];
@@ -1027,11 +1050,12 @@
           const _featureTotal = state.activeCrownLayers.length;
           let   _loadIssueFlagged = false;   // true once any error path below has fired
 
-          function flagLoadIssue(message) {
+          function flagLoadIssue(message, partLabel = null) {
             if (_loadIssueFlagged) return;   // first problem wins — don't spam the badge
             _loadIssueFlagged = true;
             if (_crownLoadTimeout) { clearTimeout(_crownLoadTimeout); _crownLoadTimeout = null; }
-            setCrownError(message);
+            const detail = partLabel ? `${message} (${partLabel})` : message;
+            setCrownError(detail);
           }
 
           // Fallback for a layer that never settles either way — neither resolving
@@ -1042,8 +1066,13 @@
           _crownLoadTimeout = setTimeout(() => {
             _crownLoadTimeout = null;
             if (_readyLayers.size < _featureTotal) {
-              console.error(`[feature] ${name}: canopy layer(s) still not ready after 20s`);
-              flagLoadIssue("Some parts of this layer didn't load.");
+              const missingParts = crownItemIds
+                .map((_, idx) => ({ idx, ready: _readyLayers.has(idx) }))
+                .filter(({ ready }) => !ready)
+                .map(({ idx }) => partLabelForIndex(idx));
+              const missingDetail = missingParts.length ? ` ${missingParts.join(", ")}` : "";
+              console.error(`[feature] ${name}: canopy layer(s) still not ready after 20s${missingDetail}`);
+              flagLoadIssue("Some parts of this layer didn't load.", missingParts.length ? missingParts.join(", ") : null);
             }
           }, 20000);
 
@@ -1059,40 +1088,53 @@
           // exists for them here) show up the same way: the sum simply falls short.
           let _loadedTotal    = 0;
           let _countsReported = 0;
-          const _layerCounts = new Map();
+          const _layerCounts = Object.create(null);
+
+          function partLabelForIndex(index) {
+            const suffix = String.fromCharCode(65 + index);
+            return `${name} ${suffix}`;
+          }
 
           function checkTotalCoverage() {
             if (_countsReported < _featureTotal || total <= 0) return;
             // This check is intentionally strict: if a county has part of its
-            // canopy published layer missing, we want the app to surface it and
-            // make the specific layer ID discoverable rather than hiding it.
-            const suspectItemIds = crownItemIds
-              .filter((itemId, idx) => {
-                const count = _layerCounts.get(itemId ?? idx);
-                return count == null || count <= 0;
-              })
-              .filter(Boolean);
+            // canopy published layer missing, we want the app to surface it while
+            // keeping the log safe and human-readable instead of exposing raw IDs.
+            const partStats = crownItemIds.map((itemId, idx) => {
+              const key = itemId ?? String(idx);
+              return {
+                idx,
+                label: partLabelForIndex(idx),
+                count: _layerCounts[key]
+              };
+            });
+            const expectedPerPart = total / Math.max(1, crownItemIds.length);
+            const suspectParts = partStats
+              .filter(({ count }) => count == null || count <= 0 || count < expectedPerPart * 0.25)
+              .map(({ label }) => label);
 
             if (_loadedTotal < total * 0.95) {
-              const layerDetails = suspectItemIds.length ? ` suspected missing layer(s): ${suspectItemIds.join(", ")}` : "";
+              const layerDetails = suspectParts.length ? ` suspected missing layer(s): ${suspectParts.join(", ")}` : "";
+              const countDetails = partStats.map(({ label, count }) => `${label}: ${Number(count ?? 0).toLocaleString()}`).join("; ");
               console.error(
-                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing${layerDetails}`
+                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing${layerDetails}. Counts: ${countDetails}`
               );
-              flagLoadIssue("Some parts of this layer didn't load.");
+              flagLoadIssue("Some parts of this layer didn't load.", suspectParts.length ? suspectParts.join(", ") : null);
             }
           }
 
           state.activeCrownLayers.forEach((fl, idx) => {
             const itemId = crownItemIds[idx];
+            const countKey = itemId ?? String(idx);
 
             fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
               _loadedTotal += count;
-              _layerCounts.set(itemId, count);
+              _layerCounts[countKey] = count;
               _countsReported++;
               checkTotalCoverage();
             }).catch(err => {
-              _layerCounts.set(itemId, 0);
-              console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
+              _layerCounts[countKey] = 0;
+              console.error(`[feature] ${name}: failed crown part ${partLabelForIndex(idx)}`, err);
               _countsReported++;
               checkTotalCoverage();
             });
@@ -1119,8 +1161,9 @@
               // never finished) rejects here instead of ever calling the .then() above —
               // without this, the loading badge would wait forever for a layer view
               // that's never coming.
-              console.error(`[feature] layer view failed for ${name} crown layer (item id: ${itemId}):`, err);
-              flagLoadIssue(`Some canopy data for ${name} could not be loaded.`);
+              const partLabel = partLabelForIndex(idx);
+              console.error(`[feature] layer view failed for ${partLabel}:`, err);
+              flagLoadIssue(`Some canopy data for ${name} could not be loaded.`, partLabel);
             });
           });
 
