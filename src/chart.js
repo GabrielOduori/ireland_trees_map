@@ -75,7 +75,7 @@ export function drawCanopyPie(ftPct, tofPct) {
   if (360 - ftAngle > 25)     addLabel(ftAngle + (360 - ftAngle) / 2, tofPct.toFixed(1) + "%");
 }
 
-export function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
+export function updateCanopyStats(ft, tof, canopyPct, canopyHa, label, urbanTof = null) {
   const total = ft + tof;
   const ftPct  = total > 0 ? ft  / total * 100 : 0;
   const tofPct = total > 0 ? tof / total * 100 : 0;
@@ -90,6 +90,19 @@ export function updateCanopyStats(ft, tof, canopyPct, canopyHa, label) {
     canopyPct != null ? `${canopyPct.toFixed(1)} %` : "—";
   document.getElementById("statCanopyHa").textContent =
     canopyHa  != null ? `${canopyHa.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha` : "—";
+
+  const urbanEl = document.getElementById("statUrbanTofPct");
+  const ruralEl = document.getElementById("statRuralTofPct");
+  if (urbanTof != null && tof > 0) {
+    const urbanPct = (urbanTof / tof) * 100;
+    const ruralPct = 100 - urbanPct;
+    urbanEl.textContent = `${urbanPct.toFixed(1)} %`;
+    ruralEl.textContent = `${ruralPct.toFixed(1)} %`;
+  } else {
+    urbanEl.textContent = "—";
+    ruralEl.textContent = "—";
+  }
+
   drawCanopyPie(ftPct, tofPct);
 }
 
