@@ -1,5 +1,5 @@
     import {
-      MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, LOCAL_AUTHORITY_LAYER_ITEM_ID,
+      MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, URBAN_BUA_MIN_POPULATION, LOCAL_AUTHORITY_LAYER_ITEM_ID,
       COUNTY_LAYER_ITEM_ID, COUNTY_STATS_FIELDS, BOUNDARY_STATS_FIELDS, CROWN_POPUP_FIELDS,
       ALEW_LAYER_ITEM_ID, NSNW_LAYER_ITEM_ID, ALEW_POPUP_FIELDS, NSNW_POPUP_FIELDS,
       SAC_SITE_BASE_URL, BUA_FLASH_SCALE, CHART_TABS,
@@ -87,6 +87,35 @@
         showStartupStatus("County canopy statistics could not be loaded.", true);
       }
 
+      try {
+        const buaPortalRef = { id: BUA_LAYER_ITEM_ID, portal };
+        const buaStatsLayer = new FeatureLayer({ portalItem: buaPortalRef });
+        await buaStatsLayer.load();
+        const buaQuery = buaStatsLayer.createQuery();
+        // Urban BUA = settlements with population >= 1,500 (CSO urban threshold);
+        // TOF in smaller BUAs counts as rural. data/urban_bua_tof.py reproduces this
+        // offline and writes the qualifying BUA list + per-county table to data/*.csv.
+        buaQuery.where          = `population >= ${URBAN_BUA_MIN_POPULATION}`;
+        // Explicit fields: BOUNDARY_STATS_FIELDS deliberately omits trees_outside_forests.
+        buaQuery.outFields      = ["county", "trees_outside_forests"];
+        buaQuery.returnGeometry = false;
+        const { features: buaFeatures } = await buaStatsLayer.queryFeatures(buaQuery);
+
+        let nationalUrbanTof = 0;
+        buaFeatures.forEach(f => {
+          const a = f.attributes || {};
+          const county = (a.county || "").toUpperCase();
+          const tof = Number(a.trees_outside_forests) || 0;
+          if (county) {
+            state.buaCountyStatsMap[county] = (state.buaCountyStatsMap[county] || 0) + tof;
+          }
+          nationalUrbanTof += tof;
+        });
+        state.nationalUrbanTof = nationalUrbanTof;
+      } catch (e) {
+        console.warn("BUA stats layer query failed — urban/rural TOF split will stay unavailable:", e);
+      }
+
       async function fetchAllPortalItems(query, extraParams = {}) {
         const results = [];
         let start = 0;
@@ -105,8 +134,11 @@
           if (!page?.results?.length) break;
           results.push(...page.results);
 
-          if (page.nextStart == null || page.nextStart <= start) break;
-          start = page.nextStart;
+          // SDK 5.x exposes the next page via nextQueryParams.start (nextStart is
+          // undefined), and returns -1 / null once the last page is reached.
+          const nextStart = page.nextQueryParams?.start ?? page.nextStart;
+          if (nextStart == null || nextStart <= start) break;
+          start = nextStart;
         }
 
         return results;
@@ -166,7 +198,7 @@
       const natTof   = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
       const natHa    = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
       const natPct   = natHa > 0 ? natHa / 7027300 * 100 : null;  // 7,027,300 ha = ROI land area (70,273 km²)
-      updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
+      updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null, "National Canopy", state.nationalUrbanTof || null);
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -226,7 +258,7 @@
       SITE_NAME: "Site name",
       STATUS: "Status",
       WOOD_TYPE: "Woodland type",
-      NSNW_DESC: "Fossitt habitat",
+      NSNW_DESC: "NSNW description",
       H_FOSSDESC: "Fossitt habitat",
       SAC: "SAC",
       AREA: "Total area"
@@ -313,8 +345,10 @@
 
         if (fieldKey === "WOOD_TYPE") {
           label.innerHTML = "Woodland<br>type";
-        } else if (fieldKey === "H_FOSSDESC" || fieldKey === "NSNW_DESC") {
+        } else if (fieldKey === "H_FOSSDESC") {
           label.innerHTML = "Fossitt<br>habitat";
+        } else if (fieldKey === "NSNW_DESC") {
+          label.innerHTML = "NSNW<br>description";
         } else {
           label.textContent = WOODLAND_FIELD_LABELS[fieldKey] || field;
         }
@@ -882,7 +916,7 @@
         const natTof  = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
         const natHa   = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
         const natPct  = natHa > 0 ? natHa / 7027300 * 100 : null;
-        updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
+        updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null, "National Canopy", state.nationalUrbanTof || null);
       }
 
       // ---------------------------------------------------------------------------
@@ -1041,8 +1075,14 @@
           const ftCount  = stats.ft  || 0;
           const tofCount = stats.tof || 0;
           const total    = ftCount + tofCount;
-          updateCanopyStats(ftCount, tofCount, stats.canopy_pct ?? null, stats.canopy_ha ?? null,
-            name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
+          updateCanopyStats(
+            ftCount,
+            tofCount,
+            stats.canopy_pct ?? null,
+            stats.canopy_ha ?? null,
+            name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+            state.buaCountyStatsMap[name.toUpperCase()] ?? null
+          );
 
           // Track when every feature layer finishes its initial load — hides the
           // loading badge regardless of whether this county has a VTL fallback.

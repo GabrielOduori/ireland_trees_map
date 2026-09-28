@@ -94,7 +94,8 @@ export function updateCanopyStats(ft, tof, canopyPct, canopyHa, label, urbanTof 
   const urbanEl = document.getElementById("statUrbanTofPct");
   const ruralEl = document.getElementById("statRuralTofPct");
   if (urbanTof != null && tof > 0) {
-    const urbanPct = (urbanTof / tof) * 100;
+    // Clamp: BUA and county layers are published separately and can drift.
+    const urbanPct = Math.min(100, Math.max(0, (urbanTof / tof) * 100));
     const ruralPct = 100 - urbanPct;
     urbanEl.textContent = `${urbanPct.toFixed(1)} %`;
     ruralEl.textContent = `${ruralPct.toFixed(1)} %`;

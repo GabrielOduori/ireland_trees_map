@@ -8,6 +8,9 @@ export const MUNICIPAL_DISTRICT_LAYER_ITEM_ID = "44758e1d99f8472b874484b50f0dcf1
 
 export const BUA_LAYER_ITEM_ID = "a7b962ccd97e4ba3a1e2587cedb6dee6";
 
+// BUAs at or above this population count as urban for the urban/rural TOF split.
+export const URBAN_BUA_MIN_POPULATION = 1500;
+
 export const LOCAL_AUTHORITY_LAYER_ITEM_ID = "59581215294543f5a5edd2e2a110c191";
 
 export const COUNTY_LAYER_ITEM_ID = "259ee297ee034edaa3d22b082ab03732";
