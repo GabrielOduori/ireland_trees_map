@@ -2,7 +2,7 @@
       MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, LOCAL_AUTHORITY_LAYER_ITEM_ID,
       COUNTY_LAYER_ITEM_ID, COUNTY_STATS_FIELDS, BOUNDARY_STATS_FIELDS, CROWN_POPUP_FIELDS,
       ALEW_LAYER_ITEM_ID, NSNW_LAYER_ITEM_ID, ALEW_POPUP_FIELDS, NSNW_POPUP_FIELDS,
-      BUA_FLASH_SCALE, CHART_TABS,
+      SAC_SITE_BASE_URL, BUA_FLASH_SCALE, CHART_TABS,
     } from "./config.js";
     import { state } from "./state.js";
     import {
@@ -87,22 +87,45 @@
         showStartupStatus("County canopy statistics could not be loaded.", true);
       }
 
-      // Feature layers — tagged IrelandsTREEMAP
-      const crownItems = await portal.queryItems(new PortalQueryParams({
-        query: 'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"',
-        num: 50, sortField: "title", sortOrder: "asc"
-      }));
+      async function fetchAllPortalItems(query, extraParams = {}) {
+        const results = [];
+        let start = 0;
+        const pageSize = 50;
+
+        while (true) {
+          const page = await portal.queryItems(new PortalQueryParams({
+            query,
+            num: pageSize,
+            start,
+            sortField: "title",
+            sortOrder: "asc",
+            ...extraParams
+          }));
+
+          if (!page?.results?.length) break;
+          results.push(...page.results);
+
+          if (page.nextStart == null || page.nextStart <= start) break;
+          start = page.nextStart;
+        }
+
+        return results;
+      }
+
+      // Feature layers — tagged IrelandsTREEMAP. Fetch every page so split counties
+      // like Wicklow_G are included instead of getting silently dropped by the default
+      // 50-result page limit.
+      const crownItems = await fetchAllPortalItems(
+        'tags:"IrelandsTREEMAP" AND type:"Feature Service" AND title:"Ireland_Trees_Crowns"'
+      );
 
       // Tile layers — search by owner to bypass type ambiguity and index lag.
       // UploadServiceDefinition_server can produce "Tile Layer", "Map Service", or
       // "Hosted Tile Layer" depending on ArcGIS Pro version — owner: avoids all that.
       const tileQuery = `tags:"IrelandsTREEMAP" AND title:"Ireland_Trees_Crowns_VTL"`;
-      const tileItems = await portal.queryItems(new PortalQueryParams({
-        query: tileQuery, num: 50, sortField: "title", sortOrder: "asc"
-      }));
+      const tileItems = await fetchAllPortalItems(tileQuery);
 
-
-      crownItems.results.forEach(item => {
+      crownItems.forEach(item => {
         const raw    = item.title.replace("Ireland_Trees_Crowns_", "").toUpperCase();
         // Strip alphabetic split suffix (_A, _B, _C …) so all parts map to the same county key
         const county = raw.replace(/_[A-Z]$/, "");
@@ -115,7 +138,7 @@
       // Unknown types (e.g. Feature Service, Service Definition) get Infinity so they never win.
       const tilePriority = t => { const i = TILE_TYPES.indexOf(t); return i === -1 ? Infinity : i; };
 
-      tileItems.results.forEach(item => {
+      tileItems.forEach(item => {
         if (tilePriority(item.type) === Infinity) return;   // skip non-tile types
         const county = item.title.replace("Ireland_Trees_Crowns_VTL_", "").toUpperCase();
         const existing = state.crownTileLayerMap[county];
@@ -196,14 +219,32 @@
 
     const map = new Map({ basemap: "hybrid" });
 
+    // Woodland popups can come from two separate layers with slightly different
+    // schemas. Keep the labels stable and the fallback values consistent here so
+    // the same UI logic works across both inventories.
     const WOODLAND_FIELD_LABELS = {
       SITE_NAME: "Site name",
       STATUS: "Status",
-      NSNW_DESC: "Description",
+      WOOD_TYPE: "Woodland type",
+      NSNW_DESC: "Fossitt habitat",
+      H_FOSSDESC: "Fossitt habitat",
       SAC: "SAC",
       AREA: "Total area"
     };
 
+    // The source data stores short codes for woodland types, but the popup should
+    // read naturally for site users rather than exposing the raw shorthand.
+    const WOODLAND_TYPE_LABELS = {
+      SNB: "Semi-natural broadleaf",
+      MW: "Mixed woodland",
+      CP: "Conifer plantation",
+      NNB: "Non-native broadleaf",
+      RC: "Recent clearfell"
+    };
+
+    // Some woodland records are missing information entirely; ensure the popup
+    // falls back to a readable "Not Protected" / "—" value instead of a blank or
+    // raw null-ish string from the service.
     const WOODLAND_NOT_AVAILABLE_FIELDS = new Set(["SAC", "STATUS"]);
     const WOODLAND_MISSING_VALUES = new Set(["", "n/a", "na", "none", "null", "unknown", "-", "--"]);
     const isMissingWoodlandValue = value => {
@@ -212,34 +253,90 @@
         (typeof normalizedValue === "string" && WOODLAND_MISSING_VALUES.has(normalizedValue.toLowerCase()));
     };
 
+    // Build an NPWS SAC URL only when the published data includes a usable code.
+    // The service sometimes hands us an already-encoded URL or a null-like value,
+    // so we strip any URL prefix and keep only the identifier itself before
+    // constructing a safe link.
+    function buildWoodlandSiteUrl(sacCode) {
+      const code = String(sacCode ?? "").trim();
+      if (!code || code.toLowerCase() === "n/a" || code === "—") return null;
+      const cleanCode = code.replace(/^https?:\/\/[^/]+\/sac\//i, "").replace(/^\/+/, "").replace(/[^0-9A-Za-z]/g, "");
+      if (!cleanCode) return null;
+      return `${SAC_SITE_BASE_URL}/${cleanCode}`;
+    }
+
+    // Keep the SAC link predictable and stable for static client-side rendering.
+    // We validate the code as a plain identifier (not a remote-page check) because
+    // a browser popup should not depend on CORS-enabled HEAD requests or slow live
+    // network checks for every feature rendered on the map.
+    function isValidWoodlandSACCode(sacCode) {
+      const code = String(sacCode ?? "").trim();
+      if (!code || code.toLowerCase() === "n/a" || code === "—") return false;
+      const withoutUrlPrefix = code.replace(/^https?:\/\/[^/]+\/sac\//i, "").replace(/^\/+/, "");
+      const cleaned = withoutUrlPrefix.replace(/[^0-9A-Za-z]/g, "");
+      return cleaned.length > 0 && cleaned === withoutUrlPrefix;
+    }
+
     function formatWoodlandPopupValue(field, value) {
+      const fieldKey = String(field || "").toUpperCase();
       const normalizedValue = typeof value === "string" ? value.trim() : value;
       if (isMissingWoodlandValue(normalizedValue)) {
-        return WOODLAND_NOT_AVAILABLE_FIELDS.has(field) ? "Not Protected" : "—";
+        return WOODLAND_NOT_AVAILABLE_FIELDS.has(fieldKey) ? "Not Protected" : "—";
       }
-      if (field === "AREA" && typeof value === "number") {
+      if (fieldKey === "WOOD_TYPE") {
+        const code = String(normalizedValue).trim().toUpperCase();
+        return WOODLAND_TYPE_LABELS[code] || normalizedValue;
+      }
+      if (fieldKey === "AREA" && typeof value === "number") {
         const squareMeters = value.toLocaleString(undefined, { maximumFractionDigits: 0 });
         const hectares = (value / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 });
         return `${squareMeters} m² (${hectares} ha)`;
       }
       return typeof value === "number"
         ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
-        : normalizedValue;
+        : String(normalizedValue);
     }
 
+    // Build the popup table row-by-row so the labels and values stay aligned with
+    // the layer schema, while still presenting the user-facing text the app expects.
     function buildWoodlandPopupContent(attrs, fields) {
       const table = document.createElement("table");
       table.className = "woodland-popup-table";
 
       fields.forEach(field => {
+        const fieldKey = String(field || "").toUpperCase();
         const value = attrs[field];
 
         const row = document.createElement("tr");
         const label = document.createElement("th");
         const cell = document.createElement("td");
 
-        label.textContent = WOODLAND_FIELD_LABELS[field] || field;
-        cell.textContent = formatWoodlandPopupValue(field, value);
+        if (fieldKey === "WOOD_TYPE") {
+          label.innerHTML = "Woodland<br>type";
+        } else if (fieldKey === "H_FOSSDESC" || fieldKey === "NSNW_DESC") {
+          label.innerHTML = "Fossitt<br>habitat";
+        } else {
+          label.textContent = WOODLAND_FIELD_LABELS[fieldKey] || field;
+        }
+
+        if (fieldKey === "SAC") {
+          const sacValue = typeof value === "string" ? value.trim() : value;
+          // Guard against blank/null values and malformed identifiers before
+          // exposing the user to a dead or misleading NPWS link.
+          if (isMissingWoodlandValue(sacValue) || !isValidWoodlandSACCode(sacValue)) {
+            cell.textContent = "Not Protected";
+          } else {
+            const link = document.createElement("a");
+            const sacUrl = buildWoodlandSiteUrl(sacValue);
+            link.href = sacUrl || "#";
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = "Visit site";
+            cell.appendChild(link);
+          }
+        } else {
+          cell.textContent = formatWoodlandPopupValue(fieldKey, value);
+        }
 
         row.appendChild(label);
         row.appendChild(cell);
@@ -255,10 +352,15 @@
 
     function buildWoodlandLayer({ id, title, fields, queryFields = [], areaGroupFields = [], color, outlineColor, popupHeader }) {
       const portalItem = state._portal ? { id, portal: state._portal } : { id };
+      const requestedFields = uniqueFields([...fields, ...queryFields, ...areaGroupFields]);
       const layer = new FeatureLayer({
         portalItem,
         visible: false,
-        outFields: uniqueFields([...fields, ...queryFields, ...areaGroupFields]),
+        // Woodland layers are published independently and do not always expose
+        // the same schema. Start with OBJECTID so the layer loads cleanly, then
+        // replace outFields with the intersection of the requested fields and the
+        // actual service metadata once the layer is available.
+        outFields: ["OBJECTID"],
         popupEnabled: true,
         labelsVisible: false,
         labelingInfo: null,
@@ -273,6 +375,15 @@
           })
         })
       });
+
+      layer.load()
+        .then(() => {
+          layer.outFields = existingOutFields(layer, requestedFields);
+        })
+        .catch(() => {
+          layer.outFields = requestedFields.length ? requestedFields : [layer.objectIdField || "OBJECTID"];
+        });
+
       layer.on("layerview-create-error", e => {
         console.error(`[woodland] failed to render ${title}:`, e.error);
       });
@@ -939,11 +1050,12 @@
           const _featureTotal = state.activeCrownLayers.length;
           let   _loadIssueFlagged = false;   // true once any error path below has fired
 
-          function flagLoadIssue(message) {
+          function flagLoadIssue(message, partLabel = null) {
             if (_loadIssueFlagged) return;   // first problem wins — don't spam the badge
             _loadIssueFlagged = true;
             if (_crownLoadTimeout) { clearTimeout(_crownLoadTimeout); _crownLoadTimeout = null; }
-            setCrownError(message);
+            const detail = partLabel ? `${message} (${partLabel})` : message;
+            setCrownError(detail);
           }
 
           // Fallback for a layer that never settles either way — neither resolving
@@ -954,8 +1066,13 @@
           _crownLoadTimeout = setTimeout(() => {
             _crownLoadTimeout = null;
             if (_readyLayers.size < _featureTotal) {
-              console.error(`[feature] ${name}: canopy layer(s) still not ready after 20s`);
-              flagLoadIssue("Some parts of this layer didn't load.");
+              const missingParts = crownItemIds
+                .map((_, idx) => ({ idx, ready: _readyLayers.has(idx) }))
+                .filter(({ ready }) => !ready)
+                .map(({ idx }) => partLabelForIndex(idx));
+              const missingDetail = missingParts.length ? ` ${missingParts.join(", ")}` : "";
+              console.error(`[feature] ${name}: canopy layer(s) still not ready after 20s${missingDetail}`);
+              flagLoadIssue("Some parts of this layer didn't load.", missingParts.length ? missingParts.join(", ") : null);
             }
           }, 20000);
 
@@ -971,29 +1088,54 @@
           // exists for them here) show up the same way: the sum simply falls short.
           let _loadedTotal    = 0;
           let _countsReported = 0;
+          const _layerCounts = Object.create(null);
+
+          function partLabelForIndex(index) {
+            const suffix = String.fromCharCode(65 + index);
+            return `${name} ${suffix}`;
+          }
+
           function checkTotalCoverage() {
             if (_countsReported < _featureTotal || total <= 0) return;
-            // Small gaps are normal (stats snapshot vs. live data can drift
-            // slightly) — only flag a shortfall big enough to mean real data
-            // is actually missing. We can't tell which part(s) are short from
-            // here, only that the county's total came up short overall.
+            // This check is intentionally strict: if a county has part of its
+            // canopy published layer missing, we want the app to surface it while
+            // keeping the log safe and human-readable instead of exposing raw IDs.
+            const partStats = crownItemIds.map((itemId, idx) => {
+              const key = itemId ?? String(idx);
+              return {
+                idx,
+                label: partLabelForIndex(idx),
+                count: _layerCounts[key]
+              };
+            });
+            const suspectParts = partStats
+              .filter(({ count }) => count == null || count <= 0)
+              .map(({ label }) => label);
+
             if (_loadedTotal < total * 0.95) {
+              const layerDetails = suspectParts.length ? ` suspected missing layer(s): ${suspectParts.join(", ")}` : "";
+              const countDetails = partStats.map(({ label, count }) => `${label}: ${Number(count ?? 0).toLocaleString()}`).join("; ");
               console.error(
-                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing`
+                `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing${layerDetails}. Counts: ${countDetails}`
               );
-              flagLoadIssue("Some parts of this layer didn't load.");
+              if (suspectParts.length) {
+                flagLoadIssue("Some parts of this layer didn't load.", suspectParts.join(", "));
+              }
             }
           }
 
           state.activeCrownLayers.forEach((fl, idx) => {
             const itemId = crownItemIds[idx];
+            const countKey = itemId ?? String(idx);
 
             fl.load().then(() => fl.queryFeatureCount({ where: "1=1" })).then(count => {
               _loadedTotal += count;
+              _layerCounts[countKey] = count;
               _countsReported++;
               checkTotalCoverage();
             }).catch(err => {
-              console.error(`[feature] feature-count check failed for ${name} crown layer (item id: ${itemId}):`, err);
+              _layerCounts[countKey] = 0;
+              console.error(`[feature] ${name}: failed crown part ${partLabelForIndex(idx)}`, err);
               _countsReported++;
               checkTotalCoverage();
             });
@@ -1020,8 +1162,9 @@
               // never finished) rejects here instead of ever calling the .then() above —
               // without this, the loading badge would wait forever for a layer view
               // that's never coming.
-              console.error(`[feature] layer view failed for ${name} crown layer (item id: ${itemId}):`, err);
-              flagLoadIssue(`Some canopy data for ${name} could not be loaded.`);
+              const partLabel = partLabelForIndex(idx);
+              console.error(`[feature] layer view failed for ${partLabel}:`, err);
+              flagLoadIssue(`Some canopy data for ${name} could not be loaded.`, partLabel);
             });
           });
 
