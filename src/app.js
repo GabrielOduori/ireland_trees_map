@@ -1,8 +1,8 @@
     import {
-      MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, LOCAL_AUTHORITY_LAYER_ITEM_ID,
+      MUNICIPAL_DISTRICT_LAYER_ITEM_ID, BUA_LAYER_ITEM_ID, URBAN_BUA_MIN_POPULATION, LOCAL_AUTHORITY_LAYER_ITEM_ID,
       COUNTY_LAYER_ITEM_ID, COUNTY_STATS_FIELDS, BOUNDARY_STATS_FIELDS, CROWN_POPUP_FIELDS,
       ALEW_LAYER_ITEM_ID, NSNW_LAYER_ITEM_ID, ALEW_POPUP_FIELDS, NSNW_POPUP_FIELDS,
-      SAC_SITE_BASE_URL, BUA_FLASH_SCALE, CHART_TABS,
+      SAC_SITE_BASE_URL, BUA_FLASH_SCALE, CHART_TABS, TREE_API_URL, ARCGIS_OAUTH_APP_ID,
     } from "./config.js";
     import { state } from "./state.js";
     import {
@@ -49,8 +49,47 @@
     // (COUNTY_LAYER_ITEM_ID) — replaces the old hardcoded per-county snapshot.
 
 
+    // ---------------------------------------------------------------------------
+    // Optional team sign-in. Anonymous unless someone uses the Sign in button;
+    // an IrelandsTREEMAP member's session then finds the group-shared crown feature
+    // layers in the discovery search below (everyone else sees tiles + tree-api).
+    // ---------------------------------------------------------------------------
+    const OAuthInfo       = await $arcgis.import("@arcgis/core/identity/OAuthInfo.js");
+    const IdentityManager = await $arcgis.import("@arcgis/core/identity/IdentityManager.js");
+    const ARCGIS_SHARING  = "https://www.arcgis.com/sharing";
+    // Popup flow: the redirect URI is always exactly oauth-callback.html (registered
+    // on the credential), whatever ?county=… state the map page's own URL carries.
+    IdentityManager.registerOAuthInfos([new OAuthInfo({
+      appId: ARCGIS_OAUTH_APP_ID,
+      popup: true,
+      popupCallbackUrl: new URL("oauth-callback.html", location.href).href
+    })]);
+
+    let teamCredential = null;
     try {
-      const portal = new Portal({ url: "https://www.arcgis.com", authMode: "anonymous" });
+      teamCredential = await IdentityManager.checkSignInStatus(ARCGIS_SHARING);
+    } catch (_) { /* not signed in — the normal, public case */ }
+
+    const teamAuthBtn = document.getElementById("teamAuthBtn");
+    if (teamCredential) {
+      teamAuthBtn.textContent = "Sign out";
+      teamAuthBtn.title = `Signed in as ${teamCredential.userId} — click to sign out`;
+    }
+    teamAuthBtn.addEventListener("click", () => {
+      if (teamCredential) {
+        IdentityManager.destroyCredentials();
+        location.reload();
+        return;
+      }
+      // No extra "Please sign in" confirmation — the click is the confirmation, and
+      // opening the popup straight from it keeps popup blockers happy.
+      IdentityManager.getCredential(ARCGIS_SHARING, { oAuthPopupConfirmation: false })
+        .then(() => location.reload())   // reload so discovery runs as the signed-in user
+        .catch(e => console.warn("[auth] sign-in cancelled or failed:", e?.message || e));
+    });
+
+    try {
+      const portal = new Portal({ url: "https://www.arcgis.com", authMode: teamCredential ? "auto" : "anonymous" });
       await portal.load();
       state._portal = portal;
 
@@ -87,6 +126,34 @@
         showStartupStatus("County canopy statistics could not be loaded.", true);
       }
 
+      try {
+        const buaPortalRef = { id: BUA_LAYER_ITEM_ID, portal };
+        const buaStatsLayer = new FeatureLayer({ portalItem: buaPortalRef });
+        await buaStatsLayer.load();
+        const buaQuery = buaStatsLayer.createQuery();
+        // Urban BUA = settlements with population >= 1,500 (CSO urban threshold);
+        // TOF in smaller BUAs counts as rural.
+        buaQuery.where          = `population >= ${URBAN_BUA_MIN_POPULATION}`;
+        // Explicit fields: BOUNDARY_STATS_FIELDS deliberately omits trees_outside_forests.
+        buaQuery.outFields      = ["county", "trees_outside_forests"];
+        buaQuery.returnGeometry = false;
+        const { features: buaFeatures } = await buaStatsLayer.queryFeatures(buaQuery);
+
+        let nationalUrbanTof = 0;
+        buaFeatures.forEach(f => {
+          const a = f.attributes || {};
+          const county = (a.county || "").toUpperCase();
+          const tof = Number(a.trees_outside_forests) || 0;
+          if (county) {
+            state.buaCountyStatsMap[county] = (state.buaCountyStatsMap[county] || 0) + tof;
+          }
+          nationalUrbanTof += tof;
+        });
+        state.nationalUrbanTof = nationalUrbanTof;
+      } catch (e) {
+        console.warn("BUA stats layer query failed — urban/rural TOF split will stay unavailable:", e);
+      }
+
       async function fetchAllPortalItems(query, extraParams = {}) {
         const results = [];
         let start = 0;
@@ -105,8 +172,11 @@
           if (!page?.results?.length) break;
           results.push(...page.results);
 
-          if (page.nextStart == null || page.nextStart <= start) break;
-          start = page.nextStart;
+          // SDK 5.x exposes the next page via nextQueryParams.start (nextStart is
+          // undefined), and returns -1 / null once the last page is reached.
+          const nextStart = page.nextQueryParams?.start ?? page.nextStart;
+          if (nextStart == null || nextStart <= start) break;
+          start = nextStart;
         }
 
         return results;
@@ -166,7 +236,7 @@
       const natTof   = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
       const natHa    = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
       const natPct   = natHa > 0 ? natHa / 7027300 * 100 : null;  // 7,027,300 ha = ROI land area (70,273 km²)
-      updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
+      updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null, "National Canopy", state.nationalUrbanTof || null);
     }
 
     // Shared renderer for crown polygon layers (uses renamed field tree_class).
@@ -226,7 +296,7 @@
       SITE_NAME: "Site name",
       STATUS: "Status",
       WOOD_TYPE: "Woodland type",
-      NSNW_DESC: "Fossitt habitat",
+      NSNW_DESC: "NSNW description",
       H_FOSSDESC: "Fossitt habitat",
       SAC: "SAC",
       AREA: "Total area"
@@ -313,8 +383,10 @@
 
         if (fieldKey === "WOOD_TYPE") {
           label.innerHTML = "Woodland<br>type";
-        } else if (fieldKey === "H_FOSSDESC" || fieldKey === "NSNW_DESC") {
+        } else if (fieldKey === "H_FOSSDESC") {
           label.innerHTML = "Fossitt<br>habitat";
+        } else if (fieldKey === "NSNW_DESC") {
+          label.innerHTML = "NSNW<br>description";
         } else {
           label.textContent = WOODLAND_FIELD_LABELS[fieldKey] || field;
         }
@@ -739,6 +811,16 @@
         if (e.target === infoOverlay) closeInfoModal();
       });
 
+      // Show the About panel on a visitor's first visit (remembered per browser;
+      // if storage is unavailable it simply shows each time).
+      const INFO_SEEN_KEY = "treemap:infoSeen";
+      let infoSeen = false;
+      try { infoSeen = localStorage.getItem(INFO_SEEN_KEY) === "1"; } catch (_) {}
+      if (!infoSeen) {
+        infoOverlay.classList.add("visible");
+        try { localStorage.setItem(INFO_SEEN_KEY, "1"); } catch (_) {}
+      }
+
       // ---------------------------------------------------------------------------
       // Search (floating overlay)
       // ---------------------------------------------------------------------------
@@ -882,7 +964,7 @@
         const natTof  = allVals.reduce((s, c) => s + (c.tof      || 0), 0);
         const natHa   = allVals.reduce((s, c) => s + (c.canopy_ha || 0), 0);
         const natPct  = natHa > 0 ? natHa / 7027300 * 100 : null;
-        updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null);
+        updateCanopyStats(natFt, natTof, natPct, natHa > 0 ? natHa : null, "National Canopy", state.nationalUrbanTof || null);
       }
 
       // ---------------------------------------------------------------------------
@@ -904,8 +986,8 @@
 
         const crownTileItemId = state.crownTileLayerMap[name.toUpperCase()];
 
-        // Tile overview layer — visible at all scales down to 1:25,000 where the
-        // feature layer takes over.  maxScale:25000 hides it cleanly at that threshold.
+        // Tile overview layer — draws crowns at every scale (the crown feature
+        // layers aren't public; if they do load, they take over from 1:25,000).
         if (crownTileItemId) {
           activeCrownTileLayer = buildCrownTileLayer(crownTileItemId);
           activeCrownTileLayer.on("layerview-create-error", e => {
@@ -1012,6 +1094,21 @@
         state._activeCountyName = name;
         refreshChartPanel();
 
+        // County stats come from the county stats layer, so they are shown even when
+        // this county's crown feature layers aren't publicly discoverable (tiles only).
+        const stats    = state.countyStatsMap[name.toUpperCase()] || {};
+        const ftCount  = stats.ft  || 0;
+        const tofCount = stats.tof || 0;
+        const total    = ftCount + tofCount;
+        updateCanopyStats(
+          ftCount,
+          tofCount,
+          stats.canopy_pct ?? null,
+          stats.canopy_ha ?? null,
+          name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+          state.buaCountyStatsMap[name.toUpperCase()] ?? null
+        );
+
         const crownItemIds = state.crownLayerMap[name.toUpperCase()] || [];
         if (crownItemIds.length) {
           // Load one FeatureLayer per item ID (single county = one ID; split county = two IDs)
@@ -1035,14 +1132,6 @@
           crownLayerToggle.checked = true;
           layerToggleRow.style.display = "block";
           setCrownLoading(`Loading ${name} canopy…`);
-
-          // Use pre-computed stats — statistics queries are disabled on the layer
-          const stats    = state.countyStatsMap[name.toUpperCase()] || {};
-          const ftCount  = stats.ft  || 0;
-          const tofCount = stats.tof || 0;
-          const total    = ftCount + tofCount;
-          updateCanopyStats(ftCount, tofCount, stats.canopy_pct ?? null, stats.canopy_ha ?? null,
-            name.charAt(0).toUpperCase() + name.slice(1).toLowerCase());
 
           // Track when every feature layer finishes its initial load — hides the
           // loading badge regardless of whether this county has a VTL fallback.
@@ -1704,6 +1793,89 @@
       }).catch(() => { _hoverHitTestPending = false; });
     });
 
+    // ---------------------------------------------------------------------------
+    // Per-tree lookup via the tree-api (server/tree_api). One crown per click;
+    // the outline is drawn in its own graphics layer as the selection highlight.
+    // ---------------------------------------------------------------------------
+    const RATE_LIMITED = Symbol("rate-limited");
+    let _crownClickSeq = 0;
+    const crownSelectionLayer = new GraphicsLayer({ listMode: "hide" });
+    map.add(crownSelectionLayer);
+
+    async function lookupTree(mapPoint) {
+      const params = new URLSearchParams({
+        lon: mapPoint.longitude.toFixed(7),
+        lat: mapPoint.latitude.toFixed(7)
+      });
+      try {
+        const resp = await fetch(`${TREE_API_URL}?${params}`);
+        if (resp.status === 429) return RATE_LIMITED;
+        if (resp.status === 204) return null;   // no crown at this point
+        if (!resp.ok) {
+          console.warn(`[tree-api] lookup failed: HTTP ${resp.status}`);
+          return null;
+        }
+        return await resp.json();
+      } catch (e) {
+        console.warn("[tree-api] lookup failed:", e);
+        return null;
+      }
+    }
+
+    // Returns an object with remove(), like a layerView highlight handle, so
+    // state.crownHighlight is cleared the same way (clearCrownSelection).
+    function highlightCrownOutline(geometry) {
+      const graphic = new Graphic({
+        geometry: new Polygon({ rings: geometry?.rings || [], spatialReference: { wkid: 4326 } }),
+        symbol: new SimpleFillSymbol({
+          color: [0, 255, 255, 0.25],
+          outline: { color: [0, 255, 255, 1], width: 2 }
+        })
+      });
+      crownSelectionLayer.add(graphic);
+      return { remove: () => crownSelectionLayer.remove(graphic) };
+    }
+
+    function showCrownPopup(attrs, mapPoint, message = null) {
+      const crownClass = (attrs?.tree_class || attrs?.class || attrs?.Class || "").toLowerCase();
+      crownPopupHeader.style.background = !attrs ? "#ccc"
+        : crownClass === "tof" ? "rgba(255,0,255,0.6)" : "rgba(0,255,0,0.6)";
+      crownPopupTitle.textContent = attrs ? `Tree Crown — ${attrs.county || attrs.County || ""}` : "Tree Crown";
+      crownPopupBody.innerHTML = "";
+      if (attrs) {
+        crownPopupBody.appendChild(buildPopupContent(attrs));
+      } else {
+        const p = document.createElement("p");
+        p.style.cssText = "margin:4px 6px;font-size:13px;";
+        p.textContent = message;
+        crownPopupBody.appendChild(p);
+      }
+
+      const pt = view.toScreen(mapPoint);
+      const vr = document.getElementById("viewDiv").getBoundingClientRect();
+      let left = vr.left + pt.x + 14;
+      let top  = vr.top  + pt.y - 40;
+      crownPopup.style.display = "block";
+      if (usesBottomPopupLayout()) {
+        collapseMapPanelsForMobile();
+        crownPopup.style.left = "";
+        crownPopup.style.top = "";
+        return;
+      }
+      const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
+      const sidePanel = document.getElementById("sidePanelWrapper");
+      let rightBound = window.innerWidth - 8;
+      if (sidePanel && !sidePanel.classList.contains("collapsed")) {
+        rightBound = Math.min(rightBound, sidePanel.getBoundingClientRect().left - 8);
+      }
+      if (left + pw > rightBound) left = vr.left + pt.x - pw - 14;
+      if (left < 8) left = 8;
+      if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
+      if (top < 60) top = 60;
+      crownPopup.style.left = left + "px";
+      crownPopup.style.top  = top  + "px";
+    }
+
     view.on("click", async (event) => {
       try {
         const visibleWoodlandLayers = [state.alewLayer, state.nsnwLayer].filter(layer => layer?.visible);
@@ -1730,49 +1902,37 @@
         }
 
         // ---------------------------------------------------------------------------
-        // Crown polygons — custom popup
+        // Crown polygons — custom popup. The crown Feature Services aren't public
+        // (licensed data), so normally the tree-api is asked for the one crown under
+        // the click; if crown feature layers did load (e.g. re-shared), hitTest them.
         // ---------------------------------------------------------------------------
-        if (state.activeCrownLayers.length) {
-          const { results } = await view.hitTest(event, { include: state.activeCrownLayers });
-          if (results.length) {
-            const graphic = results[0].graphic;
-            const attrs   = graphic.attributes || {};
-
-            closeBuaPopup();
-            if (state.crownHighlight) state.crownHighlight.remove();
-            const layerView = await view.whenLayerView(results[0].layer);
-            state.crownHighlight = layerView.highlight(graphic);
-
-            const crownClass = (attrs.tree_class || attrs.class || attrs.Class || "").toLowerCase();
-            crownPopupHeader.style.background = crownClass === "tof" ? "rgba(255,0,255,0.6)" : "rgba(0,255,0,0.6)";
-
-            crownPopupTitle.textContent = `Tree Crown — ${attrs.county || attrs.County || ""}`;
-            crownPopupBody.innerHTML = "";
-            crownPopupBody.appendChild(buildPopupContent(attrs));
-
-            const pt = view.toScreen(event.mapPoint);
-            const vr = document.getElementById("viewDiv").getBoundingClientRect();
-            let left = vr.left + pt.x + 14;
-            let top  = vr.top  + pt.y - 40;
-            crownPopup.style.display = "block";
-            if (usesBottomPopupLayout()) {
-              collapseMapPanelsForMobile();
-              crownPopup.style.left = "";
-              crownPopup.style.top = "";
+        if (document.getElementById("crownLayerToggle").checked && view.scale <= 25000) {
+          let attrs = null, highlight = null;
+          if (state.activeCrownLayers.length) {
+            const { results } = await view.hitTest(event, { include: state.activeCrownLayers });
+            if (results.length) {
+              attrs = results[0].graphic.attributes || {};
+              const layerView = await view.whenLayerView(results[0].layer);
+              highlight = () => layerView.highlight(results[0].graphic);
+            }
+          } else {
+            const clickId = ++_crownClickSeq;
+            const tree = await lookupTree(event.mapPoint);
+            if (clickId !== _crownClickSeq) return;   // superseded by a newer click
+            if (tree === RATE_LIMITED) {
+              showCrownPopup(null, event.mapPoint, "Too many requests — please try again in a moment.");
               return;
             }
-            const pw = crownPopup.offsetWidth, ph = crownPopup.offsetHeight;
-            const sidePanel = document.getElementById("sidePanelWrapper");
-            let rightBound = window.innerWidth - 8;
-            if (sidePanel && !sidePanel.classList.contains("collapsed")) {
-              rightBound = Math.min(rightBound, sidePanel.getBoundingClientRect().left - 8);
+            if (tree) {
+              attrs = tree.attributes || {};
+              highlight = () => highlightCrownOutline(tree.geometry);
             }
-            if (left + pw > rightBound) left = vr.left + pt.x - pw - 14;
-            if (left < 8) left = 8;
-            if (top  + ph > window.innerHeight - 8) top  = window.innerHeight - ph - 8;
-            if (top < 60) top = 60;
-            crownPopup.style.left = left + "px";
-            crownPopup.style.top  = top  + "px";
+          }
+          if (attrs) {
+            closeBuaPopup();
+            if (state.crownHighlight) state.crownHighlight.remove();
+            state.crownHighlight = highlight();
+            showCrownPopup(attrs, event.mapPoint);
             return;
           }
         }

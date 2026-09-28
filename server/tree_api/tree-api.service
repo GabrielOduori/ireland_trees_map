@@ -1,0 +1,19 @@
+[Unit]
+Description=Ireland Trees Map per-tree lookup API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=deploy
+Group=deploy
+EnvironmentFile=/etc/tree-api.env
+ExecStart=/usr/bin/python3 /opt/tree-api/tree_api.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

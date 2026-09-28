@@ -15,6 +15,10 @@ const MapImageLayer   = await $arcgis.import("@arcgis/core/layers/MapImageLayer.
 // national overview (one per county, all shown at once) and per-county activation
 // (one at a time, in activateCounty) so the VTL/dynamic/plain-tile branching only
 // lives in one place.
+//
+// Crown tile caches stop at zoom 17 (1:4,514) although the services advertise
+// LODs to 23; resampling stretches the zoom-17 tiles past that instead of
+// drawing nothing (crown vectors are not public, so tiles are all there is).
 export function buildCrownTileLayer(info) {
   const portalRef = state._portal ? { id: info.id, portal: state._portal } : { id: info.id };
   const tileType  = info.type || "";
@@ -33,9 +37,9 @@ export function buildCrownTileLayer(info) {
       ? new MapImageLayer({ url: tileUrl, minScale: 0, maxScale: 0 })
       : new MapImageLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
   } else if (tileUrl) {
-    return new TileLayer({ url: tileUrl, minScale: 0, maxScale: 0 });
+    return new TileLayer({ url: tileUrl, minScale: 0, maxScale: 0, resampling: true });
   }
-  return new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0 });
+  return new TileLayer({ portalItem: portalRef, minScale: 0, maxScale: 0, resampling: true });
 }
 
 // Blinks a highlight on/off 3 times (6 half-cycles) so a newly-relevant feature
