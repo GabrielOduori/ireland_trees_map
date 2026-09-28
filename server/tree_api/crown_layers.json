@@ -1,0 +1,552 @@
+[
+ {
+  "title": "Ireland_Trees_Crowns_Carlow",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Carlow/FeatureServer/0",
+  "bbox": [
+   -7.11421,
+   52.45857,
+   -6.50299,
+   52.92252
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cavan",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cavan/FeatureServer/0",
+  "bbox": [
+   -8.05934,
+   53.76239,
+   -6.74953,
+   54.30416
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Clare",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Clare/FeatureServer/0",
+  "bbox": [
+   -9.92251,
+   52.55943,
+   -8.28038,
+   53.17135
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_A/FeatureServer/0",
+  "bbox": [
+   -9.82377,
+   51.42615,
+   -8.88592,
+   51.57458
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_B/FeatureServer/0",
+  "bbox": [
+   -10.21664,
+   51.55495,
+   -8.39315,
+   51.71289
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_C/FeatureServer/0",
+  "bbox": [
+   -10.00365,
+   51.69439,
+   -8.00149,
+   51.84918
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_D/FeatureServer/0",
+  "bbox": [
+   -9.33701,
+   51.83939,
+   -7.84057,
+   51.98477
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_E",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_E/FeatureServer/0",
+  "bbox": [
+   -9.22413,
+   51.97624,
+   -7.92183,
+   52.12034
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_F",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_F/FeatureServer/0",
+  "bbox": [
+   -9.2769,
+   52.11128,
+   -8.05946,
+   52.25595
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Cork_G",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Cork_G/FeatureServer/0",
+  "bbox": [
+   -9.27834,
+   52.24685,
+   -8.16162,
+   52.39131
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Donegal",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Donegal/FeatureServer/0",
+  "bbox": [
+   -8.79857,
+   54.45382,
+   -6.92618,
+   55.37948
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Dublin",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Dublin/FeatureServer/0",
+  "bbox": [
+   -6.55083,
+   53.18843,
+   -6.00922,
+   53.63975
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Galway",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Galway/FeatureServer/0",
+  "bbox": [
+   -10.24217,
+   52.94977,
+   -7.96831,
+   53.72134
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Kerry",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Kerry/FeatureServer/0",
+  "bbox": [
+   -10.48893,
+   51.68837,
+   -9.11163,
+   52.59216
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Kildare",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Kildare/FeatureServer/0",
+  "bbox": [
+   -7.1762,
+   52.8521,
+   -6.45679,
+   53.45373
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Kilkenny",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Kilkenny/FeatureServer/0",
+  "bbox": [
+   -7.6788,
+   52.24015,
+   -6.9028,
+   52.89731
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Laois",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Laois/FeatureServer/0",
+  "bbox": [
+   -7.73299,
+   52.77675,
+   -6.92201,
+   53.21804
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Leitrim",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Leitrim/FeatureServer/0",
+  "bbox": [
+   -8.4292,
+   53.80435,
+   -7.57816,
+   54.47482
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Limerick_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Limerick_A/FeatureServer/0",
+  "bbox": [
+   -9.35099,
+   52.27253,
+   -8.15525,
+   52.44105
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Limerick_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Limerick_B/FeatureServer/0",
+  "bbox": [
+   -9.36555,
+   52.43115,
+   -8.21135,
+   52.59985
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Limerick_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Limerick_C/FeatureServer/0",
+  "bbox": [
+   -9.24162,
+   52.59135,
+   -8.18652,
+   52.75863
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Longford",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Longford/FeatureServer/0",
+  "bbox": [
+   -8.03679,
+   53.52442,
+   -7.3714,
+   53.94348
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Louth",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Louth/FeatureServer/0",
+  "bbox": [
+   -6.70256,
+   53.69366,
+   -6.09915,
+   54.11915
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Mayo_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Mayo_A/FeatureServer/0",
+  "bbox": [
+   -9.87158,
+   53.46252,
+   -8.8936,
+   53.64961
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Mayo_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Mayo_B/FeatureServer/0",
+  "bbox": [
+   -10.1231,
+   53.63212,
+   -8.66307,
+   53.82492
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Mayo_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Mayo_C/FeatureServer/0",
+  "bbox": [
+   -10.162,
+   53.80526,
+   -8.58274,
+   53.99916
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Mayo_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Mayo_D/FeatureServer/0",
+  "bbox": [
+   -10.1444,
+   53.97944,
+   -8.5866,
+   54.17293
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Mayo_E",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Mayo_E/FeatureServer/0",
+  "bbox": [
+   -10.08697,
+   54.15426,
+   -9.13968,
+   54.34267
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Meath",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Meath/FeatureServer/0",
+  "bbox": [
+   -7.3428,
+   53.37125,
+   -6.20058,
+   53.92327
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Monaghan",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Monaghan/FeatureServer/0",
+  "bbox": [
+   -7.34437,
+   53.89802,
+   -6.53429,
+   54.4244
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Offaly",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Offaly/FeatureServer/0",
+  "bbox": [
+   -8.08451,
+   52.8428,
+   -6.97562,
+   53.42735
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Roscommon",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Roscommon/FeatureServer/0",
+  "bbox": [
+   -8.83368,
+   53.26778,
+   -7.87739,
+   54.12455
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Sligo",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Sligo/FeatureServer/0",
+  "bbox": [
+   -9.14536,
+   53.90953,
+   -8.15161,
+   54.47178
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Tipperary_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Tipperary_A/FeatureServer/0",
+  "bbox": [
+   -8.2298,
+   52.19937,
+   -7.3704,
+   52.39607
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Tipperary_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Tipperary_B/FeatureServer/0",
+  "bbox": [
+   -8.40813,
+   52.39225,
+   -7.37904,
+   52.58899
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Tipperary_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Tipperary_C/FeatureServer/0",
+  "bbox": [
+   -8.48095,
+   52.58559,
+   -7.46161,
+   52.78194
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Tipperary_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Tipperary_D/FeatureServer/0",
+  "bbox": [
+   -8.45099,
+   52.77888,
+   -7.65918,
+   52.97487
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Tipperary_E",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Tipperary_E/FeatureServer/0",
+  "bbox": [
+   -8.29877,
+   52.97232,
+   -7.78925,
+   53.16769
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Waterford_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Waterford_A/FeatureServer/0",
+  "bbox": [
+   -8.00261,
+   51.93924,
+   -7.55342,
+   52.04798
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Waterford_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Waterford_B/FeatureServer/0",
+  "bbox": [
+   -8.16393,
+   52.04157,
+   -6.9919,
+   52.15387
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Waterford_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Waterford_C/FeatureServer/0",
+  "bbox": [
+   -8.15894,
+   52.14717,
+   -6.96717,
+   52.25969
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Waterford_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Waterford_D/FeatureServer/0",
+  "bbox": [
+   -7.79779,
+   52.25319,
+   -6.98625,
+   52.36525
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Westmeath_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Westmeath_A/FeatureServer/0",
+  "bbox": [
+   -7.97339,
+   53.31418,
+   -7.02022,
+   53.5557
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Westmeath_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Westmeath_B/FeatureServer/0",
+  "bbox": [
+   -7.65998,
+   53.54895,
+   -6.95045,
+   53.79055
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wexford_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wexford_A/FeatureServer/0",
+  "bbox": [
+   -7.01808,
+   52.11409,
+   -6.31327,
+   52.29418
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wexford_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wexford_B/FeatureServer/0",
+  "bbox": [
+   -7.01666,
+   52.28403,
+   -6.30459,
+   52.46431
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wexford_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wexford_C/FeatureServer/0",
+  "bbox": [
+   -6.91768,
+   52.45259,
+   -6.19146,
+   52.6336
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wexford_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wexford_D/FeatureServer/0",
+  "bbox": [
+   -6.76007,
+   52.62198,
+   -6.13984,
+   52.80214
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_A",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_A/FeatureServer/0",
+  "bbox": [
+   -6.6577,
+   52.67509,
+   -6.14082,
+   52.76315
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_B",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_B/FeatureServer/0",
+  "bbox": [
+   -6.71394,
+   52.75359,
+   -6.10974,
+   52.84288
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_C",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_C/FeatureServer/0",
+  "bbox": [
+   -6.74041,
+   52.83151,
+   -6.03654,
+   52.92226
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_D",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_D/FeatureServer/0",
+  "bbox": [
+   -6.79494,
+   52.90995,
+   -5.99923,
+   53.0019
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_E",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_E/FeatureServer/0",
+  "bbox": [
+   -6.78541,
+   52.98965,
+   -6.03426,
+   53.08089
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_F",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_F/FeatureServer/0",
+  "bbox": [
+   -6.6836,
+   53.06872,
+   -6.03245,
+   53.15886
+  ]
+ },
+ {
+  "title": "Ireland_Trees_Crowns_Wicklow_G",
+  "url": "https://services-eu1.arcgis.com/d6WajiXkixlJUEtR/arcgis/rest/services/Ireland_Trees_Crowns_Wicklow_G/FeatureServer/0",
+  "bbox": [
+   -6.56383,
+   53.14826,
+   -6.05886,
+   53.23648
+  ]
+ }
+]
