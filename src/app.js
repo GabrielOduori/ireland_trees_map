@@ -1108,9 +1108,8 @@
                 count: _layerCounts[key]
               };
             });
-            const expectedPerPart = total / Math.max(1, crownItemIds.length);
             const suspectParts = partStats
-              .filter(({ count }) => count == null || count <= 0 || count < expectedPerPart * 0.25)
+              .filter(({ count }) => count == null || count <= 0)
               .map(({ label }) => label);
 
             if (_loadedTotal < total * 0.95) {
@@ -1119,7 +1118,9 @@
               console.error(
                 `[feature] ${name}: loaded ${_loadedTotal.toLocaleString()} of ~${total.toLocaleString()} known trees — some canopy data is likely missing${layerDetails}. Counts: ${countDetails}`
               );
-              flagLoadIssue("Some parts of this layer didn't load.", suspectParts.length ? suspectParts.join(", ") : null);
+              if (suspectParts.length) {
+                flagLoadIssue("Some parts of this layer didn't load.", suspectParts.join(", "));
+              }
             }
           }
 
