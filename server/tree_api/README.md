@@ -55,12 +55,27 @@ Open http://localhost:8000, zoom in below 1:25,000 and click a crown.
 sudo mkdir -p /opt/tree-api
 sudo cp tree_api.py crown_layers.json /opt/tree-api/
 sudo cp tree-api.service /etc/systemd/system/
-sudo sh -c 'printf "ARCGIS_CLIENT_ID=<id>\nARCGIS_CLIENT_SECRET=<secret>\n" > /etc/tree-api.env'
-sudo chown root:deploy /etc/tree-api.env && sudo chmod 640 /etc/tree-api.env
+sudo install -m 640 -o root -g deploy /dev/null /etc/tree-api.env
+sudoedit /etc/tree-api.env   # ARCGIS_CLIENT_ID=... and ARCGIS_CLIENT_SECRET=... (an editor keeps the secret out of shell history)
 sudo systemctl daemon-reload && sudo systemctl enable --now tree-api
 curl -s "http://127.0.0.1:8081/api/tree?lon=-6.26&lat=53.35"
 ```
 
 Then add the rate limits and the `/api/tree` location from `docs/nginx-config.txt`, and run `sudo nginx -t && sudo systemctl reload nginx`.
+
+## 5. Limits and monitoring
+
+There are three layers of limits:
+- **nginx, per visitor:** 30 lookups a minute.
+- **nginx, everyone together:** 3 lookups a second.
+- **tree-api, per visitor per day:** 1000 lookups (UTC day). An IPv6 visitor counts per /64. Change it with `TREE_API_DAILY_QUOTA=` in `/etc/tree-api.env`.
+
+When a visitor hits the daily quota, the service logs `daily quota (N) reached by <client>`. To check for scraping:
+
+```bash
+journalctl -u tree-api --since today | grep "daily quota"
+```
+
+Several clients hitting the quota on the same day, or the global limit being hit for hours, is a sign of scraping. Look at `/var/log/nginx/error.log` for `limiting requests`.
 
 **Changing the credential:** edit `/etc/tree-api.env`, then run `sudo systemctl restart tree-api`.

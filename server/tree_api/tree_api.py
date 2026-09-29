@@ -14,7 +14,10 @@ ArcGIS credential and answers point lookups only:
     (crown_layers.json, built by build_layer_index.py).
   - ArcGIS errors are logged and returned as a generic 502; the token never
     appears in a response.
-  - Rate limiting is done by nginx in front of this (docs/nginx-config.txt).
+  - Rate limits: nginx caps each IP per minute and everyone together per
+    second (docs/nginx-config.txt); this service adds a daily quota per
+    client (an IPv4 address, or a whole IPv6 /64 so rotating addresses
+    inside one allocation doesn't help) and logs when a client hits it.
 
 Standard library only. Listens on 127.0.0.1 so it is reachable only via nginx.
 
@@ -29,6 +32,8 @@ Standard library only. Listens on 127.0.0.1 so it is reachable only via nginx.
 """
 
 import argparse
+import datetime
+import ipaddress
 import json
 import logging
 import os
@@ -55,6 +60,10 @@ TOKEN_LIFETIME_MIN = 1440      # request day-long app tokens...
 TOKEN_RENEW_MARGIN_S = 600     # ...and renew them 10 minutes before expiry
 INVALID_TOKEN_CODES = {498, 499}
 
+# Lookups per client per UTC day. A person exploring the map uses a few dozen;
+# a scraper tracing crowns from the tiles would need thousands.
+DEFAULT_DAILY_QUOTA = 1000   # override with TREE_API_DAILY_QUOTA
+
 log = logging.getLogger("tree_api")
 
 
@@ -67,6 +76,46 @@ def load_env_file(path):
         if line and not line.startswith("#") and "=" in line:
             key, value = line.split("=", 1)
             os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def client_key(peer_ip, forwarded_for):
+    """The client to count against the quota: the X-Forwarded-For address when
+    the request came through the local nginx (which sets it to $remote_addr),
+    otherwise the peer. IPv6 clients are grouped by /64."""
+    ip = peer_ip
+    if peer_ip in ("127.0.0.1", "::1") and forwarded_for:
+        ip = forwarded_for.split(",")[-1].strip()
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    if addr.version == 6:
+        if addr.ipv4_mapped:
+            return str(addr.ipv4_mapped)
+        return str(ipaddress.ip_network(f"{addr}/64", strict=False))
+    return str(addr)
+
+
+class DailyQuota:
+    """In-memory lookups-per-client counter that resets at UTC midnight (and on
+    restart, which is acceptable: nginx's per-minute/global limits still apply)."""
+
+    def __init__(self, limit):
+        self.limit = limit
+        self._day, self._counts = None, {}
+        self._lock = threading.Lock()
+
+    def allow(self, key):
+        """Count one lookup for `key`; False once it's over the limit."""
+        today = datetime.datetime.now(datetime.timezone.utc).date()
+        with self._lock:
+            if today != self._day:
+                self._day, self._counts = today, {}
+            n = self._counts.get(key, 0) + 1
+            self._counts[key] = n
+        if n == self.limit + 1:
+            log.warning("daily quota (%d) reached by %s", self.limit, key)
+        return n <= self.limit
 
 
 class UpstreamError(Exception):
@@ -190,6 +239,7 @@ def parse_point(query):
 class Handler(SimpleHTTPRequestHandler):
     layers = []
     tokens = None
+    quota = None
     static_dir = None   # local dev only
 
     def __init__(self, *args, **kwargs):
@@ -212,6 +262,9 @@ class Handler(SimpleHTTPRequestHandler):
         point = parse_point(query)
         if point is None:
             return self.reply(400, {"error": "expected lon and lat inside Ireland"})
+        key = client_key(self.client_address[0], self.headers.get("X-Forwarded-For"))
+        if not self.quota.allow(key):
+            return self.reply(429, {"error": "daily lookup limit reached"})
         try:
             tree = find_tree(self.layers, *point, self.tokens)
         except UpstreamError as e:
@@ -258,9 +311,12 @@ def main():
 
     Handler.layers = json.loads((HERE / "crown_layers.json").read_text())
     Handler.tokens = tokens
+    daily_quota = int(os.environ.get("TREE_API_DAILY_QUOTA", DEFAULT_DAILY_QUOTA))
+    Handler.quota = DailyQuota(daily_quota)
     Handler.static_dir = str(Path(args.static).resolve()) if args.static else None
 
-    log.info("%d crown layers loaded; listening on %s:%d%s", len(Handler.layers), args.host, args.port,
+    log.info("%d crown layers loaded; daily quota %d per client; listening on %s:%d%s",
+             len(Handler.layers), daily_quota, args.host, args.port,
              f" (also serving {Handler.static_dir})" if Handler.static_dir else "")
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
 

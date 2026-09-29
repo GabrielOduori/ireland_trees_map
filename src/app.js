@@ -1920,7 +1920,7 @@
             const tree = await lookupTree(event.mapPoint);
             if (clickId !== _crownClickSeq) return;   // superseded by a newer click
             if (tree === RATE_LIMITED) {
-              showCrownPopup(null, event.mapPoint, "Too many requests — please try again in a moment.");
+              showCrownPopup(null, event.mapPoint, "Too many tree lookups — please try again later.");
               return;
             }
             if (tree) {
