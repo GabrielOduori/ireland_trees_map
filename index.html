@@ -8,7 +8,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/app.css">
+    <link rel="stylesheet" href="styles/app.css?v=2026-09-30">
+    <!--
+      Cache-busting for our ES modules. nginx caches .js for 7 days, and the
+      modules import each other by plain relative path ("./config.js"), so a
+      version on app.js alone would pair new code with a stale cached module.
+      This map gives every module the same ?v=; bump it (here and on the
+      app.js <script> at the bottom) whenever anything in src/ changes.
+      Must stay above the first module script.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "./src/app.js": "./src/app.js?v=2026-09-30",
+          "./src/config.js": "./src/config.js?v=2026-09-30",
+          "./src/state.js": "./src/state.js?v=2026-09-30",
+          "./src/utils.js": "./src/utils.js?v=2026-09-30",
+          "./src/popups.js": "./src/popups.js?v=2026-09-30",
+          "./src/chart.js": "./src/chart.js?v=2026-09-30",
+          "./src/crown-layer.js": "./src/crown-layer.js?v=2026-09-30",
+          "./src/county-list.js": "./src/county-list.js?v=2026-09-30"
+        }
+      }
+    </script>
     <script type="module" src="https://js.arcgis.com/5.0/"></script>
   </head>
 
@@ -216,5 +238,5 @@
     <div id="countyBarTooltip"></div>
   </body>
 
-  <script type="module" src="src/app.js?v=urban-bua-tof-20260928"></script>
+  <script type="module" src="src/app.js?v=2026-09-30"></script>
 </html>
