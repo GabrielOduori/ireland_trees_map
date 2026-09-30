@@ -1,0 +1,7 @@
+# TreeMAP Ireland
+User-agent: *
+Allow: /
+# Per-tree lookup service: not content, and rate-limited
+Disallow: /api/
+
+Sitemap: https://treemap.ie/sitemap.xml

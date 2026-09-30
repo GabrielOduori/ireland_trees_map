@@ -1,16 +1,65 @@
 <!doctype html>
-<html>
+<html lang="en-IE">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-    <title>Ireland Trees Map</title>
+    <title>TreeMAP Ireland – Interactive map of Ireland's tree canopy</title>
+    <meta name="description" content="Explore the crowns of Ireland's ~130 million trees: canopy cover by county, town and local authority, and the split between forest trees and trees outside forests.">
+    <link rel="canonical" href="https://treemap.ie/">
+
+    <!-- Link previews (LinkedIn, X, WhatsApp, Teams, Slack) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TreeMAP Ireland">
+    <meta property="og:title" content="TreeMAP Ireland – Interactive map of Ireland's tree canopy">
+    <meta property="og:description" content="Explore the crowns of Ireland's ~130 million trees: canopy cover by county, town and local authority, and the split between forest trees and trees outside forests.">
+    <meta property="og:url" content="https://treemap.ie/">
+    <meta property="og:image" content="https://treemap.ie/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Map of Ireland's tree crowns: forest trees in green, trees outside forests in pink">
+    <meta property="og:locale" content="en_IE">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Structured data for search engines (incl. Google Dataset Search) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "TreeMAP Ireland",
+            "url": "https://treemap.ie/",
+            "applicationCategory": "ReferenceApplication",
+            "operatingSystem": "Any (web browser)",
+            "isAccessibleForFree": true,
+            "description": "Explore the crowns of Ireland's ~130 million trees: canopy cover by county, town and local authority, and the split between forest trees and trees outside forests."
+          },
+          {
+            "@type": "Dataset",
+            "name": "TreeMAP Ireland: tree canopy cover statistics",
+            "description": "Tree canopy cover for Ireland by county, municipal district, local authority and built-up area, derived from the National Tree Map (Bluesky International/Woolpert) cross-referenced with DAFM/Coillte forest parcels and CSO/Tailte Éireann boundaries. Distinguishes forest trees from trees outside forests.",
+            "url": "https://treemap.ie/",
+            "creator": [
+              {"@type": "Person", "name": "Sophia Meeres"},
+              {"@type": "Person", "name": "Gabriel Oduori"}
+            ],
+            "datePublished": "2026-10-15",
+            "spatialCoverage": {"@type": "Place", "name": "Ireland"},
+            "keywords": ["tree canopy", "tree cover", "urban forest", "trees outside forests", "Ireland", "National Tree Map"],
+            "isAccessibleForFree": true
+          }
+        ]
+      }
+    </script>
     <!-- Citation metadata, read by Zotero / Google Scholar (see "Reference this website") -->
     <meta name="citation_title" content="TreeMAP Ireland">
     <meta name="citation_author" content="Meeres, Sophia">
     <meta name="citation_author" content="Oduori, Gabriel">
     <meta name="citation_publication_date" content="2026/10/15">
     <meta name="citation_public_url" content="https://treemap.ie">
-    <link rel="icon" href="data:;base64,=" />
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -41,6 +90,7 @@
   </head>
 
   <body>
+    <h1 class="visually-hidden">TreeMAP Ireland: interactive map of Ireland's tree canopy</h1>
     <!-- Floating top-left controls -->
     <button id="homeBtn" title="Go to default extent" aria-label="Go to default extent">
       <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
