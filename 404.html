@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Page not found | TreeMAP Ireland</title>
+    <title>Lost in the woods? | TreeMAP Ireland</title>
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
     <style>
@@ -39,20 +39,31 @@
         line-height: 1.55;
       }
 
-      a {
-        color: #236b40;
+      a.button {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 10px 18px;
+        border-radius: 6px;
+        background: #2e7d32;
+        color: #fff;
         font-weight: 650;
+        text-decoration: none;
+      }
+
+      a.button:hover,
+      a.button:focus-visible {
+        background: #256b29;
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Page not found</h1>
+      <h1>Lost in the woods?</h1>
       <p>
-        There's nothing at this address. The link may be mistyped, or the page
-        may have moved.
+        We have mapped every one of Ireland's more than 100 million trees, but
+        we can't find this page.
       </p>
-      <p><a href="/">Go to the TreeMAP Ireland map</a></p>
+      <p><a class="button" href="/">Find your way back to the map</a></p>
     </main>
   </body>
 </html>
