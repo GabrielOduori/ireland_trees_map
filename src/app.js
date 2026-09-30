@@ -26,15 +26,24 @@
       startupStatusBadge.classList.add("visible");
     }
 
+    // The county/BUA/MD/LA stats layers store counts as 64-bit "Big Integer"
+    // fields, so the SDK warns on every load that values above 2^53 would lose
+    // precision. Ours top out around 1.3e8 (national tree count), so drop just
+    // that warning; every other SDK message still reaches the console.
+    const esriConfig = await $arcgis.import("@arcgis/core/config.js");
+    esriConfig.log.interceptors.push((level, module, ...args) =>
+      level === "warn" && args.join(" ").includes("references big-integer field"));
+
     const SimpleFillSymbol   = await $arcgis.import("@arcgis/core/symbols/SimpleFillSymbol.js");
     const SimpleRenderer     = await $arcgis.import("@arcgis/core/renderers/SimpleRenderer.js");
     const UniqueValueRenderer = await $arcgis.import("@arcgis/core/renderers/UniqueValueRenderer.js");
-    const geometryEngine     = await $arcgis.import("@arcgis/core/geometry/geometryEngine.js");
+    const differenceOperator   = await $arcgis.import("@arcgis/core/geometry/operators/differenceOperator.js");
+    const geodeticAreaOperator = await $arcgis.import("@arcgis/core/geometry/operators/geodeticAreaOperator.js");
+    if (!geodeticAreaOperator.isLoaded()) await geodeticAreaOperator.load();
+    const reactiveUtils        = await $arcgis.import("@arcgis/core/core/reactiveUtils.js");
     const Polygon            = await $arcgis.import("@arcgis/core/geometry/Polygon.js");
     const Map               = await $arcgis.import("@arcgis/core/Map.js");
     const MapView           = await $arcgis.import("@arcgis/core/views/MapView.js");
-    const Search            = await $arcgis.import("@arcgis/core/widgets/Search.js");
-    const ScaleBar          = await $arcgis.import("@arcgis/core/widgets/ScaleBar.js");
     const FeatureLayer      = await $arcgis.import("@arcgis/core/layers/FeatureLayer.js");
     const GraphicsLayer     = await $arcgis.import("@arcgis/core/layers/GraphicsLayer.js");
     const Graphic           = await $arcgis.import("@arcgis/core/Graphic.js");
@@ -607,7 +616,7 @@
         if (newIds.length) blinkHighlight(lv, newIds);
       } catch (_) {}
     }
-    view.watch("stationary", (stationary) => { if (stationary) flashNewlyVisibleBuas(); });
+    reactiveUtils.watch(() => view.stationary, (stationary) => { if (stationary) flashNewlyVisibleBuas(); });
 
 
     view.when(() => {
@@ -824,12 +833,11 @@
       // ---------------------------------------------------------------------------
       // Search (floating overlay)
       // ---------------------------------------------------------------------------
-      const search = new Search({
-        view,
-        container: "floatingSearch",
-        popupEnabled: false,
-        placeholder: "Search by address or Eircode..."
-      });
+      const search = document.createElement("arcgis-search");
+      search.view = view;
+      search.popupDisabled = true;
+      search.allPlaceholder = "Search by address or Eircode...";
+      document.getElementById("floatingSearch").appendChild(search);
 
       // ---------------------------------------------------------------------------
       // Zoom buttons
@@ -916,12 +924,15 @@
         document.getElementById("buaChartPanel").style.display = "none";
       });
 
-      const scaleBar = new ScaleBar({ view, unit: "metric", container: "scaleBarPanel" });
+      const scaleBar = document.createElement("arcgis-scale-bar");
+      scaleBar.view = view;
+      scaleBar.unit = "metric";
+      document.getElementById("scaleBarPanel").appendChild(scaleBar);
 
       const zoomLevelPanel    = document.getElementById("zoomLevelPanel");
       const crownLoadingBadge = document.getElementById("crownLoadingBadge");
       const crownLoadingText  = crownLoadingBadge.querySelector("span:last-child");
-      view.watch("zoom", z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; });
+      reactiveUtils.watch(() => view.zoom, z => { zoomLevelPanel.textContent = `Zoom: ${z.toFixed(2)}`; }, { initial: true });
 
       function setCrownLoading(message = "Loading Canopy Layer…") {
         crownLoadingText.textContent = message;
@@ -1244,7 +1255,7 @@
                   if (activeCrownTileLayer && view.scale <= 25000) activeCrownTileLayer.visible = false;
                 }
               };
-              lv.watch("updating", updating => { if (!updating) markReadyIfSettled(); });
+              reactiveUtils.watch(() => lv.updating, updating => { if (!updating) markReadyIfSettled(); });
               markReadyIfSettled();
             }).catch(err => {
               // A broken/incomplete portal item (e.g. a split part whose publish job
@@ -1261,7 +1272,7 @@
           // Restore VTL whenever the user zooms back out past 1:25,000.
           if (activeCrownTileLayer) {
             const _tileRef = activeCrownTileLayer;
-            _vtlHandoffHandle = view.watch("scale", scale => {
+            _vtlHandoffHandle = reactiveUtils.watch(() => view.scale, scale => {
               if (!crownLayerToggle.checked) return;
               if (scale > 25000) {
                 _tileRef.visible = true;
@@ -1281,7 +1292,7 @@
               rings: [[[-25, 45], [10, 45], [10, 60], [-25, 60], [-25, 45]]],
               spatialReference: { wkid: 4326 }
             });
-            const maskGeom = geometryEngine.difference(outerBox, countyFeature.geometry);
+            const maskGeom = differenceOperator.execute(outerBox, countyFeature.geometry);
             if (maskGeom) {
               countyOutlineLayer.add(new Graphic({
                 geometry: maskGeom,
@@ -1320,7 +1331,7 @@
       // ---------------------------------------------------------------------------
       // Eircode / address search
       // ---------------------------------------------------------------------------
-      search.on("select-result", async (event) => {
+      search.addEventListener("arcgisSelectResult", async ({ detail: event }) => {
         const geometry = event.result?.feature?.geometry;
         if (!geometry) return;
         setCrownLoading("Finding county for location…");
@@ -1424,7 +1435,7 @@
         function countyLandAreaKm2(feature) {
           const statsArea = Number(countyStats(feature).land_area_km2);
           if (Number.isFinite(statsArea) && statsArea > 0) return statsArea;
-          const geometryArea = geometryEngine.geodesicArea(feature.geometry, "square-kilometers");
+          const geometryArea = geodeticAreaOperator.execute(feature.geometry, { unit: "square-kilometers" });
           return Number.isFinite(geometryArea) ? Math.abs(geometryArea) : 0;
         }
 
