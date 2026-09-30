@@ -534,18 +534,18 @@
         width: 280px;
         max-width: calc(100vw - 120px);
       }
-      #floatingSearch .esri-search,
-      #floatingSearch .esri-search__container {
+      /* arcgis-search renders in a shadow DOM: style the host element and
+         pass font/colour in through the Calcite variables it reads. */
+      #floatingSearch arcgis-search {
+        display: block;
         border-radius: 8px;
+        overflow: hidden;
         box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-      }
-      #floatingSearch .esri-input,
-      #floatingSearch .esri-widget--button {
         font-family: 'Inter', Arial, sans-serif;
-      }
-      #floatingSearch .esri-search__submit-button,
-      #floatingSearch .esri-search__clear-button {
-        color: #2e7d32;
+        --calcite-font-family: 'Inter', Arial, sans-serif;
+        --calcite-color-brand: #2e7d32;
+        --calcite-color-brand-hover: #256b29;
+        --calcite-color-brand-press: #1f5a22;
       }
 
       /* --------------------------------------------------------------------------- */
